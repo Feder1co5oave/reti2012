@@ -104,23 +104,23 @@ if (setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) 
 
 /**
  * Collega un socket su una specifica porta su uno specifico indirizzo IPv4
- * @param int socket il socket gi‡ creato con socket()
- * @param struct sockaddr *my_addr l'indirizzo ip/porta da bindare; si puÚ usare addrinfo.ai_addr o un sockaddr_in(6)
- * @param int addrlen la lunghezza dell'indirizzo; si puÚ usare addrinfo.ai_addrlen oppure sizeof(sockaddr_in(6))
+ * @param int socket il socket gi√† creato con socket()
+ * @param struct sockaddr *my_addr l'indirizzo ip/porta da bindare; si pu√≤ usare addrinfo.ai_addr o un sockaddr_in(6)
+ * @param int addrlen la lunghezza dell'indirizzo; si pu√≤ usare addrinfo.ai_addrlen oppure sizeof(sockaddr_in(6))
  * @return int -1 su errore (setta errno)
  */
 int bind(int socket, struct sockaddr *my_addr, int addrlen);
 
 /**
  * Si connette a un listening socket su un server.
- * @param int socket il socket client gi‡ creato con socket()
+ * @param int socket il socket client gi√† creato con socket()
  * @param struct sockaddr *server_addr l'indirizzo ip/porta del listening socket
  * @param int addrlen la lunghezza dell'indirizzo, vedi bind()
  */
 int connect(int socket, struct sockaddr *server_addr, int addrlen);
 
 /**
- * Pone in ascolto un socket gi‡ bind()ato.
+ * Pone in ascolto un socket gi√† bind()ato.
  * @param int socket
  * @param int backlog il numero di richieste in entrata che si possono mettere in coda (<= 20)
  */
@@ -128,32 +128,32 @@ int listen(int socket, int backlog);
 
 /**
  * Accetta una connessione in entrata da un listening socket.
- * @param int socket un socket gi‡ bind()ato e listen()ing
- * @param struct sockaddr *addr l'indirizzo di una struct sockaddr_storage che avr‡ l'indirizzo ip/porta del client
+ * @param int socket un socket gi√† bind()ato e listen()ing
+ * @param struct sockaddr *addr l'indirizzo di una struct sockaddr_storage che avr√† l'indirizzo ip/porta del client
  * @param socklen_t *addrlen l'indirizzo di una variabile che contiene la lunghezza di addr (di solito si setta a sizeof(struct sockaddr_storage))
  * @return int un *nuovo* socket descriptor per la comunicazione al client o -1 su errore (setta errno)
  */
 int accept(int socket, struct sockaddr *addr, socklen_t *addrlen);
 
 /**
- * Invia dati attraverso un socket gi‡ aperto con connect() o accept().
- * Se il socket Ë SOCK_DGRAM si deve usare sendto() oppure effettuare prima una connect().
+ * Invia dati attraverso un socket gi√† aperto con connect() o accept().
+ * Se il socket √® SOCK_DGRAM si deve usare sendto() oppure effettuare prima una connect().
  * @param int socket il socket su cui inviare dati
  * @param const void *msg il buffer contenente i dati da inviare
  * @param int len la lughezza del messaggio da inviare
  * @param int flags di solito si setta a 0
- * @return int il numero di byte inviati (<= len) se Ë ok, -1 su errore (setta errno)
+ * @return int il numero di byte inviati (<= len) se √® ok, -1 su errore (setta errno)
  */
 int send(int socket, const void *msg, int len, int flags);
 
 /**
- * Ricevi dati da un socket gi‡ aperto con connect() o accept().
- * Se il socket Ë SOCK_DGRAM si deve usare recvfrom() oppure effettuare prima una connect().
+ * Ricevi dati da un socket gi√† aperto con connect() o accept().
+ * Se il socket √® SOCK_DGRAM si deve usare recvfrom() oppure effettuare prima una connect().
  * @param int socket il socket da cui ricevere i dati
  * @param void *buf il buffer su cui verranno scritti i dati ricevuti
- * @param int len la dimensione del buffer, cioË il numero *massimo* di byte da ricevere
+ * @param int len la dimensione del buffer, cio√® il numero *massimo* di byte da ricevere
  * @param int flags di solito si setta a 0 (o MSG_WAIALL se si vuole aspettare che arrivino *tutti* i len byte)
- * @return int il numero di byte effettivamente ricevuti (<= len) se Ë ok, 0 se l'host remoto ha chiuso la connessione, -1 su errore (setta errno)
+ * @return int il numero di byte effettivamente ricevuti (<= len) se √® ok, 0 se l'host remoto ha chiuso la connessione, -1 su errore (setta errno)
  */
 int recv(int socket, void *buf, int len, int flags);
 
@@ -184,8 +184,8 @@ uint16_t ntohs(uint16_t netshort);
  * nella rappresentazione a bit.
  * @param int addr_family AF_INET o AF_INET6
  * @param const char *str la stringa contenente l'indirizzo
- * @param void *dst l'indirizzo della struttura dati che conterr‡ l'IP, di solito una in(6)_addr
- * @return 1 se ok, -1 su errore (setta errno) o 0 se l'indirizzo IP non Ë valido
+ * @param void *dst l'indirizzo della struttura dati che conterr√† l'IP, di solito una in(6)_addr
+ * @return 1 se ok, -1 su errore (setta errno) o 0 se l'indirizzo IP non √® valido
  */
 int inet_pton(int addr_family, const char *str, void *dst);
 
@@ -194,7 +194,7 @@ int inet_pton(int addr_family, const char *str, void *dst);
  * in una rappresentazione in stringa.
  * @param int addr_family AF_INET o AF_INET6
  * @param const void *src la struttura che contiene l'IP, di solito una in(6)_addr
- * @param char *dst il buffer che conterr‡ la stringa con la rappresentazione
+ * @param char *dst il buffer che conterr√† la stringa con la rappresentazione
  * @param int size la lunghezza del buffer, di solito INET_ADDRSTRLEN o INET6_ADDRSTRLEN
  * @return const char* l'indirizzo del buffer se ok, NULL su errore (setta errno)
  */
@@ -215,13 +215,13 @@ struct addrinfo {
 };
 
 /**
- * Funzione di utilit‡ generale, risolve nomi DNS e nomi di servizi.
+ * Funzione di utilit√† generale, risolve nomi DNS e nomi di servizi.
  * Solitamente si compila una struct addrinfo con alcune informazioni, dopo averla azzerata completamente con memset().
- * In ai_flags si mette AI_PASSIVE per lasciare vuoto l'indirizzo IP, che verr‡ riempito poi automaticamente con quello dell'host corrente.
- * @param const char *hostname il nome dell'host, cioË un indirizzo IP o un nome DNS, NULL se si usa hints con AI_PASSIVE
- * @param const char *port una stringa contenente un numero di porta o il nome di un servizio che sar‡ tradotto usando /etc/services
- * @param const struct addrinfo *hints contiene dei dati parziali che la funzione cercher‡ di riempire
- * @param struct addrinfo **res un puntatore passato per indirizzo, che conterr‡ l'indirizzo di una linkedlist di addrinfo contenenti i risultati trovati
+ * In ai_flags si mette AI_PASSIVE per lasciare vuoto l'indirizzo IP, che verr√† riempito poi automaticamente con quello dell'host corrente.
+ * @param const char *hostname il nome dell'host, cio√® un indirizzo IP o un nome DNS, NULL se si usa hints con AI_PASSIVE
+ * @param const char *port una stringa contenente un numero di porta o il nome di un servizio che sar√† tradotto usando /etc/services
+ * @param const struct addrinfo *hints contiene dei dati parziali che la funzione cercher√† di riempire
+ * @param struct addrinfo **res un puntatore passato per indirizzo, che conterr√† l'indirizzo di una linkedlist di addrinfo contenenti i risultati trovati
  * @return int 0 se ok, un codice di errore nonzero su errore - vedi gai_strerror()
  */
 int getaddrinfo(const char *hostname, const char *port, const struct addrinfo *hints, struct addrinfo **res);
@@ -237,3 +237,29 @@ void freeaddrinfo(struct addrinfo *res);
  * @return la stringa di errore
  */
 const char *gai_strerror(int code)
+
+/**
+ * Macro di manipolazione per i set di descrittori da dare alla select().
+ */
+FD_SET(int descriptor, fd_set *set);
+FD_CLR(int descriptor, fd_set *set);
+FD_ISSET(int descriptor, fd_set *set);
+FD_ZERO(fd_set *set);
+
+/**
+ * Aspetta fino a quando uno degli stream inseriti in readfds/writefds/exceptionfds non
+ * √® pronto a ricevere/inviare dati o c'√® un errore, oppure fino a quando non scade il timeout.
+ * Al ritorno, se >0, i set sono stati modificati e sono alzati solo i flag dei descrittori che sono pronti.
+ * Se √® pronto un descrittore in readfds, la recv() sar√† "non bloccante".
+ * @param int max_n il descrittore di valore massimo presente nei set (permette di restringere la ricerca)
+ * @param fd_set *readfds il set dei descrittori su cui voglio attendere che arrivino dati
+ * @param fd_set *writefds il set di descrittori su cui voglio attendere che il buffer di uscita sia non pieno
+ * @param fd_set *exceptionfds il set di descrittori su cui voglio attendere per un errore
+ * @return int >0 se ok (i set sono stati modificati), 0 se √® scaduto il timeout, -1 su errore (setta errno)
+ */
+int select (int max_n, fd_set *readfds, fd_set *writefds, fd_set *exceptionfds, struct timeval *timeout);
+
+struct timeval {
+	time_t      tv_sec;
+	suseconds_t tv_usec;
+};
