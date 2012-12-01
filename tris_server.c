@@ -82,17 +82,18 @@ int main (int argc, char **argv) {
 					
 					sock_client = i;
 					
-					if ( (received = recv(sock_client, buffer, 4096, 0)) <= 0) {
+					if ( (received = recv(sock_client, buffer, 4096, 0)) < 0) {
 						perror("Errore su recv()");
-					} else {
+					} else if (received > 0) {
 						buffer[received] = 0;
-						puts(buffer);
+						printf("%s", buffer);
+					} else {
+						puts("Client sconnesso.");
+					
+						shutdown(sock_client, SHUT_RDWR);
+						close(sock_client);
+						FD_CLR(sock_client, &readfds);
 					}
-					
-					shutdown(sock_client, SHUT_RDWR);
-					close(sock_client);
-					FD_CLR(sock_client, &readfds);
-					
 				}
 				break;
 				
@@ -113,10 +114,17 @@ int main (int argc, char **argv) {
 		_writefds = writefds;
 	}
 	
+	for (i = 0; i <= 20; i++) {
+		if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
+			shutdown(i, SHUT_RDWR);
+			close(i);
+		}
+	}
+	
 	if (sel_status == 0) puts("Timeout.");
 	else perror("Errore su select()");
 	
-	close(sock_listen);
+	//close(sock_listen);
 
 	return 0;
 }
