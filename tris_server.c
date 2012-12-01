@@ -5,31 +5,25 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
 #define BACKLOG 5
 
-
-typedef struct {
-	char *username;
-	int socket;
-	struct addrinfo address;
-	enum State state;
-} tris_client_t;
-
-
-
-
-
+char buffer[4097];
 
 int main (int argc, char **argv) {
 	struct sockaddr_in myhost;
-	int sock_listen, yes = 1, pid, status;
-	
+	int sock_listen, yes = 1, sel_status, i, received;
 	struct sockaddr_storage yourhost;
 	int sock_client, addrlen = sizeof(yourhost);
+	fd_set readfds, writefds, _readfds, _writefds;
+	struct timeval tv = {20, 0};
+	
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		puts("Usage: tris_server <host> <porta>");
@@ -65,28 +59,64 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 	
-	while ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
-		pid = fork();
-		
-		if ( pid == 0 ) { // child process
-			if ( send(sock_client, "Hello world!\n", 13, 0) != 13 ) {
-				perror("Errore send()");
+	FD_SET(sock_listen, &readfds);
+	_readfds = readfds;
+	_writefds = writefds;
+	
+	
+	while ( (sel_status = select(20, &_readfds, &_writefds, NULL, &tv)) > 0 ) {
+		for (i = 0; i <= 20; i++) {
+			if ( FD_ISSET(i, &_readfds) ) { // i == sock_listen
+				if (i == sock_listen) {
+					
+					if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
+						FD_SET(sock_client, &writefds);
+						FD_SET(sock_client, &readfds);
+					} else {
+						perror("Errore accept()");
+						close(sock_listen);
+						return 1;
+					}
+					
+				} else {
+					
+					sock_client = i;
+					
+					if ( (received = recv(sock_client, buffer, 4096, 0)) <= 0) {
+						perror("Errore su recv()");
+					} else {
+						buffer[received] = 0;
+						puts(buffer);
+					}
+					
+					shutdown(sock_client, SHUT_RDWR);
+					close(sock_client);
+					FD_CLR(sock_client, &readfds);
+					
+				}
+				break;
+				
+			} else if ( FD_ISSET(i, &_writefds) ) {
+				
+				sock_client = i;
+				if ( send(sock_client, "Hello world!\n", 13, 0) != 13 ) {
+					perror("Errore send()");
+				}
+				
+				FD_CLR(sock_client, &writefds);
+				
+				break;
+				
 			}
-			
-			shutdown(sock_client, SHUT_RDWR);
-			close(sock_client);
-			
-			_exit(0);
-		} else if ( pid < 0 ) {
-		
-			perror("Errore fork()");
 		}
+		_readfds = readfds;
+		_writefds = writefds;
 	}
 	
-	perror("Errore accept()");
-	close(sock_listen);
+	if (sel_status == 0) puts("Timeout.");
+	else perror("Errore su select()");
 	
-	while ( wait(&status) > 0 ); // wait death of child processes
+	close(sock_listen);
 
 	return 0;
 }
