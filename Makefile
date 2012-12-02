@@ -5,4 +5,4 @@ CFLAGS = -Wall -pedantic
 
 all : tris_server tris_client
 	
-
+tris_server tris_client : pack.o
