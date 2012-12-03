@@ -1,13 +1,21 @@
 CC = gcc
-CFLAGS = -Wall -pedantic
+CFLAGS = -Wall -pedantic -g
 
-OBJS = pack.o client_list.o tris_client tris_server
+EXEs = tris_client tris_server
+SOBJs = client_list.o
+COBJs =
+COMMONOBJs = common.o pack.o
+OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
 .PHONY : all clean
 
-all : tris_server tris_client
+all : $(EXEs)
 	
-tris_server tris_client : pack.o client_list.o
+tris_server : $(COMMONOBJs) $(SOBJs)
+
+tris_client : $(COMMONOBJs) $(COBJs)
+
+%.o : %.c %.h
 
 clean :
-	- rm $(OBJS)
+	- rm $(OBJs) $(EXEs)

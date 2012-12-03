@@ -17,15 +17,14 @@ struct client_node *create_client_node() {
 }
 
 void destroy_client_node(struct client_node *cn) {
-	struct client_node *cn2 = cn->next;
+	struct client_node *cn2;
 	while ( cn != NULL ) {
+		cn2 = cn->next;
 		if (cn->data != NULL) free(cn->data);
 		free(cn);
 		cn = cn2;
-		cn2 = cn->next;
 	}
 }
-
 
 
 void add_client_node(struct client_node *cn) {
@@ -36,6 +35,7 @@ void add_client_node(struct client_node *cn) {
 		client_list.tail = cn;
 	}
 	cn->next = NULL;
+	client_list.count++;
 }
 
 struct client_node *remove_client_node(struct client_node *cn) {
@@ -43,10 +43,12 @@ struct client_node *remove_client_node(struct client_node *cn) {
 	
 	if ( client_list.head == cn ) client_list.head = cn->next;
 	ptr = client_list.head;
-	while ( ptr->next != cn ) ptr = ptr->next;
-	ptr->next = cn->next;
+	if ( client_list.head != NULL) {
+		while ( ptr->next != cn ) ptr = ptr->next;
+		ptr->next = cn->next;
+	}
 	if ( cn == client_list.tail ) client_list.tail = ptr;
-	
+	client_list.count--;
 	return cn;
 }
 

@@ -12,7 +12,7 @@ struct client_node {
 	char username[MAX_USERNAME_LENGTH];
 	int socket;
 	struct sockaddr_in addr;
-	u_int16_t udp_port;
+	uint16_t udp_port;
 	enum client_state state;
 	struct client_node *next;
 	char *data;
@@ -25,6 +25,7 @@ void destroy_client_node(struct client_node *cn);
 
 struct {
 	struct client_node *head, *tail;
+	int count;
 } client_list;
 
 void add_client_node(struct client_node *cn);

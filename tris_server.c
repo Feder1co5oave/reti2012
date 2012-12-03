@@ -17,23 +17,29 @@
 #define BACKLOG 5
 
 #define update_maxfds(n) maxfds = (maxfds < (n) ? (n) : maxfds)
+#define monitor_socket_r(sock) { FD_SET(sock, &readfds); update_maxfds(sock); }
+#define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
+#define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
+#define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
+
 
 char buffer[4097];
 
+fd_set readfds, writefds;
+int maxfds = -1;
+struct timeval tv = DEFAULT_TIMEOUT_INIT;
+
+struct sockaddr_in myhost, yourhost;
+int sock_listen, sock_client;
+socklen_t addrlen = sizeof(yourhost);
+
+int yes = 1, sel_status, i, received;
+
 int main (int argc, char **argv) {
-	struct sockaddr_in myhost;
-	int sock_listen;
 	
-	int yes = 1, sel_status, i, received;
-	
-	struct sockaddr_in yourhost;
-	int sock_client, addrlen = sizeof(yourhost);
-	
-	fd_set readfds, writefds, _readfds, _writefds;
-	int maxfds = -1;
-	struct timeval tv = DEFAULT_TIMEOUT;
+	fd_set _readfds, _writefds;
 	client_list.head = client_list.tail = NULL;
-	
+	client_list.count = 0;
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		puts("Usage: tris_server <host> <porta>");
@@ -46,7 +52,7 @@ int main (int argc, char **argv) {
 	}
 	
 	myhost.sin_family = AF_INET;
-	myhost.sin_port = htons((u_int16_t) atoi(argv[2]));
+	myhost.sin_port = htons((uint16_t) atoi(argv[2]));
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
 	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
@@ -69,10 +75,14 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 	
+	inet_ntop(AF_INET, &(myhost.sin_addr), buffer, INET_ADDRSTRLEN);
+	printf("Server listening on %s:%hu\n", buffer, ntohs(myhost.sin_port));
+	
 	FD_ZERO(&readfds);
 	FD_ZERO(&writefds);
-	FD_SET(sock_listen, &readfds);
-	update_maxfds(sock_listen);
+	/* FD_SET(sock_listen, &readfds);
+	update_maxfds(sock_listen); */
+	monitor_socket_r(sock_listen);
 	_readfds = readfds;
 	_writefds = writefds;
 	
@@ -83,15 +93,16 @@ int main (int argc, char **argv) {
 				if ( i == sock_listen ) {
 					
 					if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
-						struct client_node *nc = create_client_node();
+						struct client_node *client = create_client_node();
 						inet_ntop(AF_INET, &(yourhost.sin_addr), buffer, INET_ADDRSTRLEN);
-						printf("[user unknown] %s:%hu connected\n", buffer, ntohs(yourhost.sin_port));
+						printf("Incoming connection from %s:%hu\n", buffer, ntohs(yourhost.sin_port));
 						
-						add_client_node(nc);
-						nc->addr = yourhost;
-						nc->socket = sock_client;
-						FD_SET(sock_client, &readfds);
-						update_maxfds(sock_client);
+						add_client_node(client);
+						client->addr = yourhost;
+						client->socket = sock_client;
+						/* FD_SET(sock_client, &readfds);
+						update_maxfds(sock_client); */
+						monitor_socket_r(sock_client);
 					} else {
 						perror("Errore accept()");
 						close(sock_listen);
@@ -143,16 +154,12 @@ int main (int argc, char **argv) {
 				break;
 				
 			} else if ( FD_ISSET(i, &_writefds) ) {
-				
+				struct client_node *client;
 				sock_client = i;
-				if ( send(sock_client, "Hello world!\n", 13, 0) != 13 ) {
-					perror("Errore send()");
-				}
 				
 				FD_CLR(sock_client, &writefds);
 				
 				break;
-				
 			}
 		}
 		_readfds = readfds;
