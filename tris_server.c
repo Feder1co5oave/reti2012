@@ -10,77 +10,13 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "common.h"
 #include "pack.h"
+#include "client_list.h"
 
 #define BACKLOG 5
-#define MAX_USERNAME_LENGTH 30
 
 #define update_maxfds(n) maxfds = (maxfds < (n) ? (n) : maxfds)
-
-enum client_state { NONE, CONNECTED, FREE, BUSY };
-
-struct client_node {
-	char username_len;
-	char username[MAX_USERNAME_LENGTH];
-	int socket;
-	struct sockaddr_in addr;
-	u_int16_t udp_port;
-	enum client_state state;
-	struct client_node *next;
-};
-
-struct client_node *create_client_node() {
-	struct client_node *cn = (struct client_node*) malloc(sizeof(struct client_node));
-	if ( cn == NULL ) {
-		fprintf(stderr, "Errore su malloc()");
-		exit(-1);
-	}
-	memset(cn, 0, sizeof(struct client_node));
-	cn->state = NONE;
-	cn->next = NULL;
-	return cn;
-}
-
-void destroy_client_node(struct client_node *cn) {
-	struct client_node *cn2 = cn->next;
-	while ( cn != NULL ) {
-		free(cn);
-		cn = cn2;
-		cn2 = cn->next;
-	}
-}
-
-struct {
-	struct client_node *head, *tail;
-} client_list = {NULL, NULL};
-
-void add_client_node(struct client_node *cn) {
-	if ( client_list.tail == NULL ) {
-		client_list.head = client_list.tail = cn;
-	} else {
-		client_list.tail->next = cn;
-		client_list.tail = cn;
-	}
-	cn->next = NULL;
-}
-
-struct client_node *remove_client_node(struct client_node *cn) {
-	struct client_node *ptr;
-	
-	if ( client_list.head == cn ) client_list.head = cn->next;
-	ptr = client_list.head;
-	while ( ptr->next != cn ) ptr = ptr->next;
-	ptr->next = cn->next;
-	if ( cn == client_list.tail ) client_list.tail = ptr;
-	
-	return cn;
-}
-
-struct client_node *get_client_by_socket(int socket) {
-	struct client_node *nc = client_list.head;
-	while (nc && nc->socket != socket) nc = nc->next;
-	return nc;
-}
 
 char buffer[4097];
 
@@ -95,8 +31,8 @@ int main (int argc, char **argv) {
 	
 	fd_set readfds, writefds, _readfds, _writefds;
 	int maxfds = -1;
-	struct timeval tv = {60, 0};
-	
+	struct timeval tv = DEFAULT_TIMEOUT;
+	client_list.head = client_list.tail = NULL;
 	
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
@@ -176,12 +112,7 @@ int main (int argc, char **argv) {
 						case NONE:
 							if ( (received = recv(sock_client, buffer, 1, 0)) == 1) {
 								unpack(buffer, "b", &(client->username_len));
-								/* client->username_len = buffer[0]; */
 								if ( (received = recv(sock_client, buffer, client->username_len + 2, 0)) == client->username_len + 2 ) {
-									/* memcpy(&(client->username), buffer, client->username_len);
-									client->username[client->username_len] = '\0';
-									memcpy(&(client->udp_port), &buffer[client->username_len], 2);
-									client->udp_port = ntohs(client->udp_port); */
 									unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
 									inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 									printf("[user %s] Listening on %s:%hu\n", client->username, buffer, client->udp_port);
