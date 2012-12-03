@@ -10,6 +10,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include "pack.h"
+
 #define BACKLOG 5
 #define MAX_USERNAME_LENGTH 30
 
@@ -173,13 +175,16 @@ int main (int argc, char **argv) {
 					switch (client->state) {
 						case NONE:
 							if ( (received = recv(sock_client, buffer, 1, 0)) == 1) {
-								client->username_len = buffer[0];
+								unpack(buffer, "b", &(client->username_len));
+								/* client->username_len = buffer[0]; */
 								if ( (received = recv(sock_client, buffer, client->username_len + 2, 0)) == client->username_len + 2 ) {
-									memcpy(&(client->username), buffer, client->username_len);
+									/* memcpy(&(client->username), buffer, client->username_len);
 									client->username[client->username_len] = '\0';
 									memcpy(&(client->udp_port), &buffer[client->username_len], 2);
-									client->udp_port = ntohs(client->udp_port);
-									printf("[user %s] Listening on port %hu\n", client->username, client->udp_port);
+									client->udp_port = ntohs(client->udp_port); */
+									unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
+									inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
+									printf("[user %s] Listening on %s:%hu\n", client->username, buffer, client->udp_port);
 								}
 							}
 							break;

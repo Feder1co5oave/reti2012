@@ -2,7 +2,6 @@
 #define _PACK_H
 
 #include <stdarg.h>
-#include <netinet/in.h>
 
 /**
  * Format specifiers:
@@ -16,7 +15,13 @@
 int pack(void *buffer, const char *format, ...);
 
 /**
- * 
+ * Format specifiers:
+ * b
+ * w
+ * l
+ * s - fixed length string. The length must be provided as argument, before the char* (e.g. unpack(buff, "s", 12, &str) extract 12 chars).
+ * All numbers are extracted from network-byte-order to host-byte-order.
+ * Strings will be 0-ended.
  */
 void unpack(const void *buffer, const char *format, ...);
 
