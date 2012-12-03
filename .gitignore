@@ -1,1 +1,2 @@
-tris_server.exe
+*.exe
+*.o
