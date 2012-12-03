@@ -22,6 +22,12 @@
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
 
+void get_username(struct client_node*);
+void client_disconnected(struct client_node*);
+void idle_free(struct client_node*);
+void idle_busy(struct client_node*);
+void send_badreq(struct client_node*);
+void send_data(struct client_node*);
 
 char buffer[4097];
 
@@ -100,6 +106,8 @@ int main (int argc, char **argv) {
 						add_client_node(client);
 						client->addr = yourhost;
 						client->socket = sock_client;
+						client->state = FREE;
+						client->read_dispatch = &get_username;
 						/* FD_SET(sock_client, &readfds);
 						update_maxfds(sock_client); */
 						monitor_socket_r(sock_client);
@@ -114,41 +122,13 @@ int main (int argc, char **argv) {
 					sock_client = i;
 					
 					client = get_client_by_socket(sock_client);
-					if (client == NULL) {
-						FD_CLR(sock_client, &readfds);
+					if ( client != NULL ) {
+						client->read_dispatch(client);
+					} else { /* non dovrebbe mai succedere */
+						unmonitor_socket_r(sock_client);
+						unmonitor_socket_w(sock_client);
+						shutdown(sock_client, SH_RDWR);
 						close(sock_client);
-					}
-					
-					switch (client->state) {
-						case NONE:
-							if ( (received = recv(sock_client, buffer, 1, 0)) == 1) {
-								unpack(buffer, "b", &(client->username_len));
-								if ( (received = recv(sock_client, buffer, client->username_len + 2, 0)) == client->username_len + 2 ) {
-									unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
-									inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-									printf("[user %s] Listening on %s:%hu\n", client->username, buffer, client->udp_port);
-								}
-							}
-							break;
-						case CONNECTED:
-							break;
-						case FREE:
-							break;
-						case BUSY:
-							break;
-					}
-					
-					if ( (received = recv(sock_client, buffer, 4096, 0)) < 0) {
-						perror("Errore su recv()");
-					} else if (received > 0) {
-						buffer[received] = 0;
-						printf("%s", buffer);
-					} else {
-						puts("Client sconnesso.");
-					
-						shutdown(sock_client, SHUT_RDWR);
-						close(sock_client);
-						FD_CLR(sock_client, &readfds);
 					}
 				}
 				break;
@@ -157,7 +137,15 @@ int main (int argc, char **argv) {
 				struct client_node *client;
 				sock_client = i;
 				
-				FD_CLR(sock_client, &writefds);
+				client = get_client_by_socket(sock_client);
+				if ( client != NULL ) {
+					client->write_dispatch(client);
+				} else { /* non dovrebbe mai succedere */
+					unmonitor_socket_r(sock_client);
+					unmonitor_socket_w(sock_client);
+					shutdown(sock_client, SH_RDWR);
+					close(sock_client);
+				}
 				
 				break;
 			}
@@ -177,4 +165,103 @@ int main (int argc, char **argv) {
 	else perror("Errore su select()");
 	
 	return 0;
+}
+
+void get_username(struct client_node *client) {
+	received = recv(client->socket, buffer, 1, 0);
+	if ( received == 1 ) {
+		unpack(buffer, "b", &(client->username_len));
+		received = recv(client->socket, buffer, client->username_len + 2, 0);
+		if ( received == client->username_len + 2 ) {
+			unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
+			inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
+			printf("Client %s:%hu has username \"%s\"\n", buffer, ntohs(client->addr.sin_port), client->username);
+			printf("[%s] Listening on %s:%hu\n", client->username, buffer, client->udp_port);
+			
+			client->state = FREE;
+			client->read_dispatch = &idle_free;
+		} else client_disconnected(client);
+	} else client_disconnected(client);
+}
+
+void idle_free(struct client_node *client) {
+	uint8_t cmd;
+	received = recv(client->socket, &cmd, 1, 0);
+	if ( received == 1 ) {
+		int total_length;
+		struct client_node *cn;
+		switch ( cmd ) {
+			case REQ_WHO:
+				total_length = 1 + 4 + client_list.count;
+				for (cn = client_list.head; cn != NULL; cn = cn->next )
+					total_length += cn->username_len;
+				client->data = (char*) malloc(total_length);
+				check_alloc(client->data);
+				client->data_cursor = 0;
+				pack(client->data, "bl", RESP_WHO, client_list.count);
+				client->data_count = 5;
+				for (cn = client_list.head; cn != NULL; cn = cn->next ) {
+					pack(client->data + client->data_count, "bs", client->username_len, client->username);
+					client->data_count += client->username_len + 1;
+				}
+				client->write_dispatch = &send_data;
+				monitor_socket_w(client->socket);
+				unmonitor_socket_r(client->socket);
+				break;
+			
+			case REQ_PLAY:
+			
+				break;
+			
+			default:
+				client->write_dispatch = &send_badreq;
+				unmonitor_socket_r(client->socket);
+				monitor_socket_w(client->socket);
+		}
+	} else client_disconnected(client);
+}
+
+void idle_busy(struct client_node *client) {
+	
+}
+
+void client_disconnected(struct client_node *client) {
+	inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
+	if ( client->state == FREE || client->state == BUSY )
+		printf("[%s] %s:%hu disconnected\n", client->username, buffer, ntohs(client->addr.sin_port));
+	else
+		printf("[unknown] %s:%hu disconnected\n", buffer, ntohs(client->addr.sin_port));
+		
+	shutdown(client->socket, SHUT_RDWR);
+	close(client->socket);
+	unmonitor_socket_r(client->socket);
+	unmonitor_socket_w(client->socket);
+	destroy_client_node(remove_client_node(client));
+}
+
+void send_badreq(struct client_node *client) {
+	client->data = (char*) malloc(1);
+	check_alloc(client->data);
+	client->data[0] = RESP_BADREQ;
+	client->data_count = 1;
+	client->data_cursor = 0;
+	client->write_dispatch = &send_data;
+	send_data(client);
+}
+
+void send_data(struct client_node *client) {
+	int sent = send(client->socket, client->data, client->data_count - client->data_cursor, 0);
+	if ( sent > 0 ) {
+		client->data_cursor += sent;
+		if ( client->data_cursor == client->data_count ) {
+			free(client->data);
+			client->data = NULL;
+			if ( client->state == BUSY )
+				client->read_dispatch = &idle_busy;
+			else
+				client->read_dispatch = &idle_free;
+			monitor_socket_r(client->socket);
+			unmonitor_socket_w(client->socket);
+		}
+	} else client_disconnected(client);
 }

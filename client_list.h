@@ -16,7 +16,8 @@ struct client_node {
 	enum client_state state;
 	struct client_node *next;
 	char *data;
-	int data_counter, data_cursor;
+	int data_count, data_cursor;
+	void (*read_dispatch)(struct client_node*), (*write_dispatch)(struct client_node*);
 };
 
 struct client_node *create_client_node();
