@@ -313,7 +313,11 @@ void send_data(struct client_node *client) {
 
 void server_shell() {
 	gets(buffer);
-	if ( strcmp(buffer, "who") == 0 ) {
+	
+	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
+		printf("Commands: help, who, exit\n> ");
+		fflush(stdout);
+	} else if ( strcmp(buffer, "who") == 0 ) {
 		struct client_node *cn;
 		if (client_list.count == 0) {
 			printf("Non ci sono client connessi.\n> ");
@@ -325,7 +329,19 @@ void server_shell() {
 				inet_ntop(AF_INET, &(cn->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 				printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
 			}
+			printf("> "); fflush(stdout);
 		}
+	} else if ( strcmp(buffer, "exit") == 0 ) {
+		puts("Exiting...");
+		for ( i = 0; i <= maxfds; i++ ) {
+			if ( i == STDIN_FILENO ) continue;
+			if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
+				shutdown(i, SHUT_RDWR);
+				close(i);
+			}
+		}
+		destroy_client_list(client_list.head);
+		exit(0);
 	} else {
 		printf("Unknown command\n> ");
 		fflush(stdout);
