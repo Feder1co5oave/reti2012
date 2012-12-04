@@ -33,6 +33,8 @@ void send_byte(struct client_node* client, uint8_t byte);
 
 /* ========================================================================== */
 
+void server_shell(void);
+
 char buffer[4097];
 
 fd_set readfds, writefds;
@@ -91,6 +93,7 @@ int main (int argc, char **argv) {
 	FD_ZERO(&readfds);
 	FD_ZERO(&writefds);
 	monitor_socket_r(sock_listen);
+	monitor_socket_r(STDIN_FILENO);
 	_readfds = readfds;
 	_writefds = writefds;
 	
@@ -115,6 +118,8 @@ int main (int argc, char **argv) {
 						close(sock_listen);
 						return 1;
 					}
+				} else if ( i == STDIN_FILENO ) {
+					server_shell();
 				} else {
 					struct client_node *client;
 					sock_client = i;
@@ -238,7 +243,7 @@ void idle_free(struct client_node *client) {
 			break;
 		
 		case REQ_PLAY:
-		
+			
 			break;
 		
 		default:
@@ -298,4 +303,22 @@ void send_data(struct client_node *client) {
 			unmonitor_socket_w(client->socket);
 		}
 	} else client_disconnected(client);
+}
+
+void server_shell() {
+	gets(buffer);
+	if ( strcmp(buffer, "who") == 0 ) {
+		struct client_node *cn;
+		if (client_list.count == 0)
+			puts("Non ci sono client connessi.");
+		else {
+			printf("Ci sono %d client connessi:\n", client_list.count);
+			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
+				inet_ntop(AF_INET, &(cn->addr.sin_addr), buffer, INET_ADDRSTRLEN);
+				printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
+			}
+		}
+	} else {
+		puts("Unknown command");
+	}
 }
