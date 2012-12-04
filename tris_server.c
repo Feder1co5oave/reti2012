@@ -266,7 +266,8 @@ void client_disconnected(struct client_node *client) {
 	close(client->socket);
 	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
-	destroy_client_node(remove_client_node(client));
+	remove_client_node(client);
+	destroy_client_node(client);
 }
 
 void send_byte(struct client_node *client, uint8_t byte) {

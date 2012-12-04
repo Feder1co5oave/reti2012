@@ -16,14 +16,16 @@ struct client_node *create_client_node() {
 	return cn;
 }
 
-void destroy_client_node(struct client_node *cn) {
-	struct client_node *cn2;
-	while ( cn != NULL ) {
-		cn2 = cn->next;
-		if (cn->data != NULL) free(cn->data);
-		free(cn);
-		cn = cn2;
-	}
+struct client_node *destroy_client_node(struct client_node *cn) {
+	struct client_node *ret = cn->next;
+	if ( cn->data != NULL ) free(cn->data);
+	free(cn);
+	return ret;
+}
+
+void destroy_client_list(struct client_node *cn) {
+	while ( cn != NULL )
+		cn = destroy_client_node(cn);
 }
 
 
@@ -49,7 +51,7 @@ struct client_node *remove_client_node(struct client_node *cn) {
 	}
 	if ( cn == client_list.tail ) client_list.tail = ptr;
 	client_list.count--;
-	return cn;
+	return ptr;
 }
 
 struct client_node *get_client_by_socket(int socket) {
