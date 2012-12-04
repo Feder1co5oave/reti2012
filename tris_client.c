@@ -13,7 +13,7 @@
 #include "pack.h"
 #include "common.h"
 
-int main (void) {
+int main (int argc, char **argv) {
 	int sock;
 	char buf[20];
 	struct addrinfo hints, *gai_results, *p;
@@ -21,6 +21,11 @@ int main (void) {
 	uint8_t resp;
 	uint32_t size;
 	int i, length;
+	
+	if (argc != 2) {
+		puts("Usage: tris_client <username>");
+		return 1;
+	}
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
@@ -31,8 +36,8 @@ int main (void) {
 	sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 	connect(sock, p->ai_addr, p->ai_addrlen);
 	
-	size = pack(buf, "bbsw", REQ_LOGIN, (uint8_t) 4, "fede", port);
-	send(sock, buf, 8, 0);
+	size = pack(buf, "bbsw", REQ_LOGIN, (uint8_t) strlen(argv[1]), argv[1], port);
+	send(sock, buf, 4 + strlen(argv[1]), 0);
 	recv(sock, &resp, 1, 0);
 	if ( resp == RESP_OK_LOGIN ) puts("Connesso e loggato");
 	else if ( resp == RESP_BADUSR ) puts("Username non valido");
@@ -42,8 +47,8 @@ int main (void) {
 	send(sock, buf, 1, 0);
 	recv(sock, &resp, 1, 0);
 	if ( resp == RESP_WHO ) {
-	recv(sock, buf, 4, 0);
-	unpack(buf, "l", &size);
+		recv(sock, buf, 4, 0);
+		unpack(buf, "l", &size);
 		printf("Ci sono %d client connessi\n", size);
 		if (size > 10) return 1;
 		for (i = 0; i < size; i++) {
