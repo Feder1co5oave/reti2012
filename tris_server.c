@@ -159,8 +159,13 @@ int main (int argc, char **argv) {
 		}
 	}
 	
-	if ( sel_status == 0 ) puts("Timeout.");
-	else perror("Errore su select()");
+	if ( sel_status == 0 ) {
+		puts("Timeout. Exit.");
+		return 0;
+	} else {
+		perror("Errore su select()");
+		return 1;
+	}
 	
 	return 0;
 }
@@ -224,8 +229,8 @@ void idle_free(struct client_node *client) {
 			pack(client->data, "bl", RESP_WHO, client_list.count);
 			client->data_count = 5;
 			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
-				pack(client->data + client->data_count, "bs", client->username_len, client->username);
-				client->data_count += client->username_len + 1;
+				pack(client->data + client->data_count, "bs", cn->username_len, cn->username);
+				client->data_count += cn->username_len + 1;
 			}
 			client->write_dispatch = &send_data;
 			monitor_socket_w(client->socket);
