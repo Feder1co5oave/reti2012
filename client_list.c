@@ -54,6 +54,13 @@ struct client_node *remove_client_node(struct client_node *cn) {
 
 struct client_node *get_client_by_socket(int socket) {
 	struct client_node *nc = client_list.head;
-	while (nc && nc->socket != socket) nc = nc->next;
+	while ( nc && nc->socket != socket ) nc = nc->next;
+	return nc;
+}
+
+struct client_node *get_client_by_username(const char *username) {
+	struct client_node *nc = client_list.head;
+	while ( nc && (strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
+		nc = nc->next;
 	return nc;
 }

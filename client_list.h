@@ -15,9 +15,11 @@ struct client_node {
 	uint16_t udp_port;
 	enum client_state state;
 	struct client_node *next;
+	uint8_t byte_resp;
 	char *data;
 	int data_count, data_cursor;
-	void (*read_dispatch)(struct client_node*), (*write_dispatch)(struct client_node*);
+	void (*read_dispatch)(struct client_node*);
+	void (*write_dispatch)(struct client_node*);
 };
 
 struct client_node *create_client_node();
@@ -34,5 +36,7 @@ void add_client_node(struct client_node *cn);
 struct client_node *remove_client_node(struct client_node *cn);
 
 struct client_node *get_client_by_socket(int socket);
+
+struct client_node *get_client_by_username(const char *username);
 
 #endif
