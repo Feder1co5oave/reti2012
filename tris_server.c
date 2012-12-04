@@ -88,7 +88,8 @@ int main (int argc, char **argv) {
 	}
 	
 	inet_ntop(AF_INET, &(myhost.sin_addr), buffer, INET_ADDRSTRLEN);
-	printf("Server listening on %s:%hu\n", buffer, ntohs(myhost.sin_port));
+	printf("Server listening on %s:%hu\n> ", buffer, ntohs(myhost.sin_port));
+	fflush(stdout);
 	
 	FD_ZERO(&readfds);
 	FD_ZERO(&writefds);
@@ -105,7 +106,8 @@ int main (int argc, char **argv) {
 					if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
 						struct client_node *client = create_client_node();
 						inet_ntop(AF_INET, &(yourhost.sin_addr), buffer, INET_ADDRSTRLEN);
-						printf("Incoming connection from %s:%hu\n", buffer, ntohs(yourhost.sin_port));
+						printf("\nIncoming connection from %s:%hu\n> ", buffer, ntohs(yourhost.sin_port));
+						fflush(stdout);
 						
 						add_client_node(client);
 						client->addr = yourhost;
@@ -158,6 +160,7 @@ int main (int argc, char **argv) {
 	}
 	
 	for ( i = 0; i <= maxfds; i++ ) {
+		if ( i == STDIN_FILENO ) continue;
 		if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
 			shutdown(i, SHUT_RDWR);
 			close(i);
@@ -165,7 +168,7 @@ int main (int argc, char **argv) {
 	}
 	
 	if ( sel_status == 0 ) {
-		puts("Timeout. Exit.");
+		puts("\nTimeout. Exit.");
 		return 0;
 	} else {
 		perror("Errore su select()");
@@ -185,7 +188,7 @@ void get_username(struct client_node *client) {
 	}
 	
 	if (cmd != REQ_LOGIN) {
-		puts("BADREQ");
+		printf("\nBADREQ\n> "); fflush(stdout);
 		send_byte(client, RESP_BADREQ);
 		return;
 	}
@@ -202,8 +205,9 @@ void get_username(struct client_node *client) {
 				send_byte(client, RESP_EXIST);
 			else {
 				inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-				printf("Client %s:%hu has username \"%s\"\n", buffer, ntohs(client->addr.sin_port), client->username);
-				printf("[%s] Listening on %s:%hu\n", client->username, buffer, client->udp_port);
+				printf("\nClient %s:%hu has username \"%s\"\n", buffer, ntohs(client->addr.sin_port), client->username);
+				printf("[%s] Listening on %s:%hu\n> ", client->username, buffer, client->udp_port);
+				fflush(stdout);
 				
 				client->state = FREE;
 				client->read_dispatch = &idle_free;
@@ -258,10 +262,11 @@ void idle_busy(struct client_node *client) {
 void client_disconnected(struct client_node *client) {
 	inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 	if ( client->state == FREE || client->state == BUSY )
-		printf("[%s] %s:%hu disconnected\n", client->username, buffer, ntohs(client->addr.sin_port));
+		printf("\n[%s] %s:%hu disconnected\n> ", client->username, buffer, ntohs(client->addr.sin_port));
 	else
-		printf("[unknown] %s:%hu disconnected\n", buffer, ntohs(client->addr.sin_port));
-		
+		printf("\n[unknown] %s:%hu disconnected\n> ", buffer, ntohs(client->addr.sin_port));
+	
+	fflush(stdout);
 	shutdown(client->socket, SHUT_RDWR);
 	close(client->socket);
 	unmonitor_socket_r(client->socket);
@@ -310,16 +315,19 @@ void server_shell() {
 	gets(buffer);
 	if ( strcmp(buffer, "who") == 0 ) {
 		struct client_node *cn;
-		if (client_list.count == 0)
-			puts("Non ci sono client connessi.");
-		else {
+		if (client_list.count == 0) {
+			printf("Non ci sono client connessi.\n> ");
+			fflush(stdout);
+		} else {
 			printf("Ci sono %d client connessi:\n", client_list.count);
+			fflush(stdout);
 			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
 				inet_ntop(AF_INET, &(cn->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 				printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
 			}
 		}
 	} else {
-		puts("Unknown command");
+		printf("Unknown command\n> ");
+		fflush(stdout);
 	}
 }
