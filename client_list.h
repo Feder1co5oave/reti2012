@@ -9,13 +9,13 @@ enum client_state { NONE, CONNECTED, FREE, BUSY };
 
 struct client_node {
 	char username_len;
-	char username[MAX_USERNAME_LENGTH];
+	char username[MAX_USERNAME_LENGTH + 1];
 	int socket;
+	enum client_state state;
 	struct sockaddr_in addr;
 	uint16_t udp_port;
-	enum client_state state;
-	struct client_node *next;
 	uint8_t byte_resp;
+	struct client_node *next;
 	char *data;
 	int data_count, data_cursor;
 	void (*read_dispatch)(struct client_node*);
