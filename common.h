@@ -25,6 +25,8 @@
 
 /* ========================================================================== */
 
+enum client_state { NONE, CONNECTED, FREE, BUSY, PLAY };
+
 typedef uint8_t bool;
 #define TRUE 1
 #define FALSE 0
@@ -32,5 +34,6 @@ typedef uint8_t bool;
 bool username_is_valid(const char *username);
 
 #define check_alloc(ptr) if ( ptr == NULL ) { perror("Errore su malloc()"); exit(1); }
+#define fl() fflush(stdout)
 
 #endif

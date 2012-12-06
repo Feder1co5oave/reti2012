@@ -21,7 +21,6 @@
 #define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
-#define fl() fflush(stdout)
 
 /* === Client handlers ====================================================== */
 

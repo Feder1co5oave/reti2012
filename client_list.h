@@ -5,8 +5,6 @@
 
 #include <netinet/in.h>
 
-enum client_state { NONE, CONNECTED, FREE, BUSY };
-
 struct client_node {
 	char username_len;
 	char username[MAX_USERNAME_LENGTH + 1];
