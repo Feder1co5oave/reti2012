@@ -45,11 +45,9 @@ struct client_node *remove_client_node(struct client_node *cn) {
 	
 	if ( client_list.head == cn ) client_list.head = cn->next;
 	ptr = client_list.head;
-	if ( client_list.head != NULL) {
-		while ( ptr->next != cn ) ptr = ptr->next;
-		ptr->next = cn->next;
-	}
-	if ( cn == client_list.tail ) client_list.tail = ptr;
+	while ( ptr != NULL && ptr->next != cn ) ptr = ptr->next;
+	if ( ptr != NULL && ptr->next == cn ) ptr->next = cn->next;
+	if ( client_list.tail == cn ) client_list.tail = ptr;
 	client_list.count--;
 	return ptr;
 }
