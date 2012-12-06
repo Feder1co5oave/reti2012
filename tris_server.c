@@ -29,10 +29,10 @@ void client_disconnected(struct client_node*);
 void idle_free(struct client_node*);
 void idle_busy(struct client_node*);
 void send_data(struct client_node*);
-void send_byte(struct client_node* client, uint8_t byte);
 
 /* ========================================================================== */
 
+void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
 
 char buffer[4097];
@@ -130,7 +130,7 @@ int main (int argc, char **argv) {
 					if ( client != NULL ) {
 						client->read_dispatch(client);
 					} else { /* non dovrebbe mai succedere */
-						unmonitor_socket_r(sock_client);
+						unmonitor_socket_r(sock_client); /*FIXME */
 						unmonitor_socket_w(sock_client);
 						shutdown(sock_client, SHUT_RDWR);
 						close(sock_client);
@@ -146,7 +146,7 @@ int main (int argc, char **argv) {
 				if ( client != NULL ) {
 					client->write_dispatch(client);
 				} else { /* non dovrebbe mai succedere */
-					unmonitor_socket_r(sock_client);
+					unmonitor_socket_r(sock_client); /*FIXME */
 					unmonitor_socket_w(sock_client);
 					shutdown(sock_client, SHUT_RDWR);
 					close(sock_client);
@@ -220,6 +220,7 @@ void get_username(struct client_node *client) {
 void idle_free(struct client_node *client) {
 	uint8_t cmd;
 	int total_length;
+	uint32_t count;
 	struct client_node *cn;
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
@@ -229,21 +230,29 @@ void idle_free(struct client_node *client) {
 	
 	switch ( cmd ) {
 		case REQ_WHO:
-			total_length = 1 + 4 + client_list.count;
-			for (cn = client_list.head; cn != NULL; cn = cn->next )
-				total_length += cn->username_len;
+			count = 0;
+			total_length = 1 + 4;
+			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
+				if ( cn->state != NONE && cn->state != CONNECTED ) {
+					count++;
+					total_length += 1 + cn->username_len;
+				}
+			}
+			
 			client->data = (char*) malloc(total_length);
 			check_alloc(client->data);
 			client->data_cursor = 0;
-			pack(client->data, "bl", RESP_WHO, client_list.count);
+			pack(client->data, "bl", RESP_WHO, count);
 			client->data_count = 5;
 			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
-				pack(client->data + client->data_count, "bs", cn->username_len, cn->username);
-				client->data_count += cn->username_len + 1;
+				if ( cn->state != NONE && cn->state != CONNECTED ) {
+					pack(client->data + client->data_count, "bs", cn->username_len, cn->username);
+					client->data_count += 1 + cn->username_len;
+				}
 			}
 			client->write_dispatch = &send_data;
 			monitor_socket_w(client->socket);
-			unmonitor_socket_r(client->socket);
+			unmonitor_socket_r(client->socket); /*FIXME */
 			break;
 		
 		case REQ_PLAY:
@@ -261,17 +270,17 @@ void idle_busy(struct client_node *client) {
 
 void client_disconnected(struct client_node *client) {
 	inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-	if ( client->state == FREE || client->state == BUSY )
+	if ( client->state != NONE && client->state != CONNECTED )
 		printf("\n[%s] %s:%hu disconnected\n> ", client->username, buffer, ntohs(client->addr.sin_port));
 	else
 		printf("\n[unknown] %s:%hu disconnected\n> ", buffer, ntohs(client->addr.sin_port));
 	
 	fl();
 	
+	unmonitor_socket_r(client->socket); /*FIXME */
+	unmonitor_socket_w(client->socket);
 	shutdown(client->socket, SHUT_RDWR);
 	close(client->socket);
-	unmonitor_socket_r(client->socket);
-	unmonitor_socket_w(client->socket);
 	remove_client_node(client);
 	destroy_client_node(client);
 }
@@ -282,7 +291,7 @@ void send_byte(struct client_node *client, uint8_t byte) {
 	client->data_count = 1;
 	client->data_cursor = 0;
 	client->write_dispatch = &send_data;
-	unmonitor_socket_r(client->socket);
+	unmonitor_socket_r(client->socket); /*FIXME */
 	monitor_socket_w(client->socket);
 }
 
@@ -299,7 +308,7 @@ void send_data(struct client_node *client) {
 			if ( client->data != NULL ) free(client->data);
 			client->data = NULL;
 			
-			switch (client->state)  {
+			switch (client->state) {
 				case CONNECTED: client->read_dispatch = &get_username; break;
 				case FREE: client->read_dispatch = &idle_free; break;
 				case BUSY: client->read_dispatch = &idle_busy; break;
@@ -328,7 +337,10 @@ void server_shell() {
 			fl();
 			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
 				inet_ntop(AF_INET, &(cn->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-				printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
+				if ( cn->state == NONE || cn->state == CONNECTED )
+					printf("[unknown] Host %s:%hu, not logged in\n", buffer, ntohs(cn->addr.sin_port));
+				else
+					printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
 			}
 			printf("> "); fl();
 		}
