@@ -255,6 +255,7 @@ FD_ZERO(fd_set *set);
  * @param fd_set *readfds il set dei descrittori su cui voglio attendere che arrivino dati
  * @param fd_set *writefds il set di descrittori su cui voglio attendere che il buffer di uscita sia non pieno
  * @param fd_set *exceptionfds il set di descrittori su cui voglio attendere per un errore
+ * @param struct timeval *timeout il tempo utile per attivare uno dei descrittori. NULL = mai
  * @return int >0 se ok (i set sono stati modificati), 0 se è scaduto il timeout, -1 su errore (setta errno)
  */
 int select (int max_n, fd_set *readfds, fd_set *writefds, fd_set *exceptionfds, struct timeval *timeout);
