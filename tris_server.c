@@ -322,7 +322,7 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
-	gets(buffer);
+	fgets(buffer, 4097, stdout);
 	
 	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
 		printf("Commands: help, who, playing, exit\n> ");

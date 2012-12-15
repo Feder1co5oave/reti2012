@@ -33,7 +33,7 @@
 
 enum client_state { NONE, CONNECTED, FREE, BUSY, PLAY };
 
-typedef uint8_t bool;
+typedef unsigned char bool;
 #define TRUE 1
 #define FALSE 0
 
