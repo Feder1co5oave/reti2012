@@ -1,2 +1,4 @@
 *.exe
 *.o
+tris_server
+tris_client
