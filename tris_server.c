@@ -28,6 +28,7 @@ void get_username(struct client_node*);
 void idle_free(struct client_node*);
 void idle_play(struct client_node*);
 void send_data(struct client_node*);
+void inactive(struct client_node*);
 
 /* ========================================================================== */
 
@@ -252,7 +253,7 @@ void idle_free(struct client_node *client) {
 			}
 			client->write_dispatch = &send_data;
 			monitor_socket_w(client->socket);
-			unmonitor_socket_r(client->socket); /*FIXME */
+			client->read_dispatch = &inactive;
 			break;
 		
 		case REQ_PLAY:
@@ -290,7 +291,7 @@ void send_byte(struct client_node *client, uint8_t byte) {
 	client->data_count = 1;
 	client->data_cursor = 0;
 	client->write_dispatch = &send_data;
-	unmonitor_socket_r(client->socket); /*FIXME */
+	client->read_dispatch = &inactive;
 	monitor_socket_w(client->socket);
 }
 
@@ -362,4 +363,11 @@ void server_shell() {
 		printf("Unknown command\n> ");
 		fl();
 	}
+}
+
+void inactive(struct client_node *client) {
+	uint8_t cmd;
+	received = recv(client->socket, &cmd, 1, 0);
+	if ( received == 0 ) client_disconnected(client);
+	/*FIXME what to do? */
 }
