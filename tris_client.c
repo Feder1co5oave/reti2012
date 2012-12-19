@@ -13,55 +13,217 @@
 #include "pack.h"
 #include "common.h"
 
+#define update_maxfds(n) maxfds = (maxfds < (n) ? (n) : maxfds)
+#define monitor_socket_r(sock) { FD_SET(sock, &readfds); update_maxfds(sock); }
+#define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
+#define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
+#define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
+#define getl() fgets(buffer, BUFFER_SIZE, stdin)
+
+void client_shell(void);
+void server_disconnected(void);
+
+char buffer[BUFFER_SIZE];
+
+fd_set readfds, writefds;
+int maxfds = -1;
+struct timeval tv = DEFAULT_TIMEOUT_INIT;
+
+int received, sent;
+enum client_state state = NONE;
+int sock_server, error;
+uint16_t udp_port;
+
 int main (int argc, char **argv) {
-	int sock;
-	char buf[20];
 	struct addrinfo hints, *gai_results, *p;
-	uint16_t port = 3958;
-	uint8_t resp;
-	uint32_t size;
-	int i, length;
-	
-	if (argc != 2) {
-		puts("Usage: tris_client <username>");
+	fd_set _readfds, _writefds;
+	int sel_status;
+
+	if (argc != 3) {
+		puts("Usage: tris_client <server_ip> <server_port>");
 		return 1;
 	}
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
-	getaddrinfo("127.0.0.1", "4096", &hints, &gai_results);
+	error = getaddrinfo(argv[1], argv[2], &hints, &gai_results);
+	if ( error ) {
+		printf("Errore getaddrinfo(): %s", gai_strerror(error));
+		return 1;
+	}
 	p = gai_results;
 	freeaddrinfo(gai_results);
-	sock = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
-	connect(sock, p->ai_addr, p->ai_addrlen);
+	p->ai_family = AF_INET;
+	sock_server = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+	if ( sock_server == -1 ) {
+		perror("Errore socket()");
+		return 1;
+	}
 	
-	size = pack(buf, "bbsw", REQ_LOGIN, (uint8_t) strlen(argv[1]), argv[1], port);
-	send(sock, buf, 4 + strlen(argv[1]), 0);
-	recv(sock, &resp, 1, 0);
-	if ( resp == RESP_OK_LOGIN ) puts("Connesso e loggato");
-	else if ( resp == RESP_BADUSR ) puts("Username non valido");
-	else if ( resp == RESP_EXIST ) puts("Username già in uso");
-
-	buf[0] = REQ_WHO;
-	send(sock, buf, 1, 0);
-	recv(sock, &resp, 1, 0);
-	if ( resp == RESP_WHO ) {
-		recv(sock, buf, 4, 0);
-		unpack(buf, "l", &size);
-		printf("Ci sono %d client connessi\n", size);
-		if (size > 10) return 1;
-		for (i = 0; i < size; i++) {
-			recv(sock, &length, 1, 0);
-			recv(sock, buf, length, 0);
-			buf[length] = '\0';
-			printf("Utente %s\n", buf);
+	if ( connect(sock_server, p->ai_addr, p->ai_addrlen) ) {
+		perror("Errore connect()");
+		return 1;
+	}
+	
+	state = CONNECTED;
+	printf("Connessione al server avvenuta\n> "); fl();
+	
+	FD_ZERO(&readfds);
+	FD_ZERO(&writefds);
+	monitor_socket_r(STDIN_FILENO);
+	monitor_socket_r(sock_server);
+	_readfds = readfds;
+	_writefds = writefds;
+	
+	
+	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) > 0 ) {
+		uint8_t cmd;
+		
+		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {
+			client_shell();
+		} else if ( state != NONE && FD_ISSET(sock_server, &_readfds) ) {
+			received = recv(sock_server, &cmd, 1, 0);
+			if ( received != 1 ) server_disconnected();
+			
+			switch ( cmd ) {
+				case REQ_PLAY:
+					/*TODO */
+					break;
+				
+				case RESP_OK_PLAY:
+					/*TODO */
+					break;
+				
+				default:
+					printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) cmd); fl();
+					/*FIXME */
+			}
+		} else if ( state != NONE && FD_ISSET(sock_server, &_writefds) ) {
+			
+		} else {
+			puts("I'm a bug.");
 		}
-	} else if ( resp == RESP_BADREQ ) puts("BADREQ");
+		_readfds = readfds;
+		_writefds = writefds;
+	}
+
+	puts("Errore su select()");
+	shutdown(sock_server, SHUT_RDWR); /*TODO get rid of all the shutdown() calls */
+	close(sock_server);
+	return 1;
+}
+
+void client_shell() {
+	int line_length, cmd_length, s;
+	uint32_t size;
+	char *cmd;
+	getl(); /*TODO check return value */
+	line_length = strlen(buffer) - 1;
 	
-	getchar();
+	if ( line_length <= 0 ) {
+		printf("> "); fl();
+		return;
+	}
 	
-	shutdown(sock, SHUT_RDWR);
-	close(sock);
-	return 0;
+	cmd = buffer + line_length + 2;
+	sscanf(buffer, "%s", cmd);
+	cmd_length = strlen(cmd);
+	
+	if ( strcmp(cmd, "help") == 0 || strcmp(cmd, "?") == 0 ) {
+		printf("Commands: help, login, who, exit\n> "); fl();
+	} else if ( strcmp(cmd, "login") == 0 ) {
+		char user[50]; int user_length;
+		uint8_t resp;
+		uint16_t port;
+
+		if ( state != CONNECTED ) {
+			printf("Sei già loggato\n> ");
+			fl();
+			return;
+		}
+
+		s = sscanf(buffer + cmd_length, "%s %hu", user, &port); /*FIXME controllo sul parsing di %hu */
+		if ( s != 2 ) {
+			printf("Sintassi: login <username> <porta udp>\n> "); fl();
+			return;
+		}
+
+		user_length = strlen(user);
+		pack(buffer, "bbsw", REQ_LOGIN, user_length, user, port);
+		sent = send(sock_server, buffer, 4 + user_length, 0);
+		if ( sent != 4 + user_length ) server_disconnected();
+		received = recv(sock_server, &resp, 1, 0);
+		if ( received != 1 ) server_disconnected();
+		
+		switch ( resp ) {
+			case RESP_OK_LOGIN:
+				state = FREE;
+				printf("Loggato con successo\n> "); fl();
+				break;
+			case RESP_EXIST:
+				printf("L'username esiste già\n> "); fl();
+				break;
+			case RESP_BADUSR:
+				printf("L'username ha un formato non valido\n> "); fl();
+				break;
+			case RESP_BADREQ:
+				printf("BADREQ\n> "); fl();
+				break;
+			default:
+				printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) buffer[0]); fl();
+		}
+	} else if ( strcmp(cmd, "who") == 0 ) {
+		uint8_t resp, length;
+		int i;
+
+		if ( state == CONNECTED ) {
+			printf("Devi prima loggarti\n> ");
+			fl();
+			return;
+		}
+
+		buffer[0] = REQ_WHO;
+		sent = send(sock_server, buffer, 1, 0);
+		if ( sent != 1 ) server_disconnected();
+		received = recv(sock_server, &resp, 1, 0);
+		if ( received != 1 ) server_disconnected();
+		switch ( resp ) {
+			case RESP_WHO:
+				recv(sock_server, buffer, 4, 0);
+				unpack(buffer, "l", &size);
+				printf("Ci sono %d client connessi\n", size);
+				if (size > 100) exit(1); /*FIXME debug statement */
+				for (i = 0; i < size; i++) {
+					recv(sock_server, &length, 1, 0);
+					recv(sock_server, buffer, length, 0);
+					buffer[length] = '\0';
+					printf("[%s]\n", buffer);
+				}
+				printf("> "); fl();
+				break;
+			
+			case RESP_BADREQ:
+				printf("BADREQ\n> "); fl();
+				break;
+			
+			default:
+				printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) buffer[0]); fl();
+		}
+	} else if ( strcmp(cmd, "exit") == 0 ) {
+		shutdown(sock_server, SHUT_RDWR);
+		close(sock_server);
+		exit(0);
+	} else if ( strcmp(buffer, "\n") == 0 ) {
+		printf("> "); fl();
+	} else {
+		printf("Unknown command\n> "); fl();
+	}
+}
+
+void server_disconnected() {
+	printf("\nConnessione al server persa.\n");
+	shutdown(sock_server, SHUT_RDWR);
+	close(sock_server);
+	exit(1);
 }
