@@ -28,12 +28,14 @@ void get_username(struct client_node*);
 void idle_free(struct client_node*);
 void idle_play(struct client_node*);
 void send_data(struct client_node*);
+void get_play_resp(struct client_node*);
 void inactive(struct client_node*);
 
 /* === Helpers ============================================================== */
 
 void accept_connection(void);
 void client_disconnected(struct client_node*);
+void start_match(struct client_node*);
 void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
 
@@ -164,8 +166,6 @@ int main (int argc, char **argv) {
 		perror("Errore su select()");
 		return 1;
 	}
-	
-	return 0;
 }
 
 void accept_connection() {
@@ -227,7 +227,7 @@ void get_username(struct client_node *client) {
 }
 
 void idle_free(struct client_node *client) {
-	uint8_t cmd;
+	uint8_t cmd, length;
 	int total_length;
 	uint32_t count;
 	struct client_node *cn;
@@ -265,8 +265,43 @@ void idle_free(struct client_node *client) {
 			break;
 		
 		case REQ_PLAY:
-			
+			received = recv(client->socket, &length, 1, 0);
+			if ( received == 1 ) {
+				received = recv(client->socket, buffer, length, 0);
+				if ( received == length ) {
+					struct client_node *opp;
+					buffer[length] = '\0';
+					opp = get_client_by_username(buffer);
+					if ( opp == NULL || opp == client ) send_byte(client, RESP_NONEXIST);
+					else if ( opp->state != FREE ) send_byte(client, RESP_BUSY);
+					else {
+						printf("\n[%s] requested to play with [%s]\n> ", client->username, opp->username);
+						fl();
+						client->req_to = opp;
+						opp->req_from = client;
+						client->state = opp->state = BUSY;
+						opp->data_count = 2 + client->username_len;
+						opp->data = malloc(opp->data_count);
+						check_alloc(opp->data);
+						pack(opp->data, "bbs", REQ_PLAY, client->username_len, client->username);
+						opp->data_cursor = 0;
+						opp->write_dispatch = &send_data;
+						monitor_socket_w(opp->socket);
+						opp->read_dispatch = &inactive;
+						client->read_dispatch = &inactive;
+					}
+				} else client_disconnected(client);
+			} else client_disconnected(client);
 			break;
+		
+		/* see get_play_resp ( client->req_from == NULL ) */
+		case RESP_REFUSE:
+		case RESP_OK_PLAY:
+		/* case REQ_END: */
+			if ( client->state == BUSY ) {
+				client->state = FREE;
+				break;
+			} /* else fallthrough */
 		
 		default:
 			send_byte(client, RESP_BADREQ);
@@ -285,6 +320,25 @@ void client_disconnected(struct client_node *client) {
 		printf("\n[unknown] %s:%hu disconnected\n> ", buffer, ntohs(client->addr.sin_port));
 	
 	fl();
+	if ( client->state == BUSY ) {
+		struct client_node *opp;
+		if ( client->req_from ) {
+			opp = client->req_from;
+			send_byte(opp, RESP_NONEXIST);
+			opp->req_to = NULL;
+			opp->state = FREE;
+		} else if ( client->req_to ) {
+			/*TODO */
+			opp = client->req_to;
+			/* opp->state = BUSY; */
+			opp->req_from = NULL;
+			opp->read_dispatch = &idle_free;
+			unmonitor_socket_w(opp->socket);
+			monitor_socket_r(opp->socket); /*FIXME inutile? */
+		}
+
+	}
+
 	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
 	shutdown(client->socket, SHUT_RDWR);
@@ -316,12 +370,14 @@ void send_data(struct client_node *client) {
 			if ( client->data != NULL ) free(client->data);
 			client->data = NULL;
 			
-			switch (client->state) {
+			switch ( client->state ) {
 				case CONNECTED: client->read_dispatch = &get_username; break;
 				case FREE: client->read_dispatch = &idle_free; break;
 				case BUSY:
-				case PLAY:
-					client->read_dispatch = &idle_play; break;
+					if ( client->req_from ) client->read_dispatch = &get_play_resp;
+					else if ( client->req_to ) start_match(client);
+					break;
+				case PLAY: client->read_dispatch = &idle_play; break;
 				default: client_disconnected(client); return;
 			}
 			
@@ -354,6 +410,8 @@ void server_shell() {
 			}
 			printf("> "); fl();
 		}
+	} else if ( strcmp(buffer, "playing\n") == 0 ) {
+		/*TODO */
 	} else if ( strcmp(buffer, "exit\n") == 0 ) {
 		puts("Exiting...");
 		for ( i = 0; i <= maxfds; i++ ) {
@@ -371,6 +429,54 @@ void server_shell() {
 		printf("Unknown command\n> ");
 		fl();
 	}
+}
+
+void get_play_resp(struct client_node *client) {
+	uint8_t resp;
+	received = recv(client->socket, &resp, 1, 0);
+	if ( received == 1 ) {
+		struct client_node *opp = client->req_from;
+		if ( opp == NULL ) return; /* non dovrebbe mai succedere
+			client->req_from viene messo a NULL solo se si disconnette PRIMA
+			che arrivi la risposta da client e read_dispatch = &idle_free, che
+			gestisce l'arrivo della risposta (fino a quel momento client->state
+			rimane BUSY) */
+		if ( resp == RESP_OK_PLAY ) {
+			printf("\n[%s] accepted to play with [%s]\n> ", client->username, opp->username);
+			fl();
+			opp->data_count = 1 + sizeof(client->addr.sin_addr) + sizeof(client->udp_port);
+			opp->data = malloc(opp->data_count);
+			check_alloc(opp->data);
+			pack(opp->data, "blw", RESP_OK_PLAY, client->addr.sin_addr, client->udp_port);
+			opp->data_cursor = 0;
+			opp->write_dispatch = &send_data;
+			monitor_socket_w(opp->socket);
+			client->read_dispatch = &inactive;
+		} else { /*FIXME May be some other valid command such as REQ_WHO or REQ_PLAY */
+			/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY */
+			printf("\n[%s] refused to play with [%s]\n> ", client->username, opp->username);
+			fl();
+			send_byte(opp, RESP_REFUSE);
+			opp->state = FREE;
+			opp->req_to = NULL;
+			client->state = FREE;
+			client->req_from = NULL;
+			client->read_dispatch = &idle_free;
+		}
+	} else client_disconnected(client);
+}
+
+void start_match(struct client_node *client) {
+	struct client_node *opp = client->req_to;
+	client->state = PLAY;
+	client->play_with = opp;
+	client->req_to = NULL;
+	client->read_dispatch = &idle_play;
+	opp->state = PLAY;
+	opp->play_with = client;
+	opp->req_from = NULL;
+	opp->read_dispatch = &idle_play;
+	monitor_socket_r(opp->socket);
 }
 
 void inactive(struct client_node *client) {

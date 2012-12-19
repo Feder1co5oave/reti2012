@@ -13,7 +13,7 @@ struct client_node {
 	struct sockaddr_in addr;
 	uint16_t udp_port;
 	uint8_t byte_resp;
-	struct client_node *next;
+	struct client_node *next, *req_to, *req_from, *play_with;
 	char *data;
 	int data_count, data_cursor;
 	void (*read_dispatch)(struct client_node*);
