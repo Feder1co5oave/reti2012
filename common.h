@@ -7,6 +7,8 @@
 #define USERNAME_ALPHABET "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.,-+*"
 #define DEFAULT_TIMEOUT_INIT {60, 0}
 
+#define BUFFER_SIZE 1024
+
 
 /* === Magic constants ====================================================== */
 

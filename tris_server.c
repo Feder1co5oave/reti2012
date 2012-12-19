@@ -36,7 +36,9 @@ void client_disconnected(struct client_node*);
 void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
 
-char buffer[4097];
+/* === Data ================================================================= */
+
+char buffer[BUFFER_SIZE];
 
 fd_set readfds, writefds;
 int maxfds = -1;
@@ -324,7 +326,7 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
-	fgets(buffer, 4097, stdin);
+	fgets(buffer, BUFFER_SIZE, stdin);
 	
 	if ( strcmp(buffer, "help\n" ) == 0 || strcmp(buffer, "?\n") == 0 ) {
 		printf("Commands: help, who, playing, exit\n> ");
