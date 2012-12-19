@@ -42,6 +42,7 @@ int pack(void *buffer, const char *format, ...) {
 				if (*format == 'S') *(buff++) = '\0';
 		}
 	}
+	
 	va_end(args);
 	
 	return buff - (char *) buffer;

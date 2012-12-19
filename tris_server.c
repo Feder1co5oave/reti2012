@@ -30,8 +30,9 @@ void idle_play(struct client_node*);
 void send_data(struct client_node*);
 void inactive(struct client_node*);
 
-/* ========================================================================== */
+/* === Helpers ============================================================== */
 
+void accept_connection(void);
 void client_disconnected(struct client_node*);
 void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
@@ -49,6 +50,8 @@ int sock_listen, sock_client;
 socklen_t addrlen = sizeof(yourhost);
 
 int yes = 1, sel_status, i, received;
+
+/* ========================================================================== */
 
 int main (int argc, char **argv) {
 	
@@ -106,23 +109,7 @@ int main (int argc, char **argv) {
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( FD_ISSET(i, &_readfds) ) {
 				if ( i == sock_listen ) {
-					if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
-						struct client_node *client = create_client_node();
-						inet_ntop(AF_INET, &(yourhost.sin_addr), buffer, INET_ADDRSTRLEN);
-						printf("\nIncoming connection from %s:%hu\n> ", buffer, ntohs(yourhost.sin_port));
-						fl();
-						
-						add_client_node(client);
-						client->addr = yourhost;
-						client->socket = sock_client;
-						client->state = CONNECTED;
-						client->read_dispatch = &get_username;
-						monitor_socket_r(sock_client);
-					} else {
-						perror("Errore accept()");
-						close(sock_listen);
-						return 1;
-					}
+					accept_connection();
 				} else if ( i == STDIN_FILENO ) {
 					server_shell();
 				} else {
@@ -179,6 +166,25 @@ int main (int argc, char **argv) {
 	}
 	
 	return 0;
+}
+
+void accept_connection() {
+	if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
+		struct client_node *client = create_client_node();
+		inet_ntop(AF_INET, &(yourhost.sin_addr), buffer, INET_ADDRSTRLEN);
+		printf("\nIncoming connection from %s:%hu\n> ", buffer, ntohs(yourhost.sin_port));
+		fl();
+		add_client_node(client);
+		client->addr = yourhost;
+		client->socket = sock_client;
+		client->state = CONNECTED;
+		client->read_dispatch = &get_username;
+		monitor_socket_r(sock_client);
+	} else {
+		perror("Errore accept()");
+		close(sock_listen);
+		exit(1);
+	}
 }
 
 void get_username(struct client_node *client) {
