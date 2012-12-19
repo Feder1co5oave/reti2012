@@ -5,7 +5,7 @@
 #include <string.h>
 
 struct client_node *create_client_node() {
-	struct client_node *cn = (struct client_node*) malloc(sizeof(struct client_node));
+	struct client_node *cn = malloc(sizeof(struct client_node));
 	if ( cn == NULL ) {
 		fprintf(stderr, "Errore su malloc()");
 		exit(-1);

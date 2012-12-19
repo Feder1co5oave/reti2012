@@ -240,7 +240,7 @@ void idle_free(struct client_node *client) {
 				}
 			}
 			
-			client->data = (char*) malloc(total_length);
+			client->data = malloc(total_length);
 			check_alloc(client->data);
 			client->data_cursor = 0;
 			pack(client->data, "bl", RESP_WHO, count);
