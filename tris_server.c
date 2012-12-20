@@ -27,7 +27,7 @@
 void get_username(struct client_node*);
 void client_disconnected(struct client_node*);
 void idle_free(struct client_node*);
-void idle_busy(struct client_node*);
+void idle_play(struct client_node*);
 void send_data(struct client_node*);
 
 /* ========================================================================== */
@@ -264,7 +264,7 @@ void idle_free(struct client_node *client) {
 	}
 }
 
-void idle_busy(struct client_node *client) {
+void idle_play(struct client_node *client) {
 	
 }
 
@@ -311,7 +311,9 @@ void send_data(struct client_node *client) {
 			switch (client->state) {
 				case CONNECTED: client->read_dispatch = &get_username; break;
 				case FREE: client->read_dispatch = &idle_free; break;
-				case BUSY: client->read_dispatch = &idle_busy; break;
+				case BUSY:
+				case PLAY:
+					client->read_dispatch = &idle_play; break;
 				default: client_disconnected(client); return;
 			}
 			
