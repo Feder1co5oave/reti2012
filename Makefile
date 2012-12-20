@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -pedantic -g
+CFLAGS = -Wall -pedantic
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o
