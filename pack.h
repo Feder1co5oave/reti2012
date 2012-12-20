@@ -19,7 +19,7 @@ int pack(void *buffer, const char *format, ...);
  * b
  * w
  * l
- * s - fixed length string. The length must be provided as argument, before the char* (e.g. unpack(buff, "s", 12, &str) extract 12 chars).
+ * s - fixed length string. The length must be provided as argument, before the char* (e.g. unpack(buff, "s", 12, &str) extracts 12 chars).
  * All numbers are extracted from network-byte-order to host-byte-order.
  * Strings will be 0-ended.
  */

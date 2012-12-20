@@ -25,13 +25,13 @@
 /* === Client handlers ====================================================== */
 
 void get_username(struct client_node*);
-void client_disconnected(struct client_node*);
 void idle_free(struct client_node*);
 void idle_play(struct client_node*);
 void send_data(struct client_node*);
 
 /* ========================================================================== */
 
+void client_disconnected(struct client_node*);
 void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
 
@@ -136,7 +136,7 @@ int main (int argc, char **argv) {
 						close(sock_client);
 					}
 				}
-				break;
+				break; /* goto select() */
 				
 			} else if ( FD_ISSET(i, &_writefds) ) {
 				struct client_node *client;
@@ -152,7 +152,7 @@ int main (int argc, char **argv) {
 					close(sock_client);
 				}
 				
-				break;
+				break; /* goto select() */
 			}
 		}
 		_readfds = readfds;
@@ -193,7 +193,7 @@ void get_username(struct client_node *client) {
 		return;
 	}
 		
-	received = recv(client->socket, &(client->username_len), 1, 0);
+	received = recv(client->socket, &(client->username_len), 1, 0); /*FIXME use select(_readfds) */
 	if ( received == 1 ) {
 		received = recv(client->socket, buffer, client->username_len + 2, 0);
 		if ( received == client->username_len + 2 ) {
