@@ -322,12 +322,12 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
-	fgets(buffer, 4097, stdout);
+	fgets(buffer, 4097, stdin);
 	
-	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
+	if ( strcmp(buffer, "help\n" ) == 0 || strcmp(buffer, "?\n") == 0 ) {
 		printf("Commands: help, who, playing, exit\n> ");
 		fl();
-	} else if ( strcmp(buffer, "who") == 0 ) {
+	} else if ( strcmp(buffer, "who\n") == 0 ) {
 		struct client_node *cn;
 		if (client_list.count == 0) {
 			printf("There are no connected clients.\n> ");
@@ -344,7 +344,7 @@ void server_shell() {
 			}
 			printf("> "); fl();
 		}
-	} else if ( strcmp(buffer, "exit") == 0 ) {
+	} else if ( strcmp(buffer, "exit\n") == 0 ) {
 		puts("Exiting...");
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
@@ -355,7 +355,7 @@ void server_shell() {
 		}
 		destroy_client_list(client_list.head);
 		exit(0);
-	} else if ( strcmp(buffer, "") == 0 ) {
+	} else if ( strcmp(buffer, "\n") == 0 ) {
 		printf("> "); fl();
 	} else {
 		printf("Unknown command\n> ");
