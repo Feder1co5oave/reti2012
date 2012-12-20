@@ -127,7 +127,7 @@ int main (int argc, char **argv) {
 					sock_client = i;
 					
 					client = get_client_by_socket(sock_client);
-					if ( client != NULL ) {
+					if ( client != NULL && client->read_dispatch != NULL ) {
 						client->read_dispatch(client);
 					} else { /* non dovrebbe mai succedere */
 						unmonitor_socket_r(sock_client); /*FIXME */
@@ -143,7 +143,7 @@ int main (int argc, char **argv) {
 				sock_client = i;
 				
 				client = get_client_by_socket(sock_client);
-				if ( client != NULL ) {
+				if ( client != NULL && client->read_dispatch != NULL ) {
 					client->write_dispatch(client);
 				} else { /* non dovrebbe mai succedere */
 					unmonitor_socket_r(sock_client); /*FIXME */
@@ -276,8 +276,7 @@ void client_disconnected(struct client_node *client) {
 		printf("\n[unknown] %s:%hu disconnected\n> ", buffer, ntohs(client->addr.sin_port));
 	
 	fl();
-	
-	unmonitor_socket_r(client->socket); /*FIXME */
+	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
 	shutdown(client->socket, SHUT_RDWR);
 	close(client->socket);
