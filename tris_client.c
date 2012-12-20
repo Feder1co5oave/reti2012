@@ -41,7 +41,7 @@ int main (int argc, char **argv) {
 	int sel_status;
 	
 	if (argc != 3) {
-		puts("Usage: tris_client <server_ip> <server_port>");
+		printf("Usage: %s <server_ip> <server_port>\n", argv[0]);
 		return 1;
 	}
 

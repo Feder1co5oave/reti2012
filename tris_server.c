@@ -62,7 +62,7 @@ int main (int argc, char **argv) {
 	client_list.count = 0;
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
-		puts("Usage: tris_server <host> <porta>");
+		printf("Usage: %s <host> <porta>\n", argv[0]);
 		return 1;
 	}
 	
