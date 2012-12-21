@@ -28,11 +28,11 @@ struct log_file {
 
 extern struct log_file *log_files;
 
-struct log_file *open_log(const char* filename, loglevel_t maxlevel);
+struct log_file *open_log(const char *filename, loglevel_t maxlevel);
 struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap);
-void close_log(struct log_file*);
+struct log_file *close_log(struct log_file*);
 void close_logs(void);
-int log_message(loglevel_t loglevel, const char *message);
-int flog_message(loglevel_t loglevel, const char *format, ...);
+int log_message(loglevel_t level, const char *message);
+int flog_message(loglevel_t level, const char *format, ...);
 
 #endif

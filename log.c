@@ -20,7 +20,10 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->file = file;
 	new->maxlevel = maxlevel;
 	new->wrap = wrap;
-	if ( wrap ) fprintf(file, "Opening logfile at %s.", ctime(&now));
+	new->next = NULL;
+
+	/* ctime() terminates with \n\0 */
+	if ( wrap ) fprintf(file,"======== Opening logfile at %s", ctime(&now));
 	if ( log_files != NULL ) {
 		struct log_file *ptr = log_files;
 		while ( ptr->next != NULL ) ptr = ptr->next;
@@ -29,34 +32,38 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	return new;
 }
 
-void close_log(struct log_file *logfile) {
+struct log_file *close_log(struct log_file *logfile) {
+	struct log_file *ptr = NULL;
 	if ( logfile != NULL ) {
-		struct log_file *ptr;
-		
-		if ( logfile->wrap ) {
-			time_t now = time(NULL);
-			fprintf(logfile->file, "Closing logfile at %s.", ctime(&now));
+		if ( logfile == log_files ) {
+			log_files = logfile->next;
+		} else {
+			ptr = log_files;
+			while ( ptr != NULL && ptr->next != logfile ) ptr = ptr->next;
+			if ( ptr != NULL ) ptr->next = logfile->next;
 		}
 
-		if ( logfile == log_files ) log_files = logfile->next;
-		ptr = log_files;
-		while ( ptr != NULL && ptr->next != logfile ) ptr = ptr->next;
-		if ( ptr != NULL && ptr->next == logfile ) ptr->next = logfile->next;
+		ptr = logfile->next;
+
+		if ( logfile->wrap ) {
+			time_t now = time(NULL);
+			fprintf(logfile->file, "======== Closing logfile at %s\n",
+				ctime(&now));
+		}
+
 		fflush(logfile->file);
-		fclose(logfile->file);
+		/* prevent stdout/stderr from being fclose()d */
+		if ( logfile->file != stdout && logfile->file != stderr )
+			fclose(logfile->file);
+
 		free(logfile);
 	}
+	return ptr;
 }
 
 void close_logs() {
-	struct log_file *ptr, *ptr2;
-	for ( ptr = log_files; ptr != NULL; ptr = ptr2 ) {
-		ptr2 = ptr->next;
-		fflush(ptr->file);
-		fclose(ptr->file);
-		free(ptr);
-	}
-	log_files = NULL;
+	struct log_file *ptr;
+	for ( ptr = log_files; ptr != NULL; ptr = close_log(ptr) );
 }
 
 int log_message(loglevel_t level, const char *message) {
@@ -65,7 +72,7 @@ int log_message(loglevel_t level, const char *message) {
 	for ( ptr = log_files; ptr != NULL; ptr = ptr->next ) {
 		if ( level & ptr->maxlevel ) {
 			count++;
-			switch ( level ) {
+			if ( ptr->wrap ) switch ( level ) {
 				case LOG_DEBUG:
 					fprintf(ptr->file, "((DEBUG)) %s\n", message);
 					break;
@@ -89,6 +96,11 @@ int log_message(loglevel_t level, const char *message) {
 					break;
 				default:
 					fprintf(ptr->file, "((UNDEFINED)) %s\n", message);
+
+			} else {
+				fputs(message, ptr->file);
+				fputs("\n", ptr->file);
+				fflush(ptr->file);
 			}
 		}
 	}
