@@ -14,9 +14,10 @@
 #define LOG_WARNING			16
 #define LOG_INFO			32
 #define LOG_CONSOLE			64
-#define LOG_ALL				-1
+/* #define LOG_ 				128 */
+#define LOG_ALL				255
 
-typedef char loglevel_t;
+typedef unsigned char loglevel_t;
 
 struct log_file {
 	FILE *file;
