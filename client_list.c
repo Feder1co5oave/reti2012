@@ -1,8 +1,10 @@
 #include "client_list.h"
+#include "log.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 struct client_node *create_client_node() {
 	struct client_node *cn = malloc(sizeof(struct client_node));
@@ -60,7 +62,51 @@ struct client_node *get_client_by_socket(int socket) {
 
 struct client_node *get_client_by_username(const char *username) {
 	struct client_node *nc = client_list.head;
-	while ( nc && (strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
+	while ( nc &&
+		(strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
 		nc = nc->next;
 	return nc;
+}
+
+
+/* CLIENT_REPR_SIZE = max(
+	strlen("[longest_username]"),
+	strlen("123.456.789.123:12345")
+) + 1 */
+#if MAX_USERNAME_LENGTH + 3 > 22
+#define CLIENT_REPR_SIZE MAX_USERNAME_LENGTH + 3
+#else
+#define CLIENT_REPR_SIZE 22
+#endif
+
+char client_repr_buffer[CLIENT_REPR_SIZE];
+
+const char *client_sockaddr_p(struct client_node *client) {
+	if ( client != NULL ) {
+		const char *s;
+		s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
+			INET_ADDRSTRLEN);
+		if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
+		sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
+			ntohs(client->addr.sin_port));
+		return client_repr_buffer;
+	} else return NULL;
+}
+
+const char *client_canon_p(struct client_node *client) {
+	if ( client != NULL ) {
+		switch ( client->state ) {
+			case NONE:
+			case CONNECTED:
+				return client_sockaddr_p(client);
+			case FREE:
+			case BUSY:
+			case PLAY:
+				sprintf(client_repr_buffer, "[%s]", client->username);
+		}
+
+		return client_repr_buffer;
+	} else {
+		return NULL;
+	}
 }

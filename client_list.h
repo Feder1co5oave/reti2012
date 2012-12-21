@@ -39,4 +39,8 @@ struct client_node *get_client_by_socket(int socket);
 
 struct client_node *get_client_by_username(const char *username);
 
+const char *client_sockaddr_p(struct client_node*);
+
+const char *client_canon_p(struct client_node*);
+
 #endif
