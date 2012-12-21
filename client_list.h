@@ -20,16 +20,18 @@ struct client_node {
 	void (*write_dispatch)(struct client_node*);
 };
 
+typedef struct {
+	struct client_node *head, *tail;
+	int count;
+} client_list_t;
+
+extern client_list_t client_list;
+
 struct client_node *create_client_node(void);
 
 struct client_node *destroy_client_node(struct client_node*);
 
 void destroy_client_list(struct client_node*);
-
-struct {
-	struct client_node *head, *tail;
-	int count;
-} client_list;
 
 void add_client_node(struct client_node*);
 
