@@ -28,7 +28,11 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		struct log_file *ptr = log_files;
 		while ( ptr->next != NULL ) ptr = ptr->next;
 		ptr->next = new;
-	} else log_files = new;
+	} else {
+		log_files = new;
+		/* close logs on process termination */
+		atexit(close_logs);
+	}
 	return new;
 }
 
