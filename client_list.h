@@ -5,6 +5,10 @@
 
 #include <netinet/in.h>
 
+
+
+/* ===| Data types |========================================================= */
+
 /**
  * Represents a client on the server.
  */
@@ -31,7 +35,15 @@ typedef struct {
 	int count;
 } client_list_t;
 
+
+
+/* ===| Data |=============================================================== */
+
 extern client_list_t client_list;
+
+
+
+/* ===| Functions |========================================================== */
 
 /**
  * Allocate and initialize a new client_node.
@@ -86,5 +98,7 @@ const char *client_sockaddr_p(struct client_node*);
  * @return a pointer to the string (static data) or NULL on error
  */
 const char *client_canon_p(struct client_node*);
+
+/* ========================================================================== */
 
 #endif

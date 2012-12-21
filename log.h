@@ -7,6 +7,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+
+
+/* === Data types =========================================================== */
+
 /**
  * Allows for up to 8 different log levels
  */
@@ -22,6 +26,10 @@ struct log_file {
 	struct log_file *next;
 };
 
+
+
+/* === Log levels =========================================================== */
+
 #define LOG_DEBUG			1
 #define LOG_USERINPUT		2
 #define LOG_ERROR			4
@@ -32,10 +40,18 @@ struct log_file {
 /* #define LOG_ 				128 */
 #define LOG_ALL				255
 
+
+
+/* ===| Data |=============================================================== */
+
 /**
  * The list of opened log_files.
  */
 extern struct log_file *log_files;
+
+
+
+/* ===| Functions |========================================================== */
 
 /**
  * Create a new log_file using a new or an existing file on the filesystem.
@@ -97,5 +113,7 @@ int flog_message(loglevel_t level, const char *format, ...);
  * @return the number of open log_files with matching level
  */
 int log_error(const char *message);
+
+/* ========================================================================== */
 
 #endif

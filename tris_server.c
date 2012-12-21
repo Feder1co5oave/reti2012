@@ -22,7 +22,9 @@
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
 
-/* === Client handlers ====================================================== */
+
+
+/* ===| Client handlers |==================================================== */
 
 void get_username(struct client_node*);
 void idle_free(struct client_node*);
@@ -31,7 +33,9 @@ void send_data(struct client_node*);
 void get_play_resp(struct client_node*);
 void inactive(struct client_node*);
 
-/* === Helpers ============================================================== */
+
+
+/* ===| Helpers |============================================================ */
 
 void accept_connection(void);
 void client_disconnected(struct client_node*);
@@ -39,7 +43,9 @@ void start_match(struct client_node*);
 void send_byte(struct client_node* client, uint8_t byte);
 void server_shell(void);
 
-/* === Data ================================================================= */
+
+
+/* ===| Data |=============================================================== */
 
 char buffer[BUFFER_SIZE];
 
@@ -53,10 +59,11 @@ socklen_t addrlen = sizeof(yourhost);
 
 int yes = 1, sel_status, i, received;
 
-/* ========================================================================== */
+
+
+/* ===| Main |=============================================================== */
 
 int main (int argc, char **argv) {
-	
 	fd_set _readfds, _writefds;
 	client_list.head = client_list.tail = NULL;
 	client_list.count = 0;

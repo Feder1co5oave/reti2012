@@ -3,6 +3,10 @@
 
 #include <sys/types.h>
 
+
+
+/* ===| Constants |========================================================== */
+
 #define MAX_USERNAME_LENGTH 30
 #define USERNAME_ALPHABET "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.,-+*"
 #define DEFAULT_TIMEOUT_INIT {60, 0}
@@ -10,7 +14,8 @@
 #define BUFFER_SIZE 1024
 
 
-/* === Magic constants ====================================================== */
+
+/* ===| Magic constants |==================================================== */
 
 #define REQ_LOGIN		0x07
 #define REQ_WHO 		0x62
@@ -31,7 +36,9 @@
 
 #define RESP_BADREQ		0x54
 
-/* ========================================================================== */
+
+
+/* ===| Data types |========================================================= */
 
 enum client_state { NONE, CONNECTED, FREE, BUSY, PLAY };
 
@@ -39,9 +46,15 @@ typedef unsigned char bool;
 #define TRUE 1
 #define FALSE 0
 
+
+
+/* ===| Functions |========================================================== */
+
 bool username_is_valid(const char *username);
 
 #define check_alloc(ptr) if ( ptr == NULL ) { perror("Errore su malloc()"); exit(1); }
 #define fl() fflush(stdout)
+
+/* ========================================================================== */
 
 #endif
