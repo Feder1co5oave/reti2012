@@ -1,6 +1,8 @@
 #include "log.h"
 #include "common.h"
 #include <time.h>
+#include <errno.h>
+#include <string.h>
 
 struct log_file *log_files = NULL;
 
@@ -10,7 +12,7 @@ struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 		perror("Errore fopen()");
 		exit(1);
 	}
-	return new_log(file, maxlevel, TRUE);
+	return new_log(file, maxlevel, TRUE); /* wrapped */
 }
 
 struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
@@ -104,7 +106,7 @@ int log_message(loglevel_t level, const char *message) {
 			} else {
 				fputs(message, ptr->file);
 				fputs("\n", ptr->file);
-				fflush(ptr->file);
+				fflush(ptr->file); /* è unwrapped, va bene così */
 			}
 		}
 	}
@@ -123,4 +125,8 @@ int flog_message(loglevel_t level, const char* format, ...) {
 	free(message);
 	va_end(args);
 	return count;
+}
+
+int log_error(const char *message) {
+	return flog_message(LOG_ERROR, "%s: %s", message, strerror(errno));
 }

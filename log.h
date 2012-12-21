@@ -34,5 +34,6 @@ struct log_file *close_log(struct log_file*);
 void close_logs(void);
 int log_message(loglevel_t level, const char *message);
 int flog_message(loglevel_t level, const char *format, ...);
+int log_error(const char *message);
 
 #endif
