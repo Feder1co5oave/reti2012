@@ -65,8 +65,6 @@ int yes = 1, sel_status, i, received;
 
 int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
-	client_list.head = client_list.tail = NULL;
-	client_list.count = 0;
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		printf("Usage: %s <host> <porta>\n", argv[0]);

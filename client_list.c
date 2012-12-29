@@ -6,7 +6,7 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-client_list_t client_list;
+client_list_t client_list = {NULL, NULL, 0};
 
 struct client_node *create_client_node() {
 	struct client_node *cn = malloc(sizeof(struct client_node));
