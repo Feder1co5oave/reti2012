@@ -77,7 +77,7 @@ int main (int argc, char **argv) {
 	}
 	
 	myhost.sin_family = AF_INET;
-	myhost.sin_port = htons((uint16_t) atoi(argv[2]));
+	myhost.sin_port = htons((uint16_t) atoi(argv[2])); /*FIXME check cast */
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
 	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
@@ -90,7 +90,7 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 	
-	if ( bind(sock_listen, (struct sockaddr*)&myhost, sizeof(myhost)) ) {
+	if ( bind(sock_listen, (struct sockaddr*) &myhost, sizeof(myhost)) ) {
 		perror("Errore bind()");
 		return 1;
 	}
@@ -175,20 +175,21 @@ int main (int argc, char **argv) {
 
 /* ========================================================================== */
 
-void accept_connection() {
-	if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
+void accept_connection() { /*TODO rendere locali alcune variabili */
+	addrlen = sizeof(yourhost);
+	if ( (sock_client = accept(sock_listen, (struct sockaddr*) &yourhost, &addrlen)) >= 0 ) {
 		struct client_node *client = create_client_node();
-		inet_ntop(AF_INET, &(yourhost.sin_addr), buffer, INET_ADDRSTRLEN);
-		printf("\nIncoming connection from %s:%hu\n> ", buffer, ntohs(yourhost.sin_port));
-		fl();
 		add_client_node(client);
 		client->addr = yourhost;
 		client->socket = sock_client;
 		client->state = CONNECTED;
 		client->read_dispatch = &get_username;
+		printf("\nIncoming connection from %s\n> ", client_sockaddr_p(client);
+		fl();
 		monitor_socket_r(sock_client);
 	} else {
 		perror("Errore accept()");
+		/*FIXME Potrebbe verificarsi ECONNABORTED e in quel caso vorrei ritentare */
 		close(sock_listen);
 		exit(1);
 	}
@@ -211,6 +212,11 @@ void get_username(struct client_node *client) {
 		
 	received = recv(client->socket, &(client->username_len), 1, 0); /*FIXME use select(_readfds) */
 	if ( received == 1 ) {
+		if ( client->username_len > MAX_USERNAME_LENGTH ) {
+			send_byte(client, RESP_BADUSR);
+			return;
+		}
+
 		received = recv(client->socket, buffer, client->username_len + 2, 0);
 		if ( received == client->username_len + 2 ) {
 			unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
@@ -221,7 +227,7 @@ void get_username(struct client_node *client) {
 				send_byte(client, RESP_EXIST);
 			else {
 				inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-				printf("\nClient %s:%hu has username [%s]\n", buffer, ntohs(client->addr.sin_port), client->username);
+				printf("\nClient %s has username [%s]\n", client_sockaddr_p(client), client->username);
 				printf("[%s] Listening on %s:%hu\n> ", client->username, buffer, client->udp_port);
 				fl();
 				
@@ -274,6 +280,11 @@ void idle_free(struct client_node *client) {
 		case REQ_PLAY:
 			received = recv(client->socket, &length, 1, 0);
 			if ( received == 1 ) {
+				if ( length > MAX_USERNAME_LENGTH ) {
+					send_byte(client, RESP_NONEXIST);
+					break;
+				}
+
 				received = recv(client->socket, buffer, length, 0);
 				if ( received == length ) {
 					struct client_node *opp;
@@ -316,15 +327,14 @@ void idle_free(struct client_node *client) {
 }
 
 void idle_play(struct client_node *client) {
-	
+	client_disconnected(client);
 }
 
 void client_disconnected(struct client_node *client) {
-	inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 	if ( client->state != NONE && client->state != CONNECTED )
-		printf("\n[%s] %s:%hu disconnected\n> ", client->username, buffer, ntohs(client->addr.sin_port));
+		printf("\n[%s] %s disconnected\n> ", client->username, client_sockaddr_p(client));
 	else
-		printf("\n[unknown] %s:%hu disconnected\n> ", buffer, ntohs(client->addr.sin_port));
+		printf("\n[[unknown]] %s disconnected\n> ", client_sockaddr_p(client));
 	
 	fl();
 	if ( client->state == BUSY ) {
@@ -342,9 +352,11 @@ void client_disconnected(struct client_node *client) {
 			opp->read_dispatch = &idle_free;
 			unmonitor_socket_w(opp->socket);
 			monitor_socket_r(opp->socket); /*FIXME inutile? */
+		} else {
+			/*TODO */
 		}
+	} /*TODO else if ( client->state == PLAY ) */
 
-	}
 
 	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
@@ -368,8 +380,8 @@ void send_data(struct client_node *client) {
 	int sent;
 	if (client->data == NULL)
 		sent = send(client->socket, &(client->byte_resp), 1, 0);
-	else 
-		sent = send(client->socket, client->data, client->data_count - client->data_cursor, 0);
+	else
+		sent = send(client->socket, client->data + client->data_cursor, client->data_count - client->data_cursor, 0);
 	
 	if ( sent > 0 ) {
 		client->data_cursor += sent;
@@ -395,12 +407,15 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
+	int line_length;
 	fgets(buffer, BUFFER_SIZE, stdin);
+	line_length = strlen(buffer);
+	if ( line_length > 0 ) buffer[line_length - 1] = '\0';
 	
-	if ( strcmp(buffer, "help\n" ) == 0 || strcmp(buffer, "?\n") == 0 ) {
+	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
 		printf("Commands: help, who, playing, exit\n> ");
 		fl();
-	} else if ( strcmp(buffer, "who\n") == 0 ) {
+	} else if ( strcmp(buffer, "who") == 0 ) {
 		struct client_node *cn;
 		if (client_list.count == 0) {
 			printf("There are no connected clients.\n> ");
@@ -409,17 +424,16 @@ void server_shell() {
 			printf("There are %d connected clients:\n", client_list.count);
 			fl();
 			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
-				inet_ntop(AF_INET, &(cn->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 				if ( cn->state == NONE || cn->state == CONNECTED )
-					printf("[unknown] Host %s:%hu, not logged in\n", buffer, ntohs(cn->addr.sin_port));
+					printf("[[unknown]] Host %s, not logged in\n", client_sockaddr_p(cn));
 				else
-					printf("[%s] Host %s:%hu listening on %hu\n", cn->username, buffer, ntohs(cn->addr.sin_port), cn->udp_port);
+					printf("[%s] Host %s listening on %hu\n", cn->username, client_sockaddr_p(cn), cn->udp_port);
 			}
 			printf("> "); fl();
 		}
-	} else if ( strcmp(buffer, "playing\n") == 0 ) {
+	} else if ( strcmp(buffer, "playing") == 0 ) {
 		/*TODO */
-	} else if ( strcmp(buffer, "exit\n") == 0 ) {
+	} else if ( strcmp(buffer, "exit") == 0 ) {
 		puts("Exiting...");
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
@@ -430,7 +444,7 @@ void server_shell() {
 		}
 		destroy_client_list(client_list.head);
 		exit(0);
-	} else if ( strcmp(buffer, "\n") == 0 ) {
+	} else if ( strcmp(buffer, "") == 0 ) {
 		printf("> "); fl();
 	} else {
 		printf("Unknown command\n> ");
