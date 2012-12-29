@@ -159,6 +159,7 @@ void client_shell() {
 			return;
 		}
 
+		/*TODO check se user corrisponde all'utente attuale */
 		user_length = strlen(user);
 		pack(buffer, "bbsw", REQ_LOGIN, user_length, user, port);
 		sent = send(sock_server, buffer, 4 + user_length, 0);
@@ -172,10 +173,10 @@ void client_shell() {
 				printf("Loggato con successo\n> "); fl();
 				break;
 			case RESP_EXIST:
-				printf("L'username esiste già\n> "); fl();
+				printf("Lo username esiste già\n> "); fl();
 				break;
 			case RESP_BADUSR:
-				printf("L'username ha un formato non valido\n> "); fl();
+				printf("Lo username ha un formato non valido\n> "); fl();
 				break;
 			case RESP_BADREQ:
 				printf("BADREQ\n> "); fl();
