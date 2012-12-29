@@ -2,6 +2,7 @@
 #define _COMMON_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 
 
@@ -53,6 +54,18 @@ typedef unsigned char bool;
 bool username_is_valid(const char *username);
 
 #define check_alloc(ptr) if ( ptr == NULL ) { perror("Errore su malloc()"); exit(1); }
+
+/**
+ * Translates a magic constant into its name, or its hexadecimal representation
+ * if not recognized.
+ */
+const char *magic_name(uint8_t);
+
+/**
+ * Translates a client_state into its name.
+ */
+const char *state_name(enum client_state);
+
 #define fl() fflush(stdout)
 
 /* ========================================================================== */
