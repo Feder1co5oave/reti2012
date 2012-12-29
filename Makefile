@@ -4,7 +4,7 @@ CFLAGS = -Wall -pedantic
 EXEs = tris_client tris_server
 SOBJs = client_list.o
 COBJs =
-COMMONOBJs = common.o pack.o
+COMMONOBJs = common.o pack.o log.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
 .PHONY : all clean
