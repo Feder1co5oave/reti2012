@@ -41,7 +41,16 @@
 
 /* ===[ Data types ]========================================================= */
 
-enum client_state { NONE, CONNECTED, FREE, BUSY, PLAY };
+/**
+ * Describes a client state by the viewpoint of the server.
+ */
+enum client_state {
+	NONE,       /* default value, client does not exist yet                   */
+	CONNECTED,  /* client is connected, not logged in yet                     */
+	FREE,       /* client is connected and logged in (username and udp port)  */
+	BUSY,		/* client has/is requested to play a match                    */
+	PLAY        /* client is playing                                          */
+};
 
 typedef unsigned char bool;
 #define TRUE 1
