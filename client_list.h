@@ -99,6 +99,11 @@ const char *client_sockaddr_p(struct client_node*);
  */
 const char *client_canon_p(struct client_node*);
 
+/**
+ * Logs a change of state for a client, as LOG_DEBUG.
+ */
+int log_statechange(struct client_node*);
+
 /* ========================================================================== */
 
 #endif
