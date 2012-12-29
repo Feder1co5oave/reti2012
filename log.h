@@ -83,6 +83,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap);
 /**
  * Close a log_file.
  * Before closing, write a closing delimiter if the log_file is wrapped.
+ * @param struct log_file *logfile
  * @return the ->next member of the now closed log_file
  */
 struct log_file *close_log(struct log_file*);
@@ -95,6 +96,12 @@ void close_logs(void);
 
 /**
  * Log a message to all open log_files with (level & maxlevel) != 0.
+ * @param loglevel_t level the log level of the message, normally one of the
+ * LOG_* constants, except LOG_ALL. OR-ing multiple LOG_* will cause the message
+ * to be printed on all log_files associated with at least one of the OR-ed
+ * levels, but to show marked as '((UNDEFINED))' on wrapped log_files.
+ * @param const char *message the string to be logged, preferably without any
+ * trailing space
  * @return the number of open log_files with matching level
  */
 int log_message(loglevel_t level, const char *message);
@@ -102,6 +109,13 @@ int log_message(loglevel_t level, const char *message);
 /**
  * Log a formatted message to all open log_files with (level & maxlevel) != 0.
  * @see printf(const char *format, ...)
+ * @param loglevel_t level the log level of the message, normally one of the
+ * LOG_* constants, except LOG_ALL. OR-ing multiple LOG_* will cause the message
+ * to be printed on all log_files associated with at least one of the OR-ed
+ * levels, but to show marked as '((UNDEFINED))' on wrapped log_files.
+ * @param const char *format the format string containing some format specifiers
+ * @param ... additional arguments, used to replace specifiers in the format
+ * string
  * @return the number of open log_files with matching level
  */
 int flog_message(loglevel_t level, const char *format, ...);
@@ -110,6 +124,7 @@ int flog_message(loglevel_t level, const char *format, ...);
  * Log a message of level LOG_ERROR followed by a description of the error
  * specified in errno.
  * @see strerror()
+ * @param const char *message
  * @return the number of open log_files with matching level
  */
 int log_error(const char *message);
