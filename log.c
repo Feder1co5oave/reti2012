@@ -97,6 +97,9 @@ int log_message(loglevel_t level, const char *message) {
 				case LOG_INFO:
 					fprintf(ptr->file, "((INFO)) %s\n", message);
 					break;
+				case LOG_INFO_VERBOSE:
+					fprintf(ptr->file, "((INFO_VERBOSE)) %s\n", message);
+					break;
 				case LOG_CONSOLE:
 					fprintf(ptr->file, "((CONSOLE)) %s\n", message);
 					break;
