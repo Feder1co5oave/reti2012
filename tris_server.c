@@ -71,6 +71,7 @@ int main (int argc, char **argv) {
 	
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
+	open_log("tris_server.log", LOG_ALL);
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		flog_message(LOG_CONSOLE, "Usage: %s <host> <porta>", argv[0]);
@@ -221,19 +222,23 @@ void get_username(struct client_node *client) {
 
 	if ( received == 1 ) {
 		if ( client->username_len > MAX_USERNAME_LENGTH ) {
+			flog_message(LOG_INFO_VERBOSE, "Client %s tried to login with invalid username", client_sockaddr_p(client));
 			send_byte(client, RESP_BADUSR);
 			return;
 		}
 
 		received = recv(client->socket, buffer, client->username_len + 2, 0);
 		if ( received == client->username_len + 2 ) {
+			struct client_node *dbl;
 			unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
-			
-			if ( !username_is_valid(client->username) ) 
+			if ( !username_is_valid(client->username) ) {
+				/*TODO print escaped username string */
+				flog_message(LOG_INFO_VERBOSE, "Client %s tried to login with invalid username", client_sockaddr_p(client));
 				send_byte(client, RESP_BADUSR);
-			else if ( get_client_by_username(client->username) != NULL )
+			} else if ( (dbl = get_client_by_username(client->username)) != NULL ) {
+				flog_message(LOG_INFO_VERBOSE, "Client %s tried to login with existing username=%s", client_sockaddr_p(client), dbl->username);
 				send_byte(client, RESP_EXIST);
-			else {
+			} else {
 				inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
 				flog_message(LOG_INFO, "Client %s has username [%s]", client_sockaddr_p(client), client->username);
 				flog_message(LOG_INFO, "[%s] Listening on %s:%hu (udp)", client->username, buffer, client->udp_port);
@@ -259,6 +264,7 @@ void idle_free(struct client_node *client) {
 	
 	switch ( cmd ) {
 		case REQ_WHO:
+			flog_message(LOG_INFO_VERBOSE, "[%s] requested the list of connected clients", client->username);
 			count = 0;
 			total_length = 1 + 4;
 			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
@@ -297,9 +303,16 @@ void idle_free(struct client_node *client) {
 					struct client_node *opp;
 					buffer[length] = '\0';
 					opp = get_client_by_username(buffer);
-					if ( opp == NULL || opp == client ) send_byte(client, RESP_NONEXIST);
-					else if ( opp->state != FREE ) send_byte(client, RESP_BUSY);
-					else {
+					if ( opp == NULL ) {
+						flog_message(LOG_INFO_VERBOSE, "[%s] requested to play with nonexistent player", client->username);
+						send_byte(client, RESP_NONEXIST);
+					} else if ( opp == client ) {
+						flog_message(LOG_INFO_VERBOSE, "[%s] requested to play with himself", client->username);
+						send_byte(client, RESP_NONEXIST);
+					} else if ( opp->state != FREE ) {
+						flog_message(LOG_INFO_VERBOSE, "[%s] requested to play with non-FREE player %s", client->username, client_canon_p(opp));
+						send_byte(client, RESP_BUSY);
+					} else {
 						flog_message(LOG_INFO, "[%s] requested to play with [%s]", client->username, opp->username);
 						client->req_to = opp;
 						opp->req_from = client;
@@ -341,12 +354,14 @@ void client_disconnected(struct client_node *client) {
 		struct client_node *opp;
 		if ( client->req_from ) {
 			opp = client->req_from;
+			flog_message(LOG_INFO_VERBOSE, "[%s] had a play request from [%s]", client->username, opp->username);
 			send_byte(opp, RESP_NONEXIST);
 			opp->req_to = NULL;
 			opp->state = FREE;
 		} else if ( client->req_to ) {
 			/*TODO */
 			opp = client->req_to;
+			flog_message(LOG_INFO_VERBOSE, "[%s] had requested to play with [%s]", client->username, opp->username);
 			/* opp->state = BUSY; */
 			opp->req_from = NULL;
 			opp->read_dispatch = &idle_free;
@@ -416,6 +431,8 @@ void server_shell() {
 	line_length = strlen(buffer);
 	if ( line_length > 0 ) buffer[line_length - 1] = '\0';
 	
+	log_message(LOG_USERINPUT, buffer);
+	
 	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
 		log_message(LOG_CONSOLE, "Commands: help, who, playing, exit");
 	} else if ( strcmp(buffer, "who") == 0 ) {
@@ -438,6 +455,7 @@ void server_shell() {
 		prompt(>);
 		/*TODO */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
+		flog_message(LOG_INFO_VERBOSE, "Closing %d client connections...", client_list.count);
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
 			if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
