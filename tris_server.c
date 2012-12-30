@@ -494,6 +494,7 @@ void server_shell() {
 		log_message(LOG_CONSOLE, "Commands: help, who, playing, exit");
 	} else if ( strcmp(buffer, "who") == 0 ) {
 		struct client_node *cn;
+		
 		if (client_list.count == 0) {
 			log_message(LOG_CONSOLE, "There are no connected clients.");
 		} else {
@@ -505,13 +506,25 @@ void server_shell() {
 				else
 					flog_message(LOG_CONSOLE, "[%s] Host %s listening on %hu", cn->username, client_sockaddr_p(cn), cn->udp_port);
 			}
-			prompt(>);
 			console->prompt = '>';
+			prompt(>);
 		}
 	} else if ( strcmp(buffer, "playing") == 0 ) {
-		log_message(LOG_DEBUG, "'playing' command not implemented yet");
+		struct client_node *cn, *opp;
+		bool playing = FALSE;
+
+		console->prompt = FALSE;
+		for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
+			if ( cn->state == PLAY && cn->play_with != NULL ) {
+				opp = cn->play_with;
+				playing = TRUE;
+				if ( strcmp(cn->username, opp->username) < 0 )
+					flog_message(LOG_CONSOLE, "[%s] is playing with [%s]", cn->username, opp->username);
+			}
+		}
+		if ( !playing ) log_message(LOG_CONSOLE, "No one is playing");
+		console->prompt = '>';
 		prompt(>);
-		/*TODO */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
 		int i;
 		flog_message(LOG_INFO_VERBOSE, "Closing %d client connections...", client_list.count);
