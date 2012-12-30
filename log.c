@@ -22,6 +22,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->file = file;
 	new->maxlevel = maxlevel;
 	new->wrap = wrap;
+	new->prompt = FALSE;
 	new->next = NULL;
 
 	/* We don't want log delimiters on the console */
@@ -81,39 +82,53 @@ int log_message(loglevel_t level, const char *message) {
 	int count = 0;
 	for ( lf = log_files; lf != NULL; lf = lf->next ) {
 		if ( level & lf->maxlevel ) {
+			char *pre, *mark, *post = "";
 			count++;
+			
+			/*if ( lf->file == stderr ) {
+				pre = "\033[31m";
+				post = "\033[0m";
+			}*/
+			
+			if ( lf->prompt && level != LOG_CONSOLE ) pre = "\n";
+			else pre = "";
+			
+
 			if ( lf->wrap ) switch ( level ) {
 				case LOG_DEBUG:
-					fprintf(lf->file, "((DEBUG)) %s\n", message);
+					mark = "((DEBUG))     ";
 					break;
 				case LOG_USERINPUT:
-					fprintf(lf->file, "((USERINPUT)) %s\n", message);
+					mark = "((USERINPUT)) ";
 					break;
 				case LOG_ERROR:
-					fprintf(lf->file, "((ERROR)) %s\n", message);
+					mark = "((ERROR))     ";
 					break;
 				case LOG_ERROR_VERBOSE:
-					fprintf(lf->file, "((ERROR_VERBOSE)) %s\n", message);
+					mark = "((ERROR_VRB)) ";
 					break;
 				case LOG_WARNING:
-					fprintf(lf->file, "((WARNING)) %s\n", message);
+					mark = "((WARNING))   ";
 					break;
 				case LOG_INFO:
-					fprintf(lf->file, "((INFO)) %s\n", message);
+					mark = "((INFO))      ";
 					break;
 				case LOG_INFO_VERBOSE:
-					fprintf(lf->file, "((INFO_VERBOSE)) %s\n", message);
+					mark = "((INFO_VRB))  ";
 					break;
 				case LOG_CONSOLE:
-					fprintf(lf->file, "((CONSOLE)) %s\n", message);
+					mark = "((CONSOLE))   ";
 					break;
 				default:
-					fprintf(lf->file, "((UNDEFINED)) %s\n", message);
+					mark = "((UNDEFINED)) ";
 			} else {
-				fputs(message, lf->file);
-				fputs("\n", lf->file);
-				fflush(lf->file); /* è unwrapped, va bene così */
+				mark = "";
 			}
+
+			/*FIXME togliere post se è inutile */
+			fprintf(lf->file, "%s%s%s%s\n", pre, mark, message, post);
+			if ( lf->prompt ) fprintf(lf->file, "%c ", lf->prompt);
+			fflush(lf->file); /*FIXME non flushare inutilmente */
 		}
 	}
 

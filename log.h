@@ -23,6 +23,7 @@ struct log_file {
 	FILE *file;
 	loglevel_t maxlevel;
 	bool wrap;
+	char prompt;
 	struct log_file *next;
 };
 
