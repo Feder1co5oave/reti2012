@@ -62,8 +62,6 @@ typedef unsigned char bool;
 
 bool username_is_valid(const char *username);
 
-#define check_alloc(ptr) if ( ptr == NULL ) { perror("Errore su malloc()"); exit(1); }
-
 /**
  * Translates a magic constant into its name, or its hexadecimal representation
  * if not recognized.
@@ -76,6 +74,16 @@ const char *magic_name(uint8_t);
 const char *state_name(enum client_state);
 
 #define fl() fflush(stdout)
+#define check_alloc(ptr)\
+	if ( ptr == NULL ) {\
+		log_error("Errore su malloc()");\
+		exit(1);\
+	}
+
+#define XSTR(S) #S
+#define STR(S) XSTR(S)
+#define prompt(c) { fputs(STR(c)" ", stdout); fflush(stdout); }
+/* E.g.: prompt(>) prompt($) */
 
 /* ========================================================================== */
 

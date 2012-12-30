@@ -13,6 +13,7 @@
 #include "common.h"
 #include "pack.h"
 #include "client_list.h"
+#include "log.h"
 
 #define BACKLOG 5
 
@@ -59,6 +60,8 @@ socklen_t addrlen = sizeof(yourhost);
 
 int yes = 1, sel_status, i, received;
 
+struct log_file *console;
+
 
 
 /* ===[ Main ]=============================================================== */
@@ -66,13 +69,16 @@ int yes = 1, sel_status, i, received;
 int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
 	
+	/* Set log files */
+	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
+	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
-		printf("Usage: %s <host> <porta>\n", argv[0]);
+		flog_message(LOG_CONSOLE, "Usage: %s <host> <porta>", argv[0]);
 		return 1;
 	}
 	
 	if ( inet_pton(AF_INET, argv[1], &(myhost.sin_addr)) != 1 ) {
-		puts("Indirizzo host non valido");
+		log_message(LOG_CONSOLE, "Invalid host address");
 		return 1;
 	}
 	
@@ -81,28 +87,28 @@ int main (int argc, char **argv) {
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
 	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
-		perror("Errore socket()");
+		log_error("Errore socket()");
 		return 1;
 	}
 	
 	if ( setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) ) {
-		perror("Errore setsockopt()");
+		log_error("Errore setsockopt()");
 		return 1;
 	}
 	
 	if ( bind(sock_listen, (struct sockaddr*) &myhost, sizeof(myhost)) ) {
-		perror("Errore bind()");
+		log_error("Errore bind()");
 		return 1;
 	}
 	
 	if ( listen(sock_listen, BACKLOG) ) {
-		perror("Errore listen()");
+		log_error("Errore listen()");
 		return 1;
 	}
 	
+	
 	inet_ntop(AF_INET, &(myhost.sin_addr), buffer, INET_ADDRSTRLEN);
-	printf("Server listening on %s:%hu\n> ", buffer, ntohs(myhost.sin_port));
-	fl();
+	flog_message(LOG_INFO, "Server listening on %s:%hu", buffer, ntohs(myhost.sin_port));
 	
 	FD_ZERO(&readfds);
 	FD_ZERO(&writefds);
@@ -111,6 +117,8 @@ int main (int argc, char **argv) {
 	_readfds = readfds;
 	_writefds = writefds;
 	
+	console->prompt = '>';
+	prompt(>);
 	
 	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) > 0 ) {
 		for ( i = 0; i <= maxfds; i++ ) {
@@ -165,10 +173,10 @@ int main (int argc, char **argv) {
 	}
 	
 	if ( sel_status == 0 ) {
-		puts("\nTimeout. Exit.");
+		log_message(LOG_INFO, "Timeout. Exit.");
 		return 0;
 	} else {
-		perror("Errore su select()");
+		log_error("Errore su select()");
 		return 1;
 	}
 }
@@ -184,12 +192,11 @@ void accept_connection() { /*TODO rendere locali alcune variabili */
 		client->socket = sock_client;
 		client->state = CONNECTED;
 		client->read_dispatch = &get_username;
-		printf("\nIncoming connection from %s\n> ", client_sockaddr_p(client);
-		fl();
+		flog_message(LOG_INFO, "Incoming connection from %s", client_sockaddr_p(client));
 		monitor_socket_r(sock_client);
 	} else {
-		perror("Errore accept()");
 		/*FIXME Potrebbe verificarsi ECONNABORTED e in quel caso vorrei ritentare */
+		log_error("Errore accept()");
 		close(sock_listen);
 		exit(1);
 	}
@@ -211,6 +218,7 @@ void get_username(struct client_node *client) {
 	}
 		
 	received = recv(client->socket, &(client->username_len), 1, 0); /*FIXME use select(_readfds) */
+
 	if ( received == 1 ) {
 		if ( client->username_len > MAX_USERNAME_LENGTH ) {
 			send_byte(client, RESP_BADUSR);
@@ -227,9 +235,8 @@ void get_username(struct client_node *client) {
 				send_byte(client, RESP_EXIST);
 			else {
 				inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
-				printf("\nClient %s has username [%s]\n", client_sockaddr_p(client), client->username);
-				printf("[%s] Listening on %s:%hu\n> ", client->username, buffer, client->udp_port);
-				fl();
+				flog_message(LOG_INFO, "Client %s has username [%s]", client_sockaddr_p(client), client->username);
+				flog_message(LOG_INFO, "[%s] Listening on %s:%hu (udp)", client->username, buffer, client->udp_port);
 				
 				client->state = FREE;
 				client->read_dispatch = &idle_free;
@@ -293,8 +300,7 @@ void idle_free(struct client_node *client) {
 					if ( opp == NULL || opp == client ) send_byte(client, RESP_NONEXIST);
 					else if ( opp->state != FREE ) send_byte(client, RESP_BUSY);
 					else {
-						printf("\n[%s] requested to play with [%s]\n> ", client->username, opp->username);
-						fl();
+						flog_message(LOG_INFO, "[%s] requested to play with [%s]", client->username, opp->username);
 						client->req_to = opp;
 						opp->req_from = client;
 						client->state = opp->state = BUSY;
@@ -331,12 +337,6 @@ void idle_play(struct client_node *client) {
 }
 
 void client_disconnected(struct client_node *client) {
-	if ( client->state != NONE && client->state != CONNECTED )
-		printf("\n[%s] %s disconnected\n> ", client->username, client_sockaddr_p(client));
-	else
-		printf("\n[[unknown]] %s disconnected\n> ", client_sockaddr_p(client));
-	
-	fl();
 	if ( client->state == BUSY ) {
 		struct client_node *opp;
 		if ( client->req_from ) {
@@ -357,6 +357,10 @@ void client_disconnected(struct client_node *client) {
 		}
 	} /*TODO else if ( client->state == PLAY ) */
 
+	if ( client->state != NONE && client->state != CONNECTED )
+		flog_message(LOG_INFO, "[%s] %s disconnected", client->username, client_sockaddr_p(client));
+	else
+		flog_message(LOG_INFO, "[[unknown]] %s disconnected", client_sockaddr_p(client));
 
 	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
@@ -413,28 +417,27 @@ void server_shell() {
 	if ( line_length > 0 ) buffer[line_length - 1] = '\0';
 	
 	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
-		printf("Commands: help, who, playing, exit\n> ");
-		fl();
+		log_message(LOG_CONSOLE, "Commands: help, who, playing, exit");
 	} else if ( strcmp(buffer, "who") == 0 ) {
 		struct client_node *cn;
 		if (client_list.count == 0) {
-			printf("There are no connected clients.\n> ");
-			fl();
+			log_message(LOG_CONSOLE, "There are no connected clients.");
 		} else {
-			printf("There are %d connected clients:\n", client_list.count);
-			fl();
+			console->prompt = FALSE;
+			flog_message(LOG_CONSOLE, "There are %d connected clients:", client_list.count);
 			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
 				if ( cn->state == NONE || cn->state == CONNECTED )
-					printf("[[unknown]] Host %s, not logged in\n", client_sockaddr_p(cn));
+					flog_message(LOG_CONSOLE, "[[unknown]] Host %s, not logged in", client_sockaddr_p(cn));
 				else
-					printf("[%s] Host %s listening on %hu\n", cn->username, client_sockaddr_p(cn), cn->udp_port);
+					flog_message(LOG_CONSOLE, "[%s] Host %s listening on %hu", cn->username, client_sockaddr_p(cn), cn->udp_port);
 			}
-			printf("> "); fl();
+			prompt(>);
+			console->prompt = '>';
 		}
 	} else if ( strcmp(buffer, "playing") == 0 ) {
+		prompt(>);
 		/*TODO */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
-		puts("Exiting...");
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
 			if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
@@ -443,12 +446,12 @@ void server_shell() {
 			}
 		}
 		destroy_client_list(client_list.head);
+		log_message(LOG_CONSOLE, "Exiting...");
 		exit(0);
 	} else if ( strcmp(buffer, "") == 0 ) {
-		printf("> "); fl();
+		prompt(>);
 	} else {
-		printf("Unknown command\n> ");
-		fl();
+		log_message(LOG_CONSOLE, "Unknown command");
 	}
 }
 
@@ -463,8 +466,7 @@ void get_play_resp(struct client_node *client) {
 			gestisce l'arrivo della risposta (fino a quel momento client->state
 			rimane BUSY) */
 		if ( resp == RESP_OK_PLAY ) {
-			printf("\n[%s] accepted to play with [%s]\n> ", client->username, opp->username);
-			fl();
+			flog_message(LOG_INFO, "[%s] accepted to play with [%s]", client->username, opp->username);
 			opp->data_count = 1 + sizeof(client->addr.sin_addr) + sizeof(client->udp_port);
 			opp->data = malloc(opp->data_count);
 			check_alloc(opp->data);
@@ -475,8 +477,7 @@ void get_play_resp(struct client_node *client) {
 			client->read_dispatch = &inactive;
 		} else { /*FIXME May be some other valid command such as REQ_WHO or REQ_PLAY */
 			/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY */
-			printf("\n[%s] refused to play with [%s]\n> ", client->username, opp->username);
-			fl();
+			flog_message(LOG_INFO, "[%s] refused to play with [%s]", client->username, opp->username);
 			send_byte(opp, RESP_REFUSE);
 			opp->state = FREE;
 			opp->req_to = NULL;
@@ -497,12 +498,14 @@ void start_match(struct client_node *client) {
 	opp->play_with = client;
 	opp->req_from = NULL;
 	opp->read_dispatch = &idle_play;
-	monitor_socket_r(opp->socket);
+	flog_message(LOG_INFO, "[%s] is playing with [%s]", client->username, opp->username);
+	monitor_socket_r(opp->socket); /*FIXME inutile? */
 }
 
 void inactive(struct client_node *client) {
 	uint8_t cmd;
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received == 0 ) client_disconnected(client);
+	else /*TODO */
 	/*FIXME what to do? */
 }
