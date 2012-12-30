@@ -62,6 +62,8 @@ struct log_file *close_log(struct log_file *logfile) {
 				ctime(&now));
 		}
 
+		if ( logfile->prompt ) fputs("\n", logfile->file);
+
 		fflush(logfile->file);
 		/* prevent stdout/stderr from being fclose()d */
 		if ( logfile->file != stdout && logfile->file != stderr )
