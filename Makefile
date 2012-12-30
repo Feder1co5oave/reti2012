@@ -7,7 +7,7 @@ COBJs =
 COMMONOBJs = common.o pack.o log.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
-.PHONY : all clean
+.PHONY : all clean server_log
 
 all : $(EXEs)
 	
@@ -18,4 +18,8 @@ tris_client : $(COMMONOBJs) $(COBJs)
 %.o : %.c %.h
 
 clean :
-	- rm $(OBJs) $(EXEs)
+	- rm $(OBJs) $(EXEs) *.log
+
+server_log :
+	ps -C tris_server -o pid= > /dev/null
+	tail -f --lines=20 "--pid=$(shell ps -C tris_server -o pid=)" tris_server.log
