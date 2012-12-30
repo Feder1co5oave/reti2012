@@ -5,7 +5,7 @@
 
 
 
-/* ===| Constants |========================================================== */
+/* ===[ Constants ]========================================================== */
 
 #define MAX_USERNAME_LENGTH 30
 #define USERNAME_ALPHABET "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.,-+*"
@@ -15,7 +15,7 @@
 
 
 
-/* ===| Magic constants |==================================================== */
+/* ===[ Magic constants ]==================================================== */
 
 #define REQ_LOGIN		0x07
 #define REQ_WHO 		0x62
@@ -38,7 +38,7 @@
 
 
 
-/* ===| Data types |========================================================= */
+/* ===[ Data types ]========================================================= */
 
 enum client_state { NONE, CONNECTED, FREE, BUSY, PLAY };
 
@@ -48,7 +48,7 @@ typedef unsigned char bool;
 
 
 
-/* ===| Functions |========================================================== */
+/* ===[ Functions ]========================================================== */
 
 bool username_is_valid(const char *username);
 

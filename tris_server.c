@@ -24,7 +24,7 @@
 
 
 
-/* ===| Client handlers |==================================================== */
+/* ===[ Client handlers ]==================================================== */
 
 void get_username(struct client_node*);
 void idle_free(struct client_node*);
@@ -35,7 +35,7 @@ void inactive(struct client_node*);
 
 
 
-/* ===| Helpers |============================================================ */
+/* ===[ Helpers ]============================================================ */
 
 void accept_connection(void);
 void client_disconnected(struct client_node*);
@@ -45,7 +45,7 @@ void server_shell(void);
 
 
 
-/* ===| Data |=============================================================== */
+/* ===[ Data ]=============================================================== */
 
 char buffer[BUFFER_SIZE];
 
@@ -61,7 +61,7 @@ int yes = 1, sel_status, i, received;
 
 
 
-/* ===| Main |=============================================================== */
+/* ===[ Main ]=============================================================== */
 
 int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
@@ -174,6 +174,8 @@ int main (int argc, char **argv) {
 		return 1;
 	}
 }
+
+/* ========================================================================== */
 
 void accept_connection() {
 	if ( (sock_client = accept(sock_listen, (struct sockaddr*)&yourhost, &addrlen)) != -1 ) {
