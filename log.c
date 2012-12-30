@@ -24,8 +24,11 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->wrap = wrap;
 	new->next = NULL;
 
-	/* ctime() terminates with \n\0 */
-	if ( wrap ) fprintf(file,"======== Opening logfile at %s", ctime(&now));
+	/* We don't want log delimiters on the console */
+	if ( wrap && file != stdout && file != stderr )
+		fprintf(file, "======== Opening logfile at %s", ctime(&now));
+		/* ctime() terminates with \n\0 */
+
 	if ( log_files != NULL ) {
 		struct log_file *ptr = log_files;
 		while ( ptr->next != NULL ) ptr = ptr->next;
@@ -34,26 +37,27 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		log_files = new;
 		/* close logs on process termination */
 		atexit(close_logs);
+		/*TODO set signal handler on ^C too */
 	}
 	return new;
 }
 
 struct log_file *close_log(struct log_file *logfile) {
-	struct log_file *ptr = NULL;
+	struct log_file *lf = NULL;
 	if ( logfile != NULL ) {
 		if ( logfile == log_files ) {
 			log_files = logfile->next;
 		} else {
-			ptr = log_files;
-			while ( ptr != NULL && ptr->next != logfile ) ptr = ptr->next;
-			if ( ptr != NULL ) ptr->next = logfile->next;
+			lf = log_files;
+			while ( lf != NULL && lf->next != logfile ) lf = lf->next;
+			if ( lf != NULL ) lf->next = logfile->next;
 		}
 
-		ptr = logfile->next;
+		lf = logfile->next;
 
-		if ( logfile->wrap ) {
+		if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
 			time_t now = time(NULL);
-			fprintf(logfile->file, "======== Closing logfile at %s\n",
+			fprintf(logfile->file, "======== Closing logfile at %s\n\n",
 				ctime(&now));
 		}
 
@@ -64,52 +68,51 @@ struct log_file *close_log(struct log_file *logfile) {
 
 		free(logfile);
 	}
-	return ptr;
+	return lf;
 }
 
 void close_logs() {
-	struct log_file *ptr;
-	for ( ptr = log_files; ptr != NULL; ptr = close_log(ptr) );
+	struct log_file *lf;
+	for ( lf = log_files; lf != NULL; lf = close_log(lf) );
 }
 
 int log_message(loglevel_t level, const char *message) {
-	struct log_file *ptr;
+	struct log_file *lf;
 	int count = 0;
-	for ( ptr = log_files; ptr != NULL; ptr = ptr->next ) {
-		if ( level & ptr->maxlevel ) {
+	for ( lf = log_files; lf != NULL; lf = lf->next ) {
+		if ( level & lf->maxlevel ) {
 			count++;
-			if ( ptr->wrap ) switch ( level ) {
+			if ( lf->wrap ) switch ( level ) {
 				case LOG_DEBUG:
-					fprintf(ptr->file, "((DEBUG)) %s\n", message);
+					fprintf(lf->file, "((DEBUG)) %s\n", message);
 					break;
 				case LOG_USERINPUT:
-					fprintf(ptr->file, "((USERINPUT)) %s\n", message);
+					fprintf(lf->file, "((USERINPUT)) %s\n", message);
 					break;
 				case LOG_ERROR:
-					fprintf(ptr->file, "((ERROR)) %s\n", message);
+					fprintf(lf->file, "((ERROR)) %s\n", message);
 					break;
 				case LOG_ERROR_VERBOSE:
-					fprintf(ptr->file, "((ERROR_VERBOSE)) %s\n", message);
+					fprintf(lf->file, "((ERROR_VERBOSE)) %s\n", message);
 					break;
 				case LOG_WARNING:
-					fprintf(ptr->file, "((WARNING)) %s\n", message);
+					fprintf(lf->file, "((WARNING)) %s\n", message);
 					break;
 				case LOG_INFO:
-					fprintf(ptr->file, "((INFO)) %s\n", message);
+					fprintf(lf->file, "((INFO)) %s\n", message);
 					break;
 				case LOG_INFO_VERBOSE:
-					fprintf(ptr->file, "((INFO_VERBOSE)) %s\n", message);
+					fprintf(lf->file, "((INFO_VERBOSE)) %s\n", message);
 					break;
 				case LOG_CONSOLE:
-					fprintf(ptr->file, "((CONSOLE)) %s\n", message);
+					fprintf(lf->file, "((CONSOLE)) %s\n", message);
 					break;
 				default:
-					fprintf(ptr->file, "((UNDEFINED)) %s\n", message);
-
+					fprintf(lf->file, "((UNDEFINED)) %s\n", message);
 			} else {
-				fputs(message, ptr->file);
-				fputs("\n", ptr->file);
-				fflush(ptr->file); /* è unwrapped, va bene così */
+				fputs(message, lf->file);
+				fputs("\n", lf->file);
+				fflush(lf->file); /* è unwrapped, va bene così */
 			}
 		}
 	}
