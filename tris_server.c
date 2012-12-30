@@ -52,13 +52,8 @@ char buffer[BUFFER_SIZE];
 
 fd_set readfds, writefds;
 int maxfds = -1;
-struct timeval tv = DEFAULT_TIMEOUT_INIT;
 
-struct sockaddr_in myhost, yourhost;
-int sock_listen, sock_client;
-socklen_t addrlen = sizeof(yourhost);
-
-int yes = 1, sel_status, i, received;
+int sock_listen;
 
 struct log_file *console;
 
@@ -68,7 +63,10 @@ struct log_file *console;
 
 int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
-	
+	/* struct timeval tv = DEFAULT_TIMEOUT_INIT; */
+	struct sockaddr_in myhost;
+	int yes = 1, sel_status, i;
+
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
 	open_log("tris_server.log", LOG_ALL);
@@ -130,7 +128,7 @@ int main (int argc, char **argv) {
 					server_shell();
 				} else {
 					struct client_node *client;
-					sock_client = i;
+					int sock_client = i;
 					
 					client = get_client_by_socket(sock_client);
 					if ( client != NULL && client->read_dispatch != NULL ) {
@@ -147,7 +145,7 @@ int main (int argc, char **argv) {
 				
 			} else if ( FD_ISSET(i, &_writefds) ) {
 				struct client_node *client;
-				sock_client = i;
+				int sock_client = i;
 				
 				client = get_client_by_socket(sock_client);
 				if ( client != NULL && client->read_dispatch != NULL ) {
@@ -189,8 +187,11 @@ int main (int argc, char **argv) {
 /* ========================================================================== */
 
 void accept_connection() { /*TODO rendere locali alcune variabili */
+	int sock_client;
+	struct sockaddr_in yourhost;
+	socklen_t addrlen = sizeof(yourhost);
+
 	log_message(LOG_DEBUG, "Going to accept a new connection...");
-	addrlen = sizeof(yourhost);
 	if ( (sock_client = accept(sock_listen, (struct sockaddr*) &yourhost, &addrlen)) >= 0 ) {
 		struct client_node *client = create_client_node();
 		add_client_node(client);
@@ -211,8 +212,9 @@ void accept_connection() { /*TODO rendere locali alcune variabili */
 
 void get_username(struct client_node *client) {
 	uint8_t cmd;
+	int received;
+
 	received = recv(client->socket, &cmd, 1, 0);
-	
 	if (received != 1) {
 		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
@@ -269,9 +271,10 @@ void get_username(struct client_node *client) {
 
 void idle_free(struct client_node *client) {
 	uint8_t cmd, length;
-	int total_length;
+	int total_length, received;
 	uint32_t count;
 	struct client_node *cn;
+
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
 		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
@@ -438,6 +441,7 @@ void send_byte(struct client_node *client, uint8_t byte) {
 
 void send_data(struct client_node *client) {
 	int sent;
+
 	if (client->data == NULL)
 		sent = send(client->socket, &(client->byte_resp), 1, 0);
 	else
@@ -509,6 +513,7 @@ void server_shell() {
 		prompt(>);
 		/*TODO */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
+		int i;
 		flog_message(LOG_INFO_VERBOSE, "Closing %d client connections...", client_list.count);
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
@@ -530,6 +535,8 @@ void server_shell() {
 
 void get_play_resp(struct client_node *client) {
 	uint8_t resp;
+	int received;
+
 	received = recv(client->socket, &resp, 1, 0);
 	if ( received == 1 ) {
 		struct client_node *opp = client->req_from;
@@ -589,6 +596,8 @@ void start_match(struct client_node *client) {
 
 void inactive(struct client_node *client) {
 	uint8_t cmd;
+	int received;
+
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received == 0 ) client_disconnected(client);
 	else flog_message(LOG_WARNING, "Got %s in inactive from %s", magic_name(cmd), client_canon_p(client));
