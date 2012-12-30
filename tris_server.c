@@ -166,6 +166,8 @@ int main (int argc, char **argv) {
 		_readfds = readfds;
 		_writefds = writefds;
 	}
+
+	flog_message(LOG_DEBUG, "Just exited main while loop with sel_status=%d", sel_status);
 	
 	for ( i = 0; i <= maxfds; i++ ) {
 		if ( i == STDIN_FILENO ) continue;
@@ -187,6 +189,7 @@ int main (int argc, char **argv) {
 /* ========================================================================== */
 
 void accept_connection() { /*TODO rendere locali alcune variabili */
+	log_message(LOG_DEBUG, "Going to accept a new connection...");
 	addrlen = sizeof(yourhost);
 	if ( (sock_client = accept(sock_listen, (struct sockaddr*) &yourhost, &addrlen)) >= 0 ) {
 		struct client_node *client = create_client_node();
@@ -196,6 +199,7 @@ void accept_connection() { /*TODO rendere locali alcune variabili */
 		client->state = CONNECTED;
 		client->read_dispatch = &get_username;
 		flog_message(LOG_INFO, "Incoming connection from %s", client_sockaddr_p(client));
+		log_statechange(client);
 		monitor_socket_r(sock_client);
 	} else {
 		/*FIXME Potrebbe verificarsi ECONNABORTED e in quel caso vorrei ritentare */
@@ -220,6 +224,8 @@ void get_username(struct client_node *client) {
 		send_byte(client, RESP_BADREQ);
 		return;
 	}
+
+	flog_message(LOG_DEBUG, "Got REQ_LOGIN from %s", client_sockaddr_p(client));
 		
 	received = recv(client->socket, &(client->username_len), 1, 0); /*FIXME use select(_readfds) */
 
@@ -248,6 +254,7 @@ void get_username(struct client_node *client) {
 				
 				client->state = FREE;
 				client->read_dispatch = &idle_free;
+				log_statechange(client);
 				send_byte(client, RESP_OK_LOGIN);
 			}
 		} else {
@@ -272,6 +279,8 @@ void idle_free(struct client_node *client) {
 		return;
 	}
 	
+	flog_message(LOG_DEBUG, "Got cmd=%s from %s in idle_free", magic_name(cmd), client_canon_p(client));
+
 	switch ( cmd ) {
 		case REQ_WHO:
 			flog_message(LOG_INFO_VERBOSE, "[%s] requested the list of connected clients", client->username);
@@ -284,6 +293,7 @@ void idle_free(struct client_node *client) {
 				}
 			}
 			
+			flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", total_length, __LINE__);
 			client->data = malloc(total_length);
 			check_alloc(client->data);
 			client->data_cursor = 0;
@@ -295,6 +305,7 @@ void idle_free(struct client_node *client) {
 					client->data_count += 1 + cn->username_len;
 				}
 			}
+			flog_message(LOG_DEBUG, "Preparing to send RESP_WHO data to [%s]", client->username);
 			client->write_dispatch = &send_data;
 			monitor_socket_w(client->socket);
 			client->read_dispatch = &inactive;
@@ -328,11 +339,15 @@ void idle_free(struct client_node *client) {
 						client->req_to = opp;
 						opp->req_from = client;
 						client->state = opp->state = BUSY;
+						log_statechange(client);
+						log_statechange(opp);
 						opp->data_count = 2 + client->username_len;
+						flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", opp->data_count, __LINE__);
 						opp->data = malloc(opp->data_count);
 						check_alloc(opp->data);
 						pack(opp->data, "bbs", REQ_PLAY, client->username_len, client->username);
 						opp->data_cursor = 0;
+						flog_message(LOG_DEBUG, "Preparing to send REQ_PLAY data to [%s]", opp->username);
 						opp->write_dispatch = &send_data;
 						monitor_socket_w(opp->socket);
 						opp->read_dispatch = &inactive;
@@ -354,6 +369,7 @@ void idle_free(struct client_node *client) {
 		/* case REQ_END: */
 			if ( client->state == BUSY ) {
 				client->state = FREE;
+				log_statechange(client);
 				break;
 			} else {
 				flog_message(LOG_WARNING, "%s is %s (should be BUSY)", client_canon_p(client), state_name(client->state));
@@ -367,10 +383,12 @@ void idle_free(struct client_node *client) {
 }
 
 void idle_play(struct client_node *client) {
+	log_message(LOG_DEBUG, "idle_play not implemented yet");
 	client_disconnected(client);
 }
 
 void client_disconnected(struct client_node *client) {
+	log_message(LOG_DEBUG, "Going to drop a client...");
 	if ( client->state == BUSY ) {
 		struct client_node *opp;
 		if ( client->req_from ) {
@@ -379,6 +397,7 @@ void client_disconnected(struct client_node *client) {
 			send_byte(opp, RESP_NONEXIST);
 			opp->req_to = NULL;
 			opp->state = FREE;
+			log_statechange(opp);
 		} else if ( client->req_to ) {
 			/*TODO */
 			opp = client->req_to;
@@ -407,6 +426,7 @@ void client_disconnected(struct client_node *client) {
 }
 
 void send_byte(struct client_node *client, uint8_t byte) {
+	flog_message(LOG_DEBUG, "Preparing to send %s to %s", magic_name(byte), client_canon_p(client));
 	client->byte_resp = byte;
 	client->data = NULL;
 	client->data_count = 1;
@@ -426,9 +446,14 @@ void send_data(struct client_node *client) {
 	if ( sent > 0 ) {
 		client->data_cursor += sent;
 		if ( client->data_cursor == client->data_count ) {
-			if ( client->data != NULL ) free(client->data);
-			client->data = NULL;
+			flog_message(LOG_DEBUG, "Finished sending %d bytes of data to %s", client->data_count, client_canon_p(client));
+			if ( client->data != NULL ) {
+				flog_message(LOG_DEBUG, "Freeing %d bytes on line %d", client->data_count, __LINE__);
+				free(client->data);
+				client->data = NULL;
+			}
 			
+			flog_message(LOG_DEBUG, "%s is %s", client_canon_p(client), state_name(client->state));
 			switch ( client->state ) {
 				case CONNECTED: client->read_dispatch = &get_username; break;
 				case FREE: client->read_dispatch = &idle_free; break;
@@ -480,6 +505,7 @@ void server_shell() {
 			console->prompt = '>';
 		}
 	} else if ( strcmp(buffer, "playing") == 0 ) {
+		log_message(LOG_DEBUG, "'playing' command not implemented yet");
 		prompt(>);
 		/*TODO */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
@@ -491,6 +517,7 @@ void server_shell() {
 				close(i);
 			}
 		}
+		log_message(LOG_DEBUG, "Freeing data structures");
 		destroy_client_list(client_list.head);
 		log_message(LOG_CONSOLE, "Exiting...");
 		exit(0);
@@ -517,10 +544,12 @@ void get_play_resp(struct client_node *client) {
 		if ( resp == RESP_OK_PLAY ) {
 			flog_message(LOG_INFO, "[%s] accepted to play with [%s]", client->username, opp->username);
 			opp->data_count = 1 + sizeof(client->addr.sin_addr) + sizeof(client->udp_port);
+			flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", opp->data_count, __LINE__);
 			opp->data = malloc(opp->data_count);
 			check_alloc(opp->data);
 			pack(opp->data, "blw", RESP_OK_PLAY, client->addr.sin_addr, client->udp_port);
 			opp->data_cursor = 0;
+			flog_message(LOG_DEBUG, "Preparing to send RESP_OK_PLAY data to [%s]", opp->username);
 			opp->write_dispatch = &send_data;
 			monitor_socket_w(opp->socket);
 			client->read_dispatch = &inactive;
@@ -533,6 +562,8 @@ void get_play_resp(struct client_node *client) {
 			client->state = FREE;
 			client->req_from = NULL;
 			client->read_dispatch = &idle_free;
+			log_statechange(opp);
+			log_statechange(client);
 		}
 	} else {
 		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
@@ -550,6 +581,8 @@ void start_match(struct client_node *client) {
 	opp->play_with = client;
 	opp->req_from = NULL;
 	opp->read_dispatch = &idle_play;
+	log_statechange(client);
+	log_statechange(opp);
 	flog_message(LOG_INFO, "[%s] is playing with [%s]", client->username, opp->username);
 	monitor_socket_r(opp->socket); /*FIXME inutile? */
 }
