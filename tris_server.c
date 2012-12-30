@@ -63,7 +63,6 @@ struct log_file *console;
 
 int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
-	/* struct timeval tv = DEFAULT_TIMEOUT_INIT; */
 	struct sockaddr_in myhost;
 	int yes = 1, sel_status, i;
 
@@ -119,7 +118,7 @@ int main (int argc, char **argv) {
 	console->prompt = '>';
 	prompt(>);
 	
-	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) > 0 ) {
+	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, NULL)) > 0 ) {
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( FD_ISSET(i, &_readfds) ) {
 				if ( i == sock_listen ) {
