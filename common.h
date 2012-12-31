@@ -20,24 +20,25 @@
 
 /* ===[ Magic constants ]==================================================== */
 
-#define REQ_LOGIN		0x07
-#define REQ_WHO 		0x62
-#define REQ_END			0x99
-#define REQ_PLAY		0x26
+#define REQ_LOGIN       0x07
+#define REQ_WHO         0x62
+#define REQ_END         0x99
+#define REQ_PLAY        0x26
 
-#define RESP_OK_LOGIN	0x94
-#define RESP_EXIST		0x49
-#define RESP_BADUSR		0x24
+#define RESP_OK_LOGIN   0x94
+#define RESP_EXIST      0x49
+#define RESP_BADUSR     0x24
 
-#define RESP_WHO		0x36
+#define RESP_WHO        0x36
 
-#define RESP_BUSY		0x41
-#define RESP_NONEXIST	0x83
-#define RESP_REFUSE		0x47
+#define RESP_BUSY       0x41
+#define RESP_NONEXIST   0x83
+#define RESP_REFUSE     0x47
+#define RESP_OK_PLAY    0x16
 
-#define RESP_OK_PLAY 	0x16
+#define RESP_OK_FREE    0x72
 
-#define RESP_BADREQ		0x54
+#define RESP_BADREQ     0x54
 
 
 
