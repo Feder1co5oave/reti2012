@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-01-02 17:37+0100\n"
-"PO-Revision-Date: 2013-01-02 17:38+0100\n"
+"POT-Creation-Date: 2013-01-02 17:51+0100\n"
+"PO-Revision-Date: 2013-01-02 17:51+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -21,19 +21,19 @@ msgstr ""
 "X-Poedit-Country: ITALY\n"
 "X-Poedit-SourceCharset: utf-8\n"
 
-#: tris_server.c:414
-#: tris_server.c:467
-#: tris_server.c:471
+#: tris_server.c:422
+#: tris_server.c:475
+#: tris_server.c:479
 #, c-format
 msgid "%s has unconsistent data on line %d"
 msgstr "%s ha dati incoerenti alla linea %d"
 
-#: tris_server.c:460
+#: tris_server.c:468
 #, c-format
 msgid "%s is %s"
 msgstr "%s è %s"
 
-#: tris_server.c:355
+#: tris_server.c:363
 #, c-format
 msgid "%s is %s (should be BUSY)"
 msgstr "%s è %s (dovrebbe essere BUSY)"
@@ -52,25 +52,37 @@ msgstr ""
 msgid "======== Opening logfile at %s"
 msgstr "======== Apertura file di log il %s"
 
-#: tris_server.c:325
-#: tris_server.c:562
-#: tris_server.c:598
+#: tris_server.c:333
+#: tris_server.c:570
+#: tris_server.c:606
 #, c-format
 msgid "Allocating %d bytes on line %d"
 msgstr "Alloco %d byte alla linea %d"
 
-#: tris_server.c:258
+#: tris_server.c:84
+msgid "Cannot set gettext domain"
+msgstr "Impossibile impostare il dominio gettext"
+
+#: tris_server.c:80
+msgid "Cannot set locale"
+msgstr "Impossibile impostare la localizzazione"
+
+#: tris_server.c:82
+msgid "Cannot set message catalogs directory"
+msgstr "Impossibile impostare il percorso dei cataloghi"
+
+#: tris_server.c:266
 #, c-format
 msgid "Client %s has username [%s]"
 msgstr "Il client %s ha username [%s]"
 
-#: tris_server.c:254
+#: tris_server.c:262
 #, c-format
 msgid "Client %s tried to login with existing username=%s"
 msgstr "Il client %s ha tentato di loggarsi con uno username già esistente=%s"
 
-#: tris_server.c:240
-#: tris_server.c:251
+#: tris_server.c:248
+#: tris_server.c:259
 #, c-format
 msgid "Client %s tried to login with invalid username"
 msgstr "Il client %s ha tentato di loggarsi con uno username non valido"
@@ -79,20 +91,20 @@ msgstr "Il client %s ha tentato di loggarsi con uno username non valido"
 msgid "Client has invalid address"
 msgstr "Indirizzo host non valido"
 
-#: tris_server.c:530
+#: tris_server.c:538
 #, c-format
 msgid "Closing %d client connections..."
 msgstr "Chiudo %d connessioni ai client..."
 
-#: tris_server.c:494
+#: tris_server.c:502
 msgid "Commands: help, who, playing, exit"
 msgstr "Comandi: help, who, playing, exit"
 
-#: tris_server.c:211
+#: tris_server.c:219
 msgid "Error accept()"
 msgstr "Errore accept()"
 
-#: tris_server.c:103
+#: tris_server.c:111
 msgid "Error bind()"
 msgstr "Errore bind()"
 
@@ -100,7 +112,7 @@ msgstr "Errore bind()"
 msgid "Error fopen()"
 msgstr "Errore fopen()"
 
-#: tris_server.c:108
+#: tris_server.c:116
 msgid "Error listen()"
 msgstr "Errore listen()"
 
@@ -110,258 +122,273 @@ msgstr "Errore listen()"
 msgid "Error malloc()"
 msgstr "Errore malloc()"
 
-#: tris_server.c:186
+#: tris_server.c:194
 msgid "Error select()"
 msgstr "Errore select()"
 
-#: tris_server.c:98
+#: tris_server.c:106
 msgid "Error setsockopt()"
 msgstr "Errore setsockopt()"
 
-#: tris_server.c:93
+#: tris_server.c:101
 msgid "Error socket()"
 msgstr "Errore socket()"
 
-#: tris_server.c:540
+#: tris_server.c:548
 msgid "Exiting..."
 msgstr "Chiusura..."
 
-#: tris_server.c:453
+#: tris_server.c:461
 #, c-format
 msgid "Finished sending %d bytes of data to %s"
 msgstr "Ho terminato di inviare %d byte di dati a %s"
 
-#: tris_server.c:455
+#: tris_server.c:463
 #, c-format
 msgid "Freeing %d bytes on line %d"
 msgstr "Dealloco %d byte alla linea %d"
 
-#: tris_server.c:538
+#: tris_server.c:546
 msgid "Freeing data structures"
 msgstr "Dealloco le strutture dati..."
 
-#: tris_server.c:198
+#: tris_server.c:83
+#, c-format
+msgid "Gettext domain set to %s"
+msgstr "Dominio gettext impostato su %s"
+
+#: tris_server.c:206
 msgid "Going to accept a new connection..."
 msgstr "Sto per accettare una nuova connessione..."
 
-#: tris_server.c:394
+#: tris_server.c:402
 msgid "Going to drop a client..."
 msgstr "Sto per disconnettere un client"
 
-#: tris_server.c:650
+#: tris_server.c:658
 #, c-format
 msgid "Got %d bytes in inactive from %s"
 msgstr "Ricevuti %d bytes in inactive da %s"
 
-#: tris_server.c:648
+#: tris_server.c:656
 #, c-format
 msgid "Got %s in inactive from %s"
 msgstr "Ricevuto %s in inactive da %s"
 
-#: tris_server.c:229
+#: tris_server.c:237
 #, c-format
 msgid "Got BADREQ on line %d, cmd=%s from %s"
 msgstr "Ricevuto BADREQ alla linea %d, cmd=%s, da %s"
 
-#: tris_server.c:234
+#: tris_server.c:242
 #, c-format
 msgid "Got REQ_LOGIN from %s"
 msgstr "Ricevuto REQ_LOGIN da %s"
 
-#: tris_server.c:287
+#: tris_server.c:295
 #, c-format
 msgid "Got cmd=%s from %s in idle_free"
 msgstr "Ricevuto cmd=%s da %s in idle_free"
 
-#: tris_server.c:376
+#: tris_server.c:384
 #, c-format
 msgid "Got cmd=%s from %s in idle_play"
 msgstr "Ricevuto cmd=%s da %s in idle_play"
 
-#: tris_server.c:206
+#: tris_server.c:214
 #, c-format
 msgid "Incoming connection from %s"
 msgstr "Connessione in corso da %s"
 
-#: tris_server.c:84
+#: tris_server.c:92
 msgid "Invalid host address"
 msgstr "Indirizzo host non valido"
 
-#: tris_server.c:172
+#: tris_server.c:180
 #, c-format
 msgid "Just exited main while loop with sel_status=%d"
 msgstr "Uscita dal ciclo while principale con sel_status=%d"
 
-#: tris_server.c:525
+#: tris_server.c:79
+#, c-format
+msgid "Locate set to %s"
+msgstr "Localizzazione impostata su %s"
+
+#: tris_server.c:81
+#, c-format
+msgid "Message catalogs directory set to %s"
+msgstr "Percorso dei cataloghi impostato su %s"
+
+#: tris_server.c:533
 msgid "No one is playing"
 msgstr "Nessuno sta giocando"
 
-#: tris_server.c:432
+#: tris_server.c:440
 #, c-format
 msgid "Preparing to send %s to %s"
 msgstr "Mi preparo a inviare %s a %s"
 
-#: tris_server.c:330
+#: tris_server.c:338
 #, c-format
 msgid "Preparing to send REQ_PLAY data to [%s]"
 msgstr "Mi preparo a inviare dati REQ_PLAY a [%s]"
 
-#: tris_server.c:603
+#: tris_server.c:611
 #, c-format
 msgid "Preparing to send RESP_OK_PLAY data to [%s]"
 msgstr "Mi preparo a inviare dati RESP_OK_PLAY a [%s]"
 
-#: tris_server.c:574
+#: tris_server.c:582
 #, c-format
 msgid "Preparing to send RESP_WHO data to [%s]"
 msgstr "Mi preparo a inviare dati RESP_WHO a [%s]"
 
-#: tris_server.c:223
-#: tris_server.c:267
-#: tris_server.c:271
-#: tris_server.c:282
-#: tris_server.c:337
-#: tris_server.c:341
-#: tris_server.c:371
-#: tris_server.c:620
+#: tris_server.c:231
+#: tris_server.c:275
+#: tris_server.c:279
+#: tris_server.c:290
+#: tris_server.c:345
+#: tris_server.c:349
+#: tris_server.c:379
+#: tris_server.c:628
 #, c-format
 msgid "Received=%d on line %d from %s"
 msgstr "Ricevuti=%d alla linea %d da %s"
 
-#: tris_server.c:480
+#: tris_server.c:488
 #, c-format
 msgid "Sent=%d on line %d to %s"
 msgstr "Inviati=%d alla linea %d da %s"
 
-#: tris_server.c:114
+#: tris_server.c:122
 #, c-format
 msgid "Server listening on %s:%hu"
 msgstr "Server in ascolto sulla porta %s:%hu"
 
-#: tris_server.c:502
+#: tris_server.c:510
 #, c-format
 msgid "There are %d connected clients:"
 msgstr "Ci sono %d client connessi:"
 
-#: tris_server.c:499
+#: tris_server.c:507
 msgid "There are no connected clients."
 msgstr "Non ci sono client connessi."
 
-#: tris_server.c:183
+#: tris_server.c:191
 msgid "Timeout. Exit."
 msgstr "Timeout. Uscita."
 
-#: tris_server.c:592
+#: tris_server.c:600
 #, c-format
 msgid "Unexpected client state on line %d in get_play_resp from %s"
 msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
 
-#: tris_server.c:141
+#: tris_server.c:149
 #, c-format
 msgid "Unexpected event on line %d, got read event on socket descriptor %d"
 msgstr "Evento inatteso alla linea %d, ricevuti dati sul descrittore socket %d"
 
-#: tris_server.c:158
+#: tris_server.c:166
 #, c-format
 msgid "Unexpected event on line %d, got write event on socket descriptor %d"
 msgstr "Evento inatteso alla linea %d, buffer di uscita vuoto sul descrittore socket %d"
 
-#: tris_server.c:360
+#: tris_server.c:368
 #, c-format
 msgid "Unexpected request from %s in idle_free"
 msgstr "Richiesta inattesa da %s in idle_free"
 
-#: tris_server.c:388
+#: tris_server.c:396
 #, c-format
 msgid "Unexpected request from %s in idle_play"
 msgstr "Richiesta inattesa da %s in idle_play"
 
-#: tris_server.c:545
+#: tris_server.c:553
 msgid "Unknown command"
 msgstr "Comando sconosciuto"
 
-#: tris_server.c:79
+#: tris_server.c:87
 #, c-format
 msgid "Usage: %s <host> <port>"
 msgstr "Uso: %s <ip_server> <porta_server>"
 
-#: tris_server.c:419
+#: tris_server.c:427
 #, c-format
 msgid "[%s] %s disconnected"
 msgstr "[%s] %s si è disconnesso"
 
-#: tris_server.c:507
+#: tris_server.c:515
 #, c-format
 msgid "[%s] Host %s listening on %hu"
 msgstr "[%s] Client %s in ascolto sulla porta %hu"
 
-#: tris_server.c:259
+#: tris_server.c:267
 #, c-format
 msgid "[%s] Listening on %s:%hu (udp)"
 msgstr "[%s] In ascolto su %s:%hu (udp)"
 
-#: tris_server.c:596
+#: tris_server.c:604
 #, c-format
 msgid "[%s] accepted to play with [%s]"
 msgstr "[%s] ha accettato di giocare con [%s]"
 
-#: tris_server.c:399
+#: tris_server.c:407
 #, c-format
 msgid "[%s] had a play request from [%s]"
 msgstr "[%s] aveva una richiesta di gioco da parte di [%s]"
 
-#: tris_server.c:407
+#: tris_server.c:415
 #, c-format
 msgid "[%s] had requested to play with [%s]"
 msgstr "[%s] aveva richiesto di giocare con [%s]"
 
-#: tris_server.c:522
-#: tris_server.c:637
+#: tris_server.c:530
+#: tris_server.c:645
 #, c-format
 msgid "[%s] is playing with [%s]"
 msgstr "[%s] sta giocando con [%s]"
 
-#: tris_server.c:609
+#: tris_server.c:617
 #, c-format
 msgid "[%s] refused to play with [%s]"
 msgstr "[%s] ha rifiutato di giocare con [%s]"
 
-#: tris_server.c:554
+#: tris_server.c:562
 #, c-format
 msgid "[%s] requested the list of connected clients"
 msgstr "[%s] ha richiesto la lista dei client connessi"
 
-#: tris_server.c:318
+#: tris_server.c:326
 #, c-format
 msgid "[%s] requested to play with [%s]"
 msgstr "[%s] ha richiesto di giocare con [%s]"
 
-#: tris_server.c:312
+#: tris_server.c:320
 #, c-format
 msgid "[%s] requested to play with himself"
 msgstr "[%s] ha richiesto di giocare con se stesso"
 
-#: tris_server.c:315
+#: tris_server.c:323
 #, c-format
 msgid "[%s] requested to play with non-FREE player %s"
 msgstr "[%s] ha richiesto di giocare con il giocatore non FREE %s"
 
-#: tris_server.c:309
+#: tris_server.c:317
 #, c-format
 msgid "[%s] requested to play with nonexistent player"
 msgstr "[%s] ha richiesto di giocare con un giocatore inesistente"
 
-#: tris_server.c:298
+#: tris_server.c:306
 #, c-format
 msgid "[%s] requested to play with nonexistent player (too long)"
 msgstr "[%s] ha richiesto di giocare con un giocatore dallo username troppo lungo"
 
-#: tris_server.c:421
+#: tris_server.c:429
 #, c-format
 msgid "[[unknown]] %s disconnected"
 msgstr "[[sconociuto]] %s si è disconnesso"
 
-#: tris_server.c:505
+#: tris_server.c:513
 #, c-format
 msgid "[[unknown]] Host %s, not logged in"
 msgstr "[[sconosciuto]] Host %s, non loggato"

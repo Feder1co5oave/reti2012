@@ -66,14 +66,22 @@ int main (int argc, char **argv) {
 	fd_set _readfds, _writefds;
 	struct sockaddr_in myhost;
 	int yes = 1, sel_status, i;
+	char *_setlocale, *_bindtextdomain, *_textdomain;
+
+	_setlocale = setlocale(LC_ALL, "");
+	_bindtextdomain = bindtextdomain("tris", "locale");
+	_textdomain = textdomain("tris");
 
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
 	open_log("tris_server.log", LOG_ALL);
 
-	setlocale(LC_ALL, "");
-	bindtextdomain("tris", "locale");
-	textdomain("tris");
+	if (_setlocale ) flog_message(LOG_DEBUG, _("Locate set to %s"), _setlocale);
+	else log_message(LOG_WARNING, _("Cannot set locale"));
+	if ( _bindtextdomain ) flog_message(LOG_DEBUG, _("Message catalogs directory set to %s"), _bindtextdomain);
+	else log_message(LOG_WARNING, _("Cannot set message catalogs directory"));
+	if ( _textdomain ) flog_message(LOG_DEBUG, _("Gettext domain set to %s"), _textdomain);
+	else log_message(LOG_WARNING, _("Cannot set gettext domain"));
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		flog_message(LOG_CONSOLE, _("Usage: %s <host> <port>"), argv[0]);
