@@ -77,7 +77,7 @@ const char *state_name(enum client_state);
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
 		log_error("Errore su malloc()");\
-		exit(1);\
+		exit(EXIT_FAILURE);\
 	}
 
 #define XSTR(S) #S

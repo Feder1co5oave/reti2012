@@ -72,12 +72,12 @@ int main (int argc, char **argv) {
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
 		flog_message(LOG_CONSOLE, "Usage: %s <host> <porta>", argv[0]);
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	if ( inet_pton(AF_INET, argv[1], &(myhost.sin_addr)) != 1 ) {
 		log_message(LOG_CONSOLE, "Invalid host address");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	myhost.sin_family = AF_INET;
@@ -86,22 +86,22 @@ int main (int argc, char **argv) {
 	
 	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
 		log_error("Errore socket()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	if ( setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) ) {
 		log_error("Errore setsockopt()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	if ( bind(sock_listen, (struct sockaddr*) &myhost, sizeof(myhost)) ) {
 		log_error("Errore bind()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	if ( listen(sock_listen, BACKLOG) ) {
 		log_error("Errore listen()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	
@@ -176,10 +176,10 @@ int main (int argc, char **argv) {
 	
 	if ( sel_status == 0 ) {
 		log_message(LOG_INFO, "Timeout. Exit.");
-		return 0;
+		exit(EXIT_SUCCESS);
 	} else {
 		log_error("Errore su select()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -205,7 +205,7 @@ void accept_connection() { /*TODO rendere locali alcune variabili */
 		/*FIXME Potrebbe verificarsi ECONNABORTED e in quel caso vorrei ritentare */
 		log_error("Errore accept()");
 		close(sock_listen);
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -537,7 +537,7 @@ void server_shell() {
 		log_message(LOG_DEBUG, "Freeing data structures");
 		destroy_client_list(client_list.head);
 		log_message(LOG_CONSOLE, "Exiting...");
-		exit(0);
+		exit(EXIT_SUCCESS);
 	} else if ( strcmp(buffer, "") == 0 ) {
 		prompt(>);
 	} else {

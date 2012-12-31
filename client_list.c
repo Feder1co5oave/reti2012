@@ -12,7 +12,7 @@ struct client_node *create_client_node() {
 	struct client_node *cn = malloc(sizeof(struct client_node));
 	if ( cn == NULL ) {
 		fprintf(stderr, "Errore su malloc()");
-		exit(-1);
+		exit(EXIT_FAILURE);
 	}
 	memset(cn, 0, sizeof(struct client_node));
 	cn->state = NONE;

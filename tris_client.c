@@ -42,7 +42,7 @@ int main (int argc, char **argv) {
 	
 	if (argc != 3) {
 		printf("Usage: %s <server_ip> <server_port>\n", argv[0]);
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 
 	memset(&hints, 0, sizeof(hints));
@@ -51,7 +51,7 @@ int main (int argc, char **argv) {
 	error = getaddrinfo(argv[1], argv[2], &hints, &gai_results);
 	if ( error ) {
 		printf("Errore getaddrinfo(): %s", gai_strerror(error));
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	p = gai_results;
 	freeaddrinfo(gai_results);
@@ -59,12 +59,12 @@ int main (int argc, char **argv) {
 	sock_server = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 	if ( sock_server == -1 ) {
 		perror("Errore socket()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	if ( connect(sock_server, p->ai_addr, p->ai_addrlen) ) {
 		perror("Errore connect()");
-		return 1;
+		exit(EXIT_FAILURE);
 	}
 	
 	state = CONNECTED;
@@ -121,7 +121,7 @@ int main (int argc, char **argv) {
 	puts("Errore su select()");
 	shutdown(sock_server, SHUT_RDWR); /*TODO get rid of all the shutdown() calls */
 	close(sock_server);
-	return 1;
+	exit(EXIT_FAILURE);
 }
 
 void client_shell() {
@@ -204,7 +204,7 @@ void client_shell() {
 				recv(sock_server, buffer, 4, 0);
 				unpack(buffer, "l", &size);
 				printf("Ci sono %d client connessi\n", size);
-				if (size > 100) exit(1); /*FIXME debug statement */
+				if (size > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
 				for (i = 0; i < size; i++) {
 					recv(sock_server, &length, 1, 0);
 					recv(sock_server, buffer, length, 0);
@@ -293,7 +293,7 @@ void client_shell() {
 		}
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
-		exit(0);
+		exit(EXIT_SUCCESS);
 	} else if ( strcmp(buffer, "\n") == 0 ) {
 		printf("> "); fl();
 	} else {
@@ -341,5 +341,5 @@ void server_disconnected() {
 	printf("\nConnessione al server persa.\n");
 	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
-	exit(1);
+	exit(EXIT_FAILURE);
 }

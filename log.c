@@ -10,7 +10,7 @@ struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
 	if ( file == NULL ) {
 		perror("Errore fopen()");
-		exit(1);
+		exit(EXIT_FAILURE);
 	}
 	return new_log(file, maxlevel, TRUE); /* wrapped */
 }
