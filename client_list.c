@@ -11,7 +11,7 @@ client_list_t client_list = {NULL, NULL, 0};
 struct client_node *create_client_node() {
 	struct client_node *cn = malloc(sizeof(struct client_node));
 	if ( cn == NULL ) {
-		fprintf(stderr, "Errore su malloc()");
+		fprintf(stderr, _("Error malloc()"));
 		exit(EXIT_FAILURE);
 	}
 	memset(cn, 0, sizeof(struct client_node));
@@ -88,7 +88,7 @@ const char *client_sockaddr_p(struct client_node *client) {
 		const char *s;
 		s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
 			INET_ADDRSTRLEN);
-		if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
+		if ( s == NULL ) log_message(LOG_DEBUG, _("Client has invalid address"));
 		sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
 			ntohs(client->addr.sin_port));
 		return client_repr_buffer;

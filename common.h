@@ -3,6 +3,8 @@
 
 #include <sys/types.h>
 #include <stdint.h>
+#include <libintl.h>
+#include <locale.h>
 
 
 
@@ -76,10 +78,11 @@ const char *magic_name(uint8_t);
  */
 const char *state_name(enum client_state);
 
+#define _(STR) gettext(STR)
 #define fl() fflush(stdout)
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
-		log_error("Errore su malloc()");\
+		log_error(_("Error malloc()"));\
 		exit(EXIT_FAILURE);\
 	}
 

@@ -9,7 +9,7 @@ struct log_file *log_files = NULL;
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
 	if ( file == NULL ) {
-		perror("Errore fopen()");
+		perror(_("Error fopen()"));
 		exit(EXIT_FAILURE);
 	}
 	return new_log(file, maxlevel, TRUE); /* wrapped */
@@ -27,7 +27,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 
 	/* We don't want log delimiters on the console */
 	if ( wrap && file != stdout && file != stderr )
-		fprintf(file, "======== Opening logfile at %s", ctime(&now));
+		fprintf(file, _("======== Opening logfile at %s"), ctime(&now));
 		/* ctime() terminates with \n\0 */
 
 	if ( log_files != NULL ) {
@@ -58,7 +58,7 @@ struct log_file *close_log(struct log_file *logfile) {
 
 		if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
 			time_t now = time(NULL);
-			fprintf(logfile->file, "======== Closing logfile at %s\n\n",
+			fprintf(logfile->file, _("======== Closing logfile at %s\n\n"),
 				ctime(&now));
 		}
 

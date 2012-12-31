@@ -19,6 +19,9 @@ tris_server : $(COMMONOBJs) $(SOBJs)
 tris_client : $(COMMONOBJs) $(COBJs)
 
 
+tris.pot : *.c *.h
+	xgettext -k_ -d tris -s -o tris.pot $^
+
 clean :
 	- rm $(OBJs) $(EXEs) *.log *.d
 
