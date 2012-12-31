@@ -40,9 +40,10 @@ void inactive(struct client_node*);
 
 void accept_connection(void);
 void client_disconnected(struct client_node*);
-void start_match(struct client_node*);
-void send_byte(struct client_node* client, uint8_t byte);
+void send_byte(struct client_node *client, uint8_t byte);
+void send_client_list(struct client_node*);
 void server_shell(void);
+void start_match(struct client_node*);
 
 
 
@@ -270,9 +271,7 @@ void get_username(struct client_node *client) {
 
 void idle_free(struct client_node *client) {
 	uint8_t cmd, length;
-	int total_length, received;
-	uint32_t count;
-	struct client_node *cn;
+	int received;
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
@@ -285,32 +284,7 @@ void idle_free(struct client_node *client) {
 
 	switch ( cmd ) {
 		case REQ_WHO:
-			flog_message(LOG_INFO_VERBOSE, "[%s] requested the list of connected clients", client->username);
-			count = 0;
-			total_length = 1 + 4;
-			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
-				if ( cn->state != NONE && cn->state != CONNECTED ) {
-					count++;
-					total_length += 1 + cn->username_len;
-				}
-			}
-			
-			flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", total_length, __LINE__);
-			client->data = malloc(total_length);
-			check_alloc(client->data);
-			client->data_cursor = 0;
-			pack(client->data, "bl", RESP_WHO, count);
-			client->data_count = 5;
-			for (cn = client_list.head; cn != NULL; cn = cn->next ) {
-				if ( cn->state != NONE && cn->state != CONNECTED ) {
-					pack(client->data + client->data_count, "bs", cn->username_len, cn->username);
-					client->data_count += 1 + cn->username_len;
-				}
-			}
-			flog_message(LOG_DEBUG, "Preparing to send RESP_WHO data to [%s]", client->username);
-			client->write_dispatch = &send_data;
-			monitor_socket_w(client->socket);
-			client->read_dispatch = &inactive;
+			send_client_list(client);
 			break;
 		
 		case REQ_PLAY:
@@ -385,8 +359,32 @@ void idle_free(struct client_node *client) {
 }
 
 void idle_play(struct client_node *client) {
-	log_message(LOG_DEBUG, "idle_play not implemented yet");
-	client_disconnected(client);
+	uint8_t cmd;
+	int received;
+
+	received = recv(client->socket, &cmd, 1, 0);
+	if ( received != 1 ) {
+		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
+		client_disconnected(client);
+		return;
+	}
+
+	flog_message(LOG_DEBUG, "Got cmd=%s from %s in idle_play", magic_name(cmd), client_canon_p(client));
+
+	switch ( cmd ) {
+		case REQ_WHO:
+			send_client_list(client);
+			break;
+
+		case REQ_END:
+			/*TODO */
+			break;
+
+		default:
+			flog_message(LOG_WARNING, "Unexpected request from %s in idle_play", client_canon_p(client));
+			send_byte(client, RESP_BADREQ);
+	}
+
 }
 
 void client_disconnected(struct client_node *client) {
@@ -543,6 +541,37 @@ void server_shell() {
 	} else {
 		log_message(LOG_CONSOLE, "Unknown command");
 	}
+}
+
+void send_client_list(struct client_node *client) {
+	uint32_t count = 0;
+	int total_length = 1 + 4;
+	struct client_node *cn;
+
+	flog_message(LOG_INFO_VERBOSE, "[%s] requested the list of connected clients", client->username);
+	for (cn = client_list.head; cn != NULL; cn = cn->next ) {
+		if ( cn->state != NONE && cn->state != CONNECTED ) {
+			count++;
+			total_length += 1 + cn->username_len;
+		}
+	}
+	
+	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", total_length, __LINE__);
+	client->data = malloc(total_length);
+	check_alloc(client->data);
+	client->data_cursor = 0;
+	pack(client->data, "bl", RESP_WHO, count);
+	client->data_count = 5;
+	for (cn = client_list.head; cn != NULL; cn = cn->next ) {
+		if ( cn->state != NONE && cn->state != CONNECTED ) {
+			pack(client->data + client->data_count, "bs", cn->username_len, cn->username);
+			client->data_count += 1 + cn->username_len;
+		}
+	}
+	flog_message(LOG_DEBUG, "Preparing to send RESP_WHO data to [%s]", client->username);
+	client->write_dispatch = &send_data;
+	monitor_socket_w(client->socket);
+	client->read_dispatch = &inactive;
 }
 
 void get_play_resp(struct client_node *client) {
