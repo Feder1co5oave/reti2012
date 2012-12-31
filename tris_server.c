@@ -241,7 +241,7 @@ void get_username(struct client_node *client) {
 		if ( received == client->username_len + 2 ) {
 			struct client_node *dbl;
 			unpack(buffer, "sw", client->username_len, &(client->username), &(client->udp_port));
-			if ( !username_is_valid(client->username) ) {
+			if ( !username_is_valid(client->username, client->username_len) ) {
 				/*TODO print escaped username string */
 				flog_message(LOG_INFO_VERBOSE, "Client %s tried to login with invalid username", client_sockaddr_p(client));
 				send_byte(client, RESP_BADUSR);
@@ -607,11 +607,15 @@ void start_match(struct client_node *client) {
 }
 
 void inactive(struct client_node *client) {
-	uint8_t cmd;
 	int received;
 
-	received = recv(client->socket, &cmd, 1, 0);
-	if ( received == 0 ) client_disconnected(client);
-	else flog_message(LOG_WARNING, "Got %s in inactive from %s", magic_name(cmd), client_canon_p(client));
+	received = recv(client->socket, buffer, BUFFER_SIZE, 0);
+	if ( received == 0 ) {
+		client_disconnected(client);
+	} else if ( received == 1 ) {
+		flog_message(LOG_WARNING, "Got %s in inactive from %s", magic_name(buffer[0]), client_canon_p(client));
+	} else {
+		flog_message(LOG_WARNING, "Got %d bytes in inactive from %s", received, client_canon_p(client));
+	}
 	/*FIXME what to do? */
 }

@@ -8,8 +8,10 @@
 
 /* ===[ Constants ]========================================================== */
 
+#define MIN_USERNAME_LENGTH 3
 #define MAX_USERNAME_LENGTH 30
-#define USERNAME_ALPHABET "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
+#define USERNAME_ALPHABET \
+             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
 #define DEFAULT_TIMEOUT_INIT {60, 0}
 
 #define BUFFER_SIZE 1024
@@ -60,7 +62,7 @@ typedef unsigned char bool;
 
 /* ===[ Functions ]========================================================== */
 
-bool username_is_valid(const char *username);
+bool username_is_valid(const char *username, uint8_t length);
 
 /**
  * Translates a magic constant into its name, or its hexadecimal representation

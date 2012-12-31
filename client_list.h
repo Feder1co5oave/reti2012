@@ -13,7 +13,7 @@
  * Represents a client on the server.
  */
 struct client_node {
-	char username_len;
+	uint8_t username_len;
 	char username[MAX_USERNAME_LENGTH + 1];
 	int socket;
 	enum client_state state;
