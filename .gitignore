@@ -2,5 +2,7 @@
 *.o
 *.log
 *.d
+*~
+tris.pot
 tris_server
 tris_client
