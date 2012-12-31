@@ -287,6 +287,19 @@ void client_shell() {
 			default:
 				printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) buffer[0]); fl();
 		}
+	} else if ( strcmp(cmd, "end") == 0 ) {
+		buffer[0] = REQ_END;
+		sent = send(sock_server, buffer, 1, 0);
+		if ( sent != 1 ) server_disconnected();
+		received = recv(sock_server, buffer, 1, 0);
+		if ( received != 1 ) server_disconnected();
+		if ( buffer[0] == RESP_OK_FREE ) {
+			state = FREE;
+			printf("Hai terminato la partita e sei di nuovo libero\n> ");
+			fl();
+		} else {
+			printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) buffer[0]); fl();
+		}
 	} else if ( strcmp(cmd, "exit") == 0 ) {
 		if ( state == PLAY ) {
 			/*TODO */
