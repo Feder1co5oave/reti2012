@@ -36,7 +36,7 @@ int sock_server, sock_opp, error;
 uint16_t udp_port;
 
 int main (int argc, char **argv) {
-	struct addrinfo hints, *gai_results, *p;
+	struct sockaddr_in server_host;
 	fd_set _readfds, _writefds;
 	int sel_status;
 	
@@ -44,25 +44,23 @@ int main (int argc, char **argv) {
 		printf("Usage: %s <server_ip> <server_port>\n", argv[0]);
 		exit(EXIT_FAILURE);
 	}
-
-	memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET;
-	hints.ai_socktype = SOCK_STREAM;
-	error = getaddrinfo(argv[1], argv[2], &hints, &gai_results);
-	if ( error ) {
-		printf("Errore getaddrinfo(): %s", gai_strerror(error));
+	
+	if ( inet_pton(AF_INET, argv[1], &(server_host.sin_addr)) != 1 ) {
+		printf("Indirizzo server non valido");
 		exit(EXIT_FAILURE);
 	}
-	p = gai_results;
-	freeaddrinfo(gai_results);
-	p->ai_family = AF_INET;
-	sock_server = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+	
+	server_host.sin_family = AF_INET;
+	server_host.sin_port = htons((uint16_t) atoi(argv[2])); /*FIXME check cast */
+	memset(server_host.sin_zero, 0, sizeof(server_host.sin_zero));
+
+	sock_server = socket(server_host.sin_family, SOCK_STREAM , 0);
 	if ( sock_server == -1 ) {
 		perror("Errore socket()");
 		exit(EXIT_FAILURE);
 	}
 	
-	if ( connect(sock_server, p->ai_addr, p->ai_addrlen) ) {
+	if ( connect(sock_server, (struct sockaddr*) &server_host, sizeof(server_host)) != 0 ) {
 		perror("Errore connect()");
 		exit(EXIT_FAILURE);
 	}
@@ -288,7 +286,7 @@ void client_shell() {
 				printf("Response dal server non richiesta: 0x%hx\n> ", (uint16_t) buffer[0]); fl();
 		}
 	} else if ( strcmp(cmd, "end") == 0 ) {
-		buffer[0] = REQ_END;
+		buffer[0] = (char) REQ_END;
 		sent = send(sock_server, buffer, 1, 0);
 		if ( sent != 1 ) server_disconnected();
 		received = recv(sock_server, buffer, 1, 0);
