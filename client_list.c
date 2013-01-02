@@ -10,13 +10,17 @@ client_list_t client_list = {NULL, NULL, 0};
 
 struct client_node *create_client_node() {
 	struct client_node *cn = malloc(sizeof(struct client_node));
-	if ( cn == NULL ) {
-		fprintf(stderr, "Errore su malloc()");
-		exit(EXIT_FAILURE);
-	}
-	memset(cn, 0, sizeof(struct client_node));
+	check_alloc(cn);
 	cn->state = NONE;
 	cn->next = NULL;
+	cn->req_to = NULL;
+	cn->req_from = NULL;
+	cn->play_with = NULL;
+	cn->data = NULL;
+	cn->data_count = 0;
+	cn->data_cursor = 0;
+	cn->read_dispatch = NULL;
+	cn->write_dispatch = NULL;
 	return cn;
 }
 
