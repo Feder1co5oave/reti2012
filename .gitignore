@@ -1,5 +1,6 @@
 *.exe
 *.o
 *.log
+*.d
 tris_server
 tris_client
