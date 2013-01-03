@@ -42,6 +42,7 @@ void client_disconnected(struct client_node*);
 void inactive(struct client_node*);
 void send_byte(struct client_node *client, uint8_t byte);
 void send_client_list(struct client_node*);
+void send_play_request(struct client_node *from, struct client_node *to);
 void server_shell(void);
 void start_match(struct client_node*);
 
@@ -313,24 +314,7 @@ void idle_free(struct client_node *client) {
 						flog_message(LOG_INFO_VERBOSE, "[%s] requested to play with non-FREE player %s", client->username, client_canon_p(opp));
 						send_byte(client, RESP_BUSY);
 					} else {
-						flog_message(LOG_INFO, "[%s] requested to play with [%s]", client->username, opp->username);
-						client->req_to = opp;
-						opp->req_from = client;
-						client->state = opp->state = BUSY;
-						log_statechange(client);
-						log_statechange(opp);
-						opp->data_count = 2 + client->username_len;
-						flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", opp->data_count, __LINE__);
-						opp->data = malloc(opp->data_count);
-						check_alloc(opp->data);
-						pack(opp->data, "bbs", REQ_PLAY, client->username_len, client->username);
-						opp->data_cursor = 0;
-						flog_message(LOG_DEBUG, "Preparing to send REQ_PLAY data to [%s]", opp->username);
-						opp->write_dispatch = &send_data;
-						monitor_socket_w(opp->socket);
-						/* opp->read_dispatch = &inactive; */
-						/* client->read_dispatch = &inactive; */
-						opp->muted = TRUE;
+						send_play_request(client, opp);
 					}
 				} else {
 					flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
@@ -578,6 +562,27 @@ void send_client_list(struct client_node *client) {
 	monitor_socket_w(client->socket);
 	/* client->read_dispatch = &inactive; */
 	client->muted = TRUE;
+}
+
+void send_play_request(struct client_node *from, struct client_node *to) {
+	flog_message(LOG_INFO, "[%s] requested to play with [%s]", from->username, to->username);
+	from->req_to = to;
+	to->req_from = from;
+	from->state = to->state = BUSY;
+	log_statechange(from);
+	log_statechange(to);
+	to->data_count = 2 + from->username_len;
+	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", to->data_count, __LINE__);
+	to->data = malloc(to->data_count);
+	check_alloc(to->data);
+	pack(to->data, "bbs", REQ_PLAY, from->username_len, from->username);
+	to->data_cursor = 0;
+	flog_message(LOG_DEBUG, "Preparing to send REQ_PLAY data to [%s]", to->username);
+	to->write_dispatch = &send_data;
+	monitor_socket_w(to->socket);
+	/* to->read_dispatch = &inactive; */
+	/* from->read_dispatch = &inactive; */
+	to->muted = from->muted = TRUE;
 }
 
 void get_play_resp(struct client_node *client) {
