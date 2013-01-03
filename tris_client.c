@@ -184,7 +184,7 @@ void client_shell() {
 		}
 	} else if ( strcmp(cmd, "who") == 0 ) {
 		uint8_t resp, length;
-		int i;
+		uint32_t i;
 
 		if ( state == CONNECTED ) {
 			printf("Devi prima loggarti\n> ");
