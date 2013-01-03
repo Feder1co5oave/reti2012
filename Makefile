@@ -21,7 +21,7 @@ tris_client : $(COMMONOBJs) $(COBJs)
 
 
 tris.pot : *.c *.h
-	xgettext -k_ -d tris -s -o tris.pot $^
+	xgettext -k_ -d tris --from-code=UTF-8 -s -o tris.pot $^
 
 locale/$(LOCALE).po : tris.pot
 	msgmerge -s -v --force-po -U $@ $^
