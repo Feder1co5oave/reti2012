@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -MMD
+CFLAGS = -Wall -Wextra -pedantic -ansi -MMD
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o

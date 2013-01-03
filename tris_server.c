@@ -32,7 +32,6 @@ void idle_free(struct client_node*);
 void idle_play(struct client_node*);
 void send_data(struct client_node*);
 void get_play_resp(struct client_node*);
-void inactive(struct client_node*);
 
 
 
@@ -40,10 +39,13 @@ void inactive(struct client_node*);
 
 void accept_connection(void);
 void client_disconnected(struct client_node*);
+void inactive(struct client_node*);
 void send_byte(struct client_node *client, uint8_t byte);
 void send_client_list(struct client_node*);
+void send_play_contact(struct client_node *to, struct client_node *contact);
+void send_play_request(struct client_node *from, struct client_node *to);
 void server_shell(void);
-void start_match(struct client_node*);
+void start_match(struct client_node*, struct client_node*);
 
 
 
@@ -97,7 +99,7 @@ int main (int argc, char **argv) {
 	myhost.sin_port = htons((uint16_t) atoi(argv[2])); /*FIXME check cast */
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
-	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
+	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == -1 ) {
 		log_error(_("Error socket()"));
 		exit(EXIT_FAILURE);
 	}
@@ -144,10 +146,11 @@ int main (int argc, char **argv) {
 					
 					client = get_client_by_socket(sock_client);
 					if ( client != NULL && client->read_dispatch != NULL ) {
-						client->read_dispatch(client);
-					} else { /* non dovrebbe mai succedere */
+						if ( client->muted ) inactive(client);
+						else client->read_dispatch(client);
+					} else { /*FIXME non dovrebbe mai succedere */
 						flog_message(LOG_WARNING, _("Unexpected event on line %d, got read event on socket descriptor %d"), __LINE__, i);
-						unmonitor_socket_r(sock_client); /*FIXME */
+						unmonitor_socket_r(sock_client);
 						unmonitor_socket_w(sock_client);
 						shutdown(sock_client, SHUT_RDWR);
 						close(sock_client);
@@ -162,9 +165,9 @@ int main (int argc, char **argv) {
 				client = get_client_by_socket(sock_client);
 				if ( client != NULL && client->read_dispatch != NULL ) {
 					client->write_dispatch(client);
-				} else { /* non dovrebbe mai succedere */
+				} else { /*FIXME non dovrebbe mai succedere */
 					flog_message(LOG_WARNING, _("Unexpected event on line %d, got write event on socket descriptor %d"), __LINE__, i);
-					unmonitor_socket_r(sock_client); /*FIXME */
+					unmonitor_socket_r(sock_client);
 					unmonitor_socket_w(sock_client);
 					shutdown(sock_client, SHUT_RDWR);
 					close(sock_client);
@@ -198,7 +201,7 @@ int main (int argc, char **argv) {
 
 /* ========================================================================== */
 
-void accept_connection() { /*TODO rendere locali alcune variabili */
+void accept_connection() {
 	int sock_client;
 	struct sockaddr_in yourhost;
 	socklen_t addrlen = sizeof(yourhost);
@@ -228,7 +231,7 @@ void get_username(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if (received != 1) {
-		flog_message(LOG_WARNING, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
@@ -247,6 +250,7 @@ void get_username(struct client_node *client) {
 		if ( client->username_len > MAX_USERNAME_LENGTH ) {
 			flog_message(LOG_INFO_VERBOSE, _("Client %s tried to login with invalid username"), client_sockaddr_p(client));
 			send_byte(client, RESP_BADUSR);
+			/*FIXME username is received from inactive() */
 			return;
 		}
 
@@ -267,7 +271,7 @@ void get_username(struct client_node *client) {
 				flog_message(LOG_INFO, _("[%s] Listening on %s:%hu (udp)"), client->username, buffer, client->udp_port);
 				
 				client->state = FREE;
-				client->read_dispatch = &idle_free;
+				/* client->read_dispatch = &idle_free; */
 				log_statechange(client);
 				send_byte(client, RESP_OK_LOGIN);
 			}
@@ -287,7 +291,7 @@ void idle_free(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
-		flog_message(LOG_WARNING, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
@@ -323,23 +327,7 @@ void idle_free(struct client_node *client) {
 						flog_message(LOG_INFO_VERBOSE, _("[%s] requested to play with non-FREE player %s"), client->username, client_canon_p(opp));
 						send_byte(client, RESP_BUSY);
 					} else {
-						flog_message(LOG_INFO, _("[%s] requested to play with [%s]"), client->username, opp->username);
-						client->req_to = opp;
-						opp->req_from = client;
-						client->state = opp->state = BUSY;
-						log_statechange(client);
-						log_statechange(opp);
-						opp->data_count = 2 + client->username_len;
-						flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), opp->data_count, __LINE__);
-						opp->data = malloc(opp->data_count);
-						check_alloc(opp->data);
-						pack(opp->data, "bbs", REQ_PLAY, client->username_len, client->username);
-						opp->data_cursor = 0;
-						flog_message(LOG_DEBUG, _("Preparing to send REQ_PLAY data to [%s]"), opp->username);
-						opp->write_dispatch = &send_data;
-						monitor_socket_w(opp->socket);
-						opp->read_dispatch = &inactive;
-						client->read_dispatch = &inactive;
+						send_play_request(client, opp);
 					}
 				} else {
 					flog_message(LOG_WARNING, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
@@ -350,19 +338,6 @@ void idle_free(struct client_node *client) {
 				client_disconnected(client);
 			}
 			break;
-		
-		/* see get_play_resp ( client->req_from == NULL ) */
-		case RESP_REFUSE:
-		case RESP_OK_PLAY:
-		/* case REQ_END: */
-			if ( client->state == BUSY ) {
-				client->state = FREE;
-				log_statechange(client);
-				break;
-			} else {
-				flog_message(LOG_WARNING, _("%s is %s (should be BUSY)"), client_canon_p(client), state_name(client->state));
-				/* fallthrough */
-			}
 		
 		default:
 			flog_message(LOG_WARNING, _("Unexpected request from %s in idle_free"), client_canon_p(client));
@@ -376,7 +351,7 @@ void idle_play(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
-		flog_message(LOG_WARNING, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
@@ -389,7 +364,12 @@ void idle_play(struct client_node *client) {
 			break;
 
 		case REQ_END:
-			/*TODO */
+			if ( client->play_with != NULL ) flog_message(LOG_INFO, _("[%s] stopped playing with [%s]"), client->username, client->play_with->username);
+			else flog_message(LOG_INFO, _("[%s] stopped playing with a disconnected client"), client->username);
+			client->state = FREE;
+			client->play_with = NULL;
+			log_statechange(client);
+			send_byte(client, RESP_OK_FREE);
 			break;
 
 		default:
@@ -399,32 +379,40 @@ void idle_play(struct client_node *client) {
 }
 
 void client_disconnected(struct client_node *client) {
+	struct client_node *opp;
+
 	log_message(LOG_DEBUG, _("Going to drop a client..."));
 	if ( client->state == BUSY ) {
-		struct client_node *opp;
-		if ( client->req_from ) {
+		if ( client->req_from != NULL ) {
 			opp = client->req_from;
 			flog_message(LOG_INFO_VERBOSE, _("[%s] had a play request from [%s]"), client->username, opp->username);
 			send_byte(opp, RESP_NONEXIST);
 			opp->req_to = NULL;
 			opp->state = FREE;
 			log_statechange(opp);
-		} else if ( client->req_to ) {
-			/*TODO */
+		} else if ( client->req_to != NULL ) {
 			opp = client->req_to;
 			flog_message(LOG_INFO_VERBOSE, _("[%s] had requested to play with [%s]"), client->username, opp->username);
-			/* opp->state = BUSY; */
+			/* opp->state == BUSY || opp->state == PLAY */
 			opp->req_from = NULL;
-			opp->read_dispatch = &idle_free;
+			/* opp->read_dispatch = &idle_free; */
 			unmonitor_socket_w(opp->socket);
 			monitor_socket_r(opp->socket); /*FIXME inutile? */
 		} else {
 			flog_message(LOG_WARNING, _("%s has unconsistent data on line %d"), client_canon_p(client), __LINE__);
 		}
-	} /*TODO else if ( client->state == PLAY ) */
+	} else if ( client->state == PLAY ) {
+		opp = client->play_with;
+		if ( opp != NULL ) {
+			flog_message(LOG_INFO_VERBOSE, _("[%s] was playing with [%s]"), client->username, opp->username);
+			opp->play_with = NULL;
+		} else {
+			flog_message(LOG_INFO_VERBOSE, _("[%s] was playing with [[unknown]]"), client->username);
+		}
+	}
 
 	if ( client->state != NONE && client->state != CONNECTED )
-		flog_message(LOG_INFO, _("[%s] %s disconnected"), client->username, client_sockaddr_p(client));
+		flog_message(LOG_INFO, _("[%s] disconnected"), client->username);
 	else
 		flog_message(LOG_INFO, _("[[unknown]] %s disconnected"), client_sockaddr_p(client));
 
@@ -443,7 +431,8 @@ void send_byte(struct client_node *client, uint8_t byte) {
 	client->data_count = 1;
 	client->data_cursor = 0;
 	client->write_dispatch = &send_data;
-	client->read_dispatch = &inactive;
+	/* client->read_dispatch = &inactive; */
+	client->muted = TRUE;
 	monitor_socket_w(client->socket);
 }
 
@@ -469,19 +458,15 @@ void send_data(struct client_node *client) {
 			switch ( client->state ) {
 				case CONNECTED: client->read_dispatch = &get_username; break;
 				case FREE: client->read_dispatch = &idle_free; break;
-				case BUSY:
-					if ( client->req_from ) client->read_dispatch = &get_play_resp;
-					else if ( client->req_to ) start_match(client);
-					else flog_message(LOG_WARNING, _("%s has unconsistent data on line %d"), client_canon_p(client), __LINE__);
-					break;
+				case BUSY: client->read_dispatch = &get_play_resp; break;
 				case PLAY: client->read_dispatch = &idle_play; break;
-				default:
-					flog_message(LOG_WARNING, _("%s has unconsistent data on line %d"), client_canon_p(client), __LINE__);
+				case NONE:
+					flog_message(LOG_WARNING, _("%s is NONE on line %d"), client_canon_p(client), __LINE__);
 					client_disconnected(client);
 					return;
 			}
 			
-			monitor_socket_r(client->socket);
+			client->muted = FALSE;
 			unmonitor_socket_w(client->socket);
 		}
 	} else {
@@ -525,9 +510,11 @@ void server_shell() {
 		for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
 			if ( cn->state == PLAY && cn->play_with != NULL ) {
 				opp = cn->play_with;
-				playing = TRUE;
-				if ( strcmp(cn->username, opp->username) < 0 )
-					flog_message(LOG_CONSOLE, _("[%s] is playing with [%s]"), cn->username, opp->username);
+				if ( opp->state == PLAY && opp->play_with == cn ) {
+					playing = TRUE;
+					if ( strcmp(cn->username, opp->username) < 0 )
+						flog_message(LOG_CONSOLE, _("[%s] is playing with [%s]"), cn->username, opp->username);
+				}
 			}
 		}
 		if ( !playing ) log_message(LOG_CONSOLE, _("No one is playing"));
@@ -582,68 +569,115 @@ void send_client_list(struct client_node *client) {
 	flog_message(LOG_DEBUG, _("Preparing to send RESP_WHO data to [%s]"), client->username);
 	client->write_dispatch = &send_data;
 	monitor_socket_w(client->socket);
-	client->read_dispatch = &inactive;
+	/* client->read_dispatch = &inactive; */
+	client->muted = TRUE;
+}
+
+void send_play_contact(struct client_node *to, struct client_node *contact) {
+	to->data_count = 1 + sizeof(contact->addr.sin_addr) + sizeof(contact->udp_port);
+	flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), to->data_count, __LINE__);
+	to->data = malloc(to->data_count);
+	check_alloc(to->data);
+	pack(to->data, "blw", RESP_OK_PLAY, contact->addr.sin_addr, contact->udp_port);
+	to->data_cursor = 0;
+	flog_message(LOG_DEBUG, _("Preparing to send RESP_OK_PLAY data to [%s]"), to->username);
+	to->write_dispatch = &send_data;
+	monitor_socket_w(to->socket);
+	to->muted = TRUE;
+}
+
+void send_play_request(struct client_node *from, struct client_node *to) {
+	flog_message(LOG_INFO, _("[%s] requested to play with [%s]"), from->username, to->username);
+	from->req_to = to;
+	to->req_from = from;
+	from->state = to->state = BUSY;
+	log_statechange(from);
+	log_statechange(to);
+	to->data_count = 2 + from->username_len;
+	flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), to->data_count, __LINE__);
+	to->data = malloc(to->data_count);
+	check_alloc(to->data);
+	pack(to->data, "bbs", REQ_PLAY, from->username_len, from->username);
+	to->data_cursor = 0;
+	flog_message(LOG_DEBUG, _("Preparing to send REQ_PLAY data to [%s]"), to->username);
+	to->write_dispatch = &send_data;
+	monitor_socket_w(to->socket);
+	/* to->read_dispatch = &inactive; */
+	/* from->read_dispatch = &inactive; */
+	to->muted = from->muted = TRUE;
 }
 
 void get_play_resp(struct client_node *client) {
 	uint8_t resp;
 	int received;
+	struct client_node *opp = client->req_from;
 
 	received = recv(client->socket, &resp, 1, 0);
-	if ( received == 1 ) {
-		struct client_node *opp = client->req_from;
-		if ( opp == NULL ) { /* non dovrebbe mai succedere
-			client->req_from viene messo a NULL solo se si disconnette PRIMA
-			che arrivi la risposta da client e read_dispatch = &idle_free, che
-			gestisce l'arrivo della risposta (fino a quel momento client->state
-			rimane BUSY) */
-			flog_message(LOG_WARNING, _("Unexpected client state on line %d in get_play_resp from %s"), client_canon_p(client));
-			return;
-		}
-		if ( resp == RESP_OK_PLAY ) {
+	if ( received != 1 ) {
+		flog_message(LOG_DEBUG, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
+		client_disconnected(client);
+		return;
+	}
+	
+	if ( resp == RESP_OK_PLAY ) {
+		if ( opp == NULL ) {
+			/* opp si è disconnesso prima che client rispondesse. Facciamo
+			comunque finta che sia ancora collegato, perché non c'è modo di
+			comunicarlo a client */
+			flog_message(LOG_INFO_VERBOSE, _("[%s] accepted to play with a disconnected client"), client->username);
+		} else {
 			flog_message(LOG_INFO, _("[%s] accepted to play with [%s]"), client->username, opp->username);
-			opp->data_count = 1 + sizeof(client->addr.sin_addr) + sizeof(client->udp_port);
-			flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), opp->data_count, __LINE__);
-			opp->data = malloc(opp->data_count);
-			check_alloc(opp->data);
-			pack(opp->data, "blw", RESP_OK_PLAY, client->addr.sin_addr, client->udp_port);
-			opp->data_cursor = 0;
-			flog_message(LOG_DEBUG, _("Preparing to send RESP_OK_PLAY data to [%s]"), opp->username);
-			opp->write_dispatch = &send_data;
-			monitor_socket_w(opp->socket);
-			client->read_dispatch = &inactive;
-		} else { /*FIXME May be some other valid command such as REQ_WHO or REQ_PLAY */
-			/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY */
+			send_play_contact(opp, client);
+		}
+		start_match(client, opp);
+	} else if ( resp == RESP_REFUSE ) {
+		if ( opp == NULL ) {
+			flog_message(LOG_INFO_VERBOSE, _("[%s] refused to play with a disconnected client"), client->username);
+		} else {
 			flog_message(LOG_INFO, _("[%s] refused to play with [%s]"), client->username, opp->username);
 			send_byte(opp, RESP_REFUSE);
 			opp->state = FREE;
 			opp->req_to = NULL;
-			client->state = FREE;
-			client->req_from = NULL;
-			client->read_dispatch = &idle_free;
 			log_statechange(opp);
-			log_statechange(client);
 		}
+		client->state = FREE;
+		client->req_from = NULL;
+		client->read_dispatch = &idle_free;
+		log_statechange(client);
 	} else {
-		flog_message(LOG_WARNING, _("Received=%d on line %d from %s"), received, __LINE__, client_canon_p(client));
-		client_disconnected(client);
+		/* May be some other valid command such as REQ_WHO or REQ_PLAY */
+		/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY / PERCHÉ?! */
+		flog_message(LOG_WARNING, _("Got %s in get_play_resp from %s"), magic_name(resp), client_canon_p(client));
+		/*FIXME what to do? */
 	}
 }
 
-void start_match(struct client_node *client) {
-	struct client_node *opp = client->req_to;
-	client->state = PLAY;
-	client->play_with = opp;
-	client->req_to = NULL;
-	client->read_dispatch = &idle_play;
-	opp->state = PLAY;
-	opp->play_with = client;
-	opp->req_from = NULL;
-	opp->read_dispatch = &idle_play;
-	log_statechange(client);
-	log_statechange(opp);
-	flog_message(LOG_INFO, _("[%s] is playing with [%s]"), client->username, opp->username);
-	monitor_socket_r(opp->socket); /*FIXME inutile? */
+void start_match(struct client_node *a, struct client_node *b) {
+	/* Symmetric */
+	if ( a != NULL ) {
+		a->state = PLAY;
+		a->play_with = b;
+		a->req_from = a->req_to = NULL;
+		a->read_dispatch = &idle_play;
+		log_statechange(a);
+	}
+	if ( b != NULL ) {
+		b->state = PLAY;
+		b->play_with = a;
+		b->req_from = b->req_to = NULL;
+		b->read_dispatch = &idle_play;
+		log_statechange(b);
+	}
+
+	if ( a != NULL && b != NULL )
+		flog_message(LOG_INFO, _("[%s] is playing with [%s]"), a->username, b->username);
+	else if ( a != NULL )
+		flog_message(LOG_INFO_VERBOSE, _("[%s] is playing with a disconnected client"), a->username);
+	else if ( b != NULL )
+		flog_message(LOG_INFO_VERBOSE, _("[%s] is playing with a disconnected client"), b->username);
+	else
+		flog_message(LOG_WARNING, _("Unexpected event on line %d, both clients are NULL"), __LINE__);
+	/*TODO #__LINE__ */
 }
 
 void inactive(struct client_node *client) {

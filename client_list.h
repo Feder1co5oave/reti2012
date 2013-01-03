@@ -25,6 +25,7 @@ struct client_node {
 	int data_count, data_cursor;
 	void (*read_dispatch)(struct client_node*);
 	void (*write_dispatch)(struct client_node*);
+	bool muted;
 };
 
 /**
