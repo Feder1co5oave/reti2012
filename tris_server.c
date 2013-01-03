@@ -74,7 +74,7 @@ int main (int argc, char **argv) {
 	open_log("tris_server.log", LOG_ALL);
 	
 	if ( argc != 3 /*|| strlen(argv[1]) < 7 || strlen(argv[1]) > 15 || strlen(argv[2]) > 5*/ ) {
-		flog_message(LOG_CONSOLE, "Usage: %s <host> <porta>", argv[0]);
+		flog_message(LOG_CONSOLE, "Usage: %s <host> <listening_port>", argv[0]);
 		exit(EXIT_FAILURE);
 	}
 	
@@ -88,22 +88,22 @@ int main (int argc, char **argv) {
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
 	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == -1 ) {
-		log_error("Errore socket()");
+		log_error("Error socket()");
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( setsockopt(sock_listen, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) ) {
-		log_error("Errore setsockopt()");
+		log_error("Error setsockopt()");
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( bind(sock_listen, (struct sockaddr*) &myhost, sizeof(myhost)) ) {
-		log_error("Errore bind()");
+		log_error("Error bind()");
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( listen(sock_listen, BACKLOG) ) {
-		log_error("Errore listen()");
+		log_error("Error listen()");
 		exit(EXIT_FAILURE);
 	}
 	
@@ -182,7 +182,7 @@ int main (int argc, char **argv) {
 		log_message(LOG_INFO, "Timeout. Exit.");
 		exit(EXIT_SUCCESS);
 	} else {
-		log_error("Errore su select()");
+		log_error("Error select()");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -207,7 +207,7 @@ void accept_connection() {
 		monitor_socket_r(sock_client);
 	} else {
 		/*FIXME Potrebbe verificarsi ECONNABORTED e in quel caso vorrei ritentare */
-		log_error("Errore accept()");
+		log_error("Error accept()");
 		close(sock_listen);
 		exit(EXIT_FAILURE);
 	}
@@ -466,7 +466,10 @@ void send_data(struct client_node *client) {
 
 void server_shell() {
 	int line_length;
-	fgets(buffer, BUFFER_SIZE, stdin);
+	char *s;
+
+	s = fgets(buffer, BUFFER_SIZE, stdin);
+	/* TODO if ( s == NULL ) */
 	line_length = strlen(buffer);
 	if ( line_length > 0 ) buffer[line_length - 1] = '\0';
 	

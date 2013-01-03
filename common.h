@@ -76,7 +76,6 @@ const char *magic_name(uint8_t);
  */
 const char *state_name(enum client_state);
 
-#define fl() fflush(stdout)
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
 		log_error("Errore su malloc()");\
