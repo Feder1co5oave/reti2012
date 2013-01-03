@@ -42,6 +42,7 @@ void client_disconnected(struct client_node*);
 void inactive(struct client_node*);
 void send_byte(struct client_node *client, uint8_t byte);
 void send_client_list(struct client_node*);
+void send_play_contact(struct client_node *to, struct client_node *contact);
 void send_play_request(struct client_node *from, struct client_node *to);
 void server_shell(void);
 void start_match(struct client_node*);
@@ -564,6 +565,19 @@ void send_client_list(struct client_node *client) {
 	client->muted = TRUE;
 }
 
+void send_play_contact(struct client_node *to, struct client_node *contact) {
+	to->data_count = 1 + sizeof(contact->addr.sin_addr) + sizeof(contact->udp_port);
+	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", to->data_count, __LINE__);
+	to->data = malloc(to->data_count);
+	check_alloc(to->data);
+	pack(to->data, "blw", RESP_OK_PLAY, contact->addr.sin_addr, contact->udp_port);
+	to->data_cursor = 0;
+	flog_message(LOG_DEBUG, "Preparing to send RESP_OK_PLAY data to [%s]", to->username);
+	to->write_dispatch = &send_data;
+	monitor_socket_w(to->socket);
+	to->muted = TRUE;
+}
+
 void send_play_request(struct client_node *from, struct client_node *to) {
 	flog_message(LOG_INFO, "[%s] requested to play with [%s]", from->username, to->username);
 	from->req_to = to;
@@ -602,17 +616,7 @@ void get_play_resp(struct client_node *client) {
 		}
 		if ( resp == RESP_OK_PLAY ) {
 			flog_message(LOG_INFO, "[%s] accepted to play with [%s]", client->username, opp->username);
-			opp->data_count = 1 + sizeof(client->addr.sin_addr) + sizeof(client->udp_port);
-			flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", opp->data_count, __LINE__);
-			opp->data = malloc(opp->data_count);
-			check_alloc(opp->data);
-			pack(opp->data, "blw", RESP_OK_PLAY, client->addr.sin_addr, client->udp_port);
-			opp->data_cursor = 0;
-			flog_message(LOG_DEBUG, "Preparing to send RESP_OK_PLAY data to [%s]", opp->username);
-			opp->write_dispatch = &send_data;
-			monitor_socket_w(opp->socket);
-			/* client->read_dispatch = &inactive; */
-			client->muted = TRUE;
+			send_play_contact(opp, client);
 		} else { /*FIXME May be some other valid command such as REQ_WHO or REQ_PLAY */
 			/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY */
 			flog_message(LOG_INFO, "[%s] refused to play with [%s]", client->username, opp->username);
