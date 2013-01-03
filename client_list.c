@@ -21,6 +21,7 @@ struct client_node *create_client_node() {
 	cn->data_cursor = 0;
 	cn->read_dispatch = NULL;
 	cn->write_dispatch = NULL;
+	cn->muted = FALSE;
 	return cn;
 }
 
