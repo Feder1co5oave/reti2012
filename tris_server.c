@@ -217,7 +217,7 @@ void get_username(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if (received != 1) {
-		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
@@ -277,7 +277,7 @@ void idle_free(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
-		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
@@ -367,7 +367,7 @@ void idle_play(struct client_node *client) {
 
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
-		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
+		flog_message(LOG_DEBUG, "Received=%d on line %d from %s", received, __LINE__, client_canon_p(client));
 		client_disconnected(client);
 		return;
 	}
