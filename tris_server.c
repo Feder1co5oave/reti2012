@@ -85,7 +85,7 @@ int main (int argc, char **argv) {
 	myhost.sin_port = htons((uint16_t) atoi(argv[2])); /*FIXME check cast */
 	memset(myhost.sin_zero, 0, sizeof(myhost.sin_zero));
 	
-	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == 1 ) {
+	if ( (sock_listen = socket(myhost.sin_family, SOCK_STREAM, 0)) == -1 ) {
 		log_error("Errore socket()");
 		exit(EXIT_FAILURE);
 	}
