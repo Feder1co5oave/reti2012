@@ -1,5 +1,4 @@
 #include "log.h"
-#include "common.h"
 #include <time.h>
 #include <errno.h>
 #include <string.h>
@@ -134,6 +133,26 @@ int log_message(loglevel_t level, const char *message) {
 		}
 	}
 
+	return count;
+}
+
+int log_multiline(loglevel_t level, const char *message) {
+	char *split, *start, *end;
+	int count;
+	
+	split = malloc(strlen(message));
+	check_alloc(split);
+	strcpy(split, message);
+	start = end = split;
+	
+	while ( (end = strchr(start, '\n')) != NULL ) {
+		*end = '\0';
+		log_message(level, start);
+		start = end + 1;
+	}
+	
+	count = log_message(level, start);
+	free(split);
 	return count;
 }
 
