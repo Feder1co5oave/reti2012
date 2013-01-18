@@ -19,31 +19,57 @@
 #define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
+#define log_statechange() flog_message(LOG_DEBUG, "I am now %s", state_name(my_state))
+
+
+
+/* ===[ Helpers ]============================================================ */
 
 void client_shell(void);
 void got_play_request(void);
+void login(void);
 void server_disconnected(void);
+
+
+
+/* ===[ Data ]=============================================================== */
 
 char buffer[BUFFER_SIZE];
 
 fd_set readfds, writefds;
 int maxfds = -1;
-struct timeval tv = DEFAULT_TIMEOUT_INIT;
 struct log_file *console;
 
-int received, sent;
-enum client_state state = NONE;
-int sock_server, sock_opp, error;
-uint16_t udp_port;
+struct sockaddr_in my_host;
+char               my_username[MAX_USERNAME_LENGTH + 1];
+uint8_t            my_username_length;
+enum client_state  my_state = NONE;
+uint16_t           my_udp_port;
+
+struct sockaddr_in opp_host;
+int                opp_socket;
+char               opp_username[MAX_USERNAME_LENGTH + 1];
+uint8_t            opp_username_length;
+
+int sock_server, error;
+
+
+
+/* ===[ Main ]=============================================================== */
 
 int main (int argc, char **argv) {
+	struct timeval tv = DEFAULT_TIMEOUT_INIT;
 	struct sockaddr_in server_host;
+	socklen_t sockaddrlen = sizeof(struct sockaddr_in);
+	int received;
 	fd_set _readfds, _writefds;
 	int sel_status;
+	uint8_t resp;
 
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
-	open_log("tris_client.log", LOG_ALL);
+	sprintf(buffer, "tris_client-%d.log", getpid());
+	open_log(buffer, LOG_ALL);
 	
 	if (argc != 3) {
 		flog_message(LOG_CONSOLE, "Usage: %s <server_ip> <server_port>", argv[0]);
@@ -65,13 +91,18 @@ int main (int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 	
-	if ( connect(sock_server, (struct sockaddr*) &server_host, sizeof(server_host)) != 0 ) {
+	if ( connect(sock_server, (struct sockaddr*) &server_host,
+                                                   sizeof(server_host)) != 0 ) {
 		log_error("Error connect()");
 		exit(EXIT_FAILURE);
 	}
 	
-	state = CONNECTED;
+	my_state = CONNECTED;
 	log_message(LOG_CONSOLE, "Connected to the server");
+	log_statechange();
+	
+	login();
+	
 	console->prompt = '>';
 	log_prompt(console);
 	
@@ -83,18 +114,23 @@ int main (int argc, char **argv) {
 	_writefds = writefds;
 	
 	
-	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) > 0 ) {
-		uint8_t cmd, resp;
+	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) >= 0 ) {
+		uint8_t cmd;
+		
+		if ( sel_status == 0 && my_state == PLAY ) {
+			/* TODO end_match(); */
+			continue;
+		}
 		
 		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {
 			client_shell();
-		} else if ( state != NONE && FD_ISSET(sock_server, &_readfds) ) {
+		} else if ( my_state != NONE && FD_ISSET(sock_server, &_readfds) ) {
 			received = recv(sock_server, &cmd, 1, 0);
 			if ( received != 1 ) server_disconnected();
 			
 			switch ( cmd ) {
 				case REQ_PLAY:
-					if ( state == FREE ) {
+					if ( my_state == FREE ) {
 						got_play_request();
 					} else {
 						resp = RESP_BUSY;
@@ -103,20 +139,17 @@ int main (int argc, char **argv) {
 					break;
 				
 				case RESP_OK_PLAY:
-					/*TODO */
-					break;
+					/*TODO ? */
 				
 				default:
-					flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(cmd));
+					flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                               magic_name(cmd));
 					/*FIXME */
 			}
-		} else if ( state == PLAY && FD_ISSET(sock_opp, &_readfds) ) {
-			
-		} else if ( state != NONE && FD_ISSET(sock_server, &_writefds) ) {
-			
-		} else if ( state == PLAY && FD_ISSET(sock_opp, &_writefds) ) {
-			
+		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
+			/*TODO */
 		} else {
+			/*FIXME */
 			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
 		}
 		_readfds = readfds;
@@ -124,78 +157,35 @@ int main (int argc, char **argv) {
 	}
 
 	log_error("Error select()");
-	shutdown(sock_server, SHUT_RDWR); /*TODO get rid of all the shutdown() calls */
+	shutdown(sock_server, SHUT_RDWR);
+	/*TODO get rid of all the shutdown() calls */
 	close(sock_server);
 	exit(EXIT_FAILURE);
 }
 
+/* ========================================================================== */
+
 void client_shell() {
-	int line_length, cmd_length, s;
-	uint32_t size;
-	char *cmd;
+	int line_length, cmd_length;
+	char cmd[BUFFER_SIZE];
+	int sent, received;
 	
 	fgets(buffer, BUFFER_SIZE, stdin);
 	
-	line_length = strlen(buffer);
-	buffer[line_length - 1] = '\0';
-	
-	log_message(LOG_USERINPUT, buffer);
-
-	cmd = buffer + line_length + 2;
-	s = sscanf(buffer, "%s", cmd); /*FIXME check s */
+	line_length = strlen(buffer) - 1;
+	buffer[line_length] = '\0';
+	sscanf(buffer, "%s", cmd); /*FIXME check return value */
 	cmd_length = strlen(cmd);
 	
+	log_message(LOG_USERINPUT, buffer);
+	
 	if ( strcmp(buffer, "help") == 0 || strcmp(buffer, "?") == 0 ) {
-		log_message(LOG_CONSOLE, "Commands: help, login, who, play, exit");
-	} else if ( strcmp(cmd, "login") == 0 ) {
-		char user[50]; int user_length;
-		uint8_t resp;
-		uint16_t port;
-
-		if ( state != CONNECTED ) {
-			log_message(LOG_CONSOLE, "You are already logged in");
-			return;
-		}
-
-		s = sscanf(buffer + cmd_length, "%s %hu", user, &port); /*FIXME controllo sul parsing di %hu */
-		if ( s != 2 ) {
-			log_message(LOG_CONSOLE, "Syntax: login <username> <udp_port>");
-			return;
-		}
-
-		/*TODO check se user corrisponde all'utente attuale */
-		user_length = strlen(user);
-		pack(buffer, "bbsw", REQ_LOGIN, user_length, user, port);
-		sent = send(sock_server, buffer, 4 + user_length, 0);
-		if ( sent != 4 + user_length ) server_disconnected();
-		received = recv(sock_server, &resp, 1, 0);
-		if ( received != 1 ) server_disconnected();
 		
-		switch ( resp ) {
-			case RESP_OK_LOGIN:
-				state = FREE;
-				log_message(LOG_CONSOLE, "Successfully logged in");
-				break;
-			case RESP_EXIST:
-				log_message(LOG_CONSOLE, "This username is taken");
-				break;
-			case RESP_BADUSR:
-				log_message(LOG_CONSOLE, "This username is badly formatted");
-				break;
-			case RESP_BADREQ:
-				log_message(LOG_WARNING, "BADREQ");
-				break;
-			default:
-				flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
-		}
+		log_message(LOG_CONSOLE, "Commands: help, who, play, exit");
+		
 	} else if ( strcmp(buffer, "who") == 0 ) {
 		uint8_t resp, length;
-		uint32_t i;
-
-		if ( state == CONNECTED ) {
-			log_message(LOG_CONSOLE, "You are not logged in");
-			return;
-		}
+		uint32_t i, size;
 
 		buffer[0] = REQ_WHO;
 		sent = send(sock_server, buffer, 1, 0);
@@ -210,7 +200,7 @@ void client_shell() {
 
 				console->prompt = FALSE;
 				flog_message(LOG_CONSOLE, "There are %u connected clients", size);
-				for (i = 0; i < size; i++) {
+				for ( i = 0; i < size; i++ ) {
 					recv(sock_server, &length, 1, 0);
 					recv(sock_server, buffer, length, 0);
 					buffer[length] = '\0';
@@ -229,30 +219,36 @@ void client_shell() {
 		}
 		
 	} else if ( strcmp(cmd, "play") == 0 ) {
-		char user[50]; int user_length;
+		
+		char user[50];
+		int sent, received, user_length;
 		uint8_t resp;
-		struct in_addr opp_ip;
-		uint16_t opp_port;
-
-		if (state != FREE) {
+		
+		sscanf(buffer + cmd_length, " %s", user);
+		/*FIXME check return value == 1 */
+		
+		if (my_state != FREE) {
 			log_message(LOG_CONSOLE, "You are not FREE");
 			return;
 		}
 		
-		s = sscanf(buffer + cmd_length, "%s", user);
-		if (s != 1) {
+		if ( strlen(user) <= 0 ) {
 			log_message(LOG_CONSOLE, "Write the name of the player you want to play with");
 			return;
 		}
+		
 
-		/*TODO controllo se user != my_username */
+		if ( strcmp(user, my_username) == 0 ) {
+			log_message(LOG_CONSOLE, "You cannot play with yourself");
+			return;
+		}
 
 		user_length = strlen(user);
 		pack(buffer, "bbs", REQ_PLAY, (uint8_t) user_length, user);
 		sent = send(sock_server, buffer, 2 + user_length, 0);
 		if ( sent != 2 + user_length ) server_disconnected();
 		flog_message(LOG_CONSOLE, "Sent play request to [%s], waiting for response...", user);
-		state = BUSY;
+		my_state = BUSY;
 		received = recv(sock_server, &resp, 1, 0);
 		if ( received != 1 ) server_disconnected();
 		
@@ -260,7 +256,7 @@ void client_shell() {
 			case RESP_OK_PLAY:
 				received = recv(sock_server, buffer, 6, 0);
 				if ( received != 6 ) server_disconnected();
-				unpack(buffer, "lw", &opp_ip, &opp_port);
+				unpack(buffer, "lw", &(opp_host.sin_addr), &opp_udp_port);
 				inet_ntop(AF_INET, &opp_ip, buffer, INET_ADDRSTRLEN);
 				flog_message(LOG_CONSOLE, "[%s] accepted to play with you. Contacting host %s:%hu...", user, buffer, opp_port);
 				flog_message(LOG_CONSOLE, "Playing with [%s]...", user);
@@ -297,13 +293,13 @@ void client_shell() {
 		received = recv(sock_server, buffer, 1, 0);
 		if ( received != 1 ) server_disconnected();
 		if ( buffer[0] == RESP_OK_FREE ) {
-			state = FREE;
+			my_state = FREE;
 			log_message(LOG_CONSOLE, "End of match. You are now free.");
 		} else {
 			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(buffer[0]));
 		}
 	} else if ( strcmp(buffer, "exit") == 0 ) {
-		if ( state == PLAY ) {
+		if ( my_state == PLAY ) {
 			/*TODO */
 		}
 		shutdown(sock_server, SHUT_RDWR);
@@ -316,12 +312,79 @@ void client_shell() {
 	}
 }
 
+void login() {
+	int line_length, received, sent;
+	int p;
+	char *s;
+	uint8_t resp;
+	
+	do {
+		log_message(LOG_CONSOLE, "Insert your username:");
+		s = fgets(buffer, BUFFER_SIZE, stdin); /*FIXME if ( s == NULL ) */
+		line_length = strlen(buffer) - 1;
+		if ( line_length >= 0 ) buffer[line_length] = '\0';
+		
+		log_message(LOG_USERINPUT, buffer);
+		
+		if ( line_length > MAX_USERNAME_LENGTH ) {
+			log_message(LOG_CONSOLE, "This username is too long");
+			continue;
+		}
+		
+		if ( line_length < MIN_USERNAME_LENGTH ) {
+			log_message(LOG_CONSOLE, "This username is too short");
+			continue;
+		}
+		
+		strcpy(my_username, buffer);
+		my_username_length = line_length;
+		
+		log_message(LOG_CONSOLE, "Insert your UDP port:");
+		s = fgets(buffer, BUFFER_SIZE, stdin); /*FIXME if ( s == NULL ) */
+		line_length = strlen(buffer);
+		if ( line_length >= 0 ) buffer[line_length - 1] = '\0';
+		log_message(LOG_USERINPUT, buffer);
+		p = sscanf(buffer, "%hu", &my_udp_port); /*FIXME if ( p != 1 ) */
+		
+		if ( my_udp_port < 1024 )
+			log_message(LOG_CONSOLE,
+                     "Your UDP port is in the system range, it might not work");
+		
+		pack(buffer, "bbsw", REQ_LOGIN, (uint8_t) my_username_length,
+                                                      my_username, my_udp_port);
+		
+		my_host.sin_port = htons(my_udp_port);
+		sent = send(sock_server, buffer, 4 + my_username_length, 0);
+		if ( sent != 4 + my_username_length ) server_disconnected();
+		received = recv(sock_server, &resp, 1, 0);
+		if ( received != 1 ) server_disconnected();
+		
+		switch ( resp ) {
+			case RESP_OK_LOGIN:
+				my_state = FREE;
+				flog_message(LOG_CONSOLE, "Successfully logged in as [%s]",
+                                                                   my_username);
+				break;
+			case RESP_EXIST:
+				log_message(LOG_CONSOLE, "This username is taken");
+				break;
+			case RESP_BADUSR:
+				log_message(LOG_CONSOLE, "This username is badly formatted");
+				break;
+			default:
+				flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                              magic_name(resp));
+		}
+	} while ( resp != RESP_OK_LOGIN );
+}
+
 void got_play_request() {
 	uint8_t length, resp;
 	int line_length;
 	bool repeat = TRUE;
+	int received, sent;
 	
-	state = BUSY;
+	my_state = BUSY;
 	received = recv(sock_server, &length, 1, 0);
 	if ( received != 1 ) server_disconnected();
 	received = recv(sock_server, buffer, length, 0);
@@ -338,15 +401,17 @@ void got_play_request() {
 			resp = RESP_OK_PLAY;
 			sent = send(sock_server, &resp, 1, 0);
 			if ( sent != 1 ) server_disconnected();
-			state = PLAY;
+			my_state = PLAY;
 			/*TODO */
-			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection from the other client...");
+			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection "
+                                                    "from the other client...");
+			
 		} else if ( strcmp(buffer, "n") == 0 ) {
 			repeat = FALSE;
 			resp = RESP_REFUSE;
 			sent = send(sock_server, &resp, 1, 0);
 			if ( sent != 1 ) server_disconnected();
-			state = FREE;
+			my_state = FREE;
 			log_message(LOG_CONSOLE, "Request refused");
 		} else {
 			log_message(LOG_CONSOLE, "Accept (y) or refuse (n) ?");
@@ -355,8 +420,9 @@ void got_play_request() {
 }
 
 void server_disconnected() {
-	log_message(LOG_CONSOLE, "Lost connection to server");
+	log_message(LOG_ERROR, "Lost connection to server");
 	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
+	/*TODO if ( state == PLAYING ) */
 	exit(EXIT_FAILURE);
 }
