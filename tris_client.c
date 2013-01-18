@@ -73,7 +73,7 @@ int main (int argc, char **argv) {
 	state = CONNECTED;
 	log_message(LOG_CONSOLE, "Connected to the server");
 	console->prompt = '>';
-	prompt(>);
+	log_prompt(console);
 	
 	FD_ZERO(&readfds);
 	FD_ZERO(&writefds);
@@ -217,7 +217,7 @@ void client_shell() {
 					flog_message(LOG_CONSOLE, "[%s]", buffer);
 				}
 				console->prompt = '>';
-				prompt(>);
+				log_prompt(console);
 				break;
 			
 			case RESP_BADREQ:
@@ -310,7 +310,7 @@ void client_shell() {
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 	} else if ( strcmp(buffer, "") == 0 ) {
-		prompt(>)
+		log_prompt(console);
 	} else {
 		log_message(LOG_CONSOLE, "Unknown command");
 	}

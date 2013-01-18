@@ -172,3 +172,12 @@ int flog_message(loglevel_t level, const char* format, ...) {
 int log_error(const char *message) {
 	return flog_message(LOG_ERROR, "%s: %s", message, strerror(errno));
 }
+
+int log_prompt(struct log_file *logfile) {
+	if ( logfile->prompt ) {
+		fprintf(logfile->file, "%c ", logfile->prompt);
+		fflush(logfile->file);
+		return 1;
+	}
+	return 0;
+}

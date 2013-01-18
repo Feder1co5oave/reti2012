@@ -82,11 +82,6 @@ const char *state_name(enum client_state);
 		exit(EXIT_FAILURE);\
 	}
 
-#define XSTR(S) #S
-#define STR(S) XSTR(S)
-#define prompt(c) { fputs(STR(c)" ", stdout); fflush(stdout); }
-/* E.g.: prompt(>) prompt($) */
-
 /* ========================================================================== */
 
 #endif

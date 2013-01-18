@@ -135,6 +135,13 @@ int flog_message(loglevel_t level, const char *format, ...);
  */
 int log_error(const char *message);
 
+/**
+ * Print a prompt on a log_file, if logfile->prompt is set.
+ * @param struct log_file *logfile
+ * @return int 1 if logfile->prompt is set, 0 otherwise
+ */
+int log_prompt(struct log_file *file);
+
 /* ========================================================================== */
 
 #endif
