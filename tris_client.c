@@ -27,7 +27,10 @@
 
 void client_shell(void);
 void got_play_request(void);
+void get_play_response(void);
+void list_connected_clients(void);
 void login(void);
+void send_play_request(int sock_server, const char *opp_username);
 void server_disconnected(void);
 
 
@@ -184,45 +187,15 @@ void client_shell() {
 		log_message(LOG_CONSOLE, "Commands: help, who, play, exit");
 		
 	} else if ( strcmp(buffer, "who") == 0 ) {
-		uint8_t resp, length;
-		uint32_t i, size;
-
-		buffer[0] = REQ_WHO;
-		sent = send(sock_server, buffer, 1, 0);
-		if ( sent != 1 ) server_disconnected();
-		received = recv(sock_server, &resp, 1, 0);
-		if ( received != 1 ) server_disconnected();
-		switch ( resp ) {
-			case RESP_WHO:
-				recv(sock_server, buffer, 4, 0);
-				unpack(buffer, "l", &size);
-				if (size > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
-
-				console->prompt = FALSE;
-				flog_message(LOG_CONSOLE, "There are %u connected clients", size);
-				for ( i = 0; i < size; i++ ) {
-					recv(sock_server, &length, 1, 0);
-					recv(sock_server, buffer, length, 0);
-					buffer[length] = '\0';
-					flog_message(LOG_CONSOLE, "[%s]", buffer);
-				}
-				console->prompt = '>';
-				log_prompt(console);
-				break;
-			
-			case RESP_BADREQ:
-				log_message(LOG_WARNING, "BADREQ");
-				break;
-			
-			default:
-				flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
-		}
+		
+		/*FIXME if condition */
+		/*FIXME if my_state == BUSY ? */
+		if ( my_state == CONNECTED ) log_message(LOG_CONSOLE, "You are not logged in");
+		else list_connected_clients();
 		
 	} else if ( strcmp(cmd, "play") == 0 ) {
 		
 		char user[50];
-		int sent, received, user_length;
-		uint8_t resp;
 		
 		sscanf(buffer + cmd_length, " %s", user);
 		/*FIXME check return value == 1 */
@@ -240,52 +213,12 @@ void client_shell() {
 
 		if ( strcmp(user, my_username) == 0 ) {
 			log_message(LOG_CONSOLE, "You cannot play with yourself");
-			return;
+		} else {
+			strcpy(opp_username, user);
+			send_play_request(sock_server, opp_username);
+			get_play_response();
 		}
-
-		user_length = strlen(user);
-		pack(buffer, "bbs", REQ_PLAY, (uint8_t) user_length, user);
-		sent = send(sock_server, buffer, 2 + user_length, 0);
-		if ( sent != 2 + user_length ) server_disconnected();
-		flog_message(LOG_CONSOLE, "Sent play request to [%s], waiting for response...", user);
-		my_state = BUSY;
-		received = recv(sock_server, &resp, 1, 0);
-		if ( received != 1 ) server_disconnected();
 		
-		switch ( resp ) {
-			case RESP_OK_PLAY:
-				received = recv(sock_server, buffer, 6, 0);
-				if ( received != 6 ) server_disconnected();
-				unpack(buffer, "lw", &(opp_host.sin_addr), &opp_udp_port);
-				inet_ntop(AF_INET, &opp_ip, buffer, INET_ADDRSTRLEN);
-				flog_message(LOG_CONSOLE, "[%s] accepted to play with you. Contacting host %s:%hu...", user, buffer, opp_port);
-				flog_message(LOG_CONSOLE, "Playing with [%s]...", user);
-				state = PLAY;
-				/*TODO */
-				break;
-			
-			case RESP_REFUSE:
-				flog_message(LOG_CONSOLE, "[%s] refused to play", user);
-				state = FREE;
-				break;
-			
-			case RESP_NONEXIST:
-				flog_message(LOG_CONSOLE, "[%s] does not exist", user);
-				state = FREE;
-				break;
-			
-			case RESP_BUSY:
-				flog_message(LOG_CONSOLE, "[%s] is occupied in another match", user);
-				state = FREE;
-				break;
-				
-			case RESP_BADREQ:
-				log_message(LOG_WARNING, "BADREQ");
-				break;
-			
-			default:
-				flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
-		}
 	} else if ( strcmp(cmd, "end") == 0 ) {
 		buffer[0] = (char) REQ_END;
 		sent = send(sock_server, buffer, 1, 0);
@@ -298,6 +231,7 @@ void client_shell() {
 		} else {
 			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(buffer[0]));
 		}
+		/*TODO send REQ_END to opponent */
 	} else if ( strcmp(buffer, "exit") == 0 ) {
 		if ( my_state == PLAY ) {
 			/*TODO */
@@ -417,6 +351,105 @@ void got_play_request() {
 			log_message(LOG_CONSOLE, "Accept (y) or refuse (n) ?");
 		}
 	} while (repeat);
+}
+
+void get_play_response() {
+	uint8_t resp;
+	uint16_t opp_udp_port;
+	int received;
+	
+	received = recv(sock_server, &resp, 1, 0);
+	if ( received != 1 ) server_disconnected();
+	
+	switch ( resp ) {
+		case RESP_OK_PLAY:
+			received = recv(sock_server, buffer, sizeof(struct in_addr) + 2, 0);
+			if ( received != sizeof(struct in_addr) + 2 ) server_disconnected();
+			
+			opp_host.sin_family = AF_INET;
+			memset(opp_host.sin_zero, 0, sizeof(opp_host.sin_zero));
+			unpack(buffer, "lw", &(opp_host.sin_addr), &opp_udp_port);
+			inet_ntop(AF_INET, &(opp_host.sin_addr), buffer, INET_ADDRSTRLEN);
+			opp_host.sin_port = htons(opp_udp_port);
+			
+			flog_message(LOG_CONSOLE,
+                    "[%s] accepted to play with you. Contacting host %s:%hu...",
+                                            opp_username, buffer, opp_udp_port);
+			
+			my_state = PLAY;
+			
+			break;
+		
+		case RESP_REFUSE:
+			flog_message(LOG_CONSOLE, "[%s] refused to play", opp_username);
+			my_state = FREE;
+			break;
+		
+		case RESP_NONEXIST:
+			flog_message(LOG_CONSOLE, "[%s] does not exist", opp_username);
+			my_state = FREE;
+			break;
+		
+		case RESP_BUSY:
+			flog_message(LOG_CONSOLE, "[%s] is occupied in another match", opp_username);
+			my_state = FREE;
+			break;
+		
+		default:
+			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
+	}
+}
+
+void list_connected_clients() {
+	int received, sent;
+	uint8_t resp, length;
+	uint32_t count, i;
+
+	buffer[0] = REQ_WHO;
+	
+	sent = send(sock_server, buffer, 1, 0);
+	if ( sent != 1 ) server_disconnected();
+	received = recv(sock_server, &resp, 1, 0);
+	if ( received != 1 ) server_disconnected();
+	
+	switch ( resp ) {
+		case RESP_WHO:
+			received = recv(sock_server, buffer, 4, 0);
+			if ( received != 4 ) server_disconnected();
+			unpack(buffer, "l", &count);
+			if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
+
+			console->prompt = FALSE;
+			flog_message(LOG_CONSOLE, "There are %u connected clients", count);
+			for (i = 0; i < count; i++) {
+				received = recv(sock_server, &length, 1, 0);
+				if ( received != 1 ) server_disconnected();
+				received = recv(sock_server, buffer, length, 0);
+				if ( received != length ) server_disconnected();
+				buffer[length] = '\0';
+				flog_message(LOG_CONSOLE, "[%s]", buffer);
+			}
+			console->prompt = '>';
+			log_prompt(console);
+			break;
+		
+		default:
+			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
+	}
+}
+
+void send_play_request(int sock_server, const char *opp_username) {
+	int sent;
+	uint8_t username_length;
+	
+	username_length = strlen(opp_username);
+	pack(buffer, "bbs", REQ_PLAY, username_length, opp_username);
+	sent = send(sock_server, buffer, 2 + username_length, 0);
+	if ( sent != 2 + username_length ) server_disconnected();
+	flog_message(LOG_CONSOLE,
+            "Sent play request to [%s], waiting for response...", opp_username);
+	
+	my_state = BUSY;
 }
 
 void server_disconnected() {
