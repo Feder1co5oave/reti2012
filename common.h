@@ -12,6 +12,7 @@
 #define MAX_USERNAME_LENGTH 30
 #define USERNAME_ALPHABET \
              "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
+
 #define DEFAULT_TIMEOUT_INIT {60, 0}
 
 #define BUFFER_SIZE 1024
@@ -51,7 +52,7 @@ enum client_state {
 	NONE,       /* default value, client does not exist yet                   */
 	CONNECTED,  /* client is connected, not logged in yet                     */
 	FREE,       /* client is connected and logged in (username and udp port)  */
-	BUSY,		/* client has/is requested to play a match                    */
+	BUSY,       /* client has/is requested to play a match                    */
 	PLAY        /* client is playing                                          */
 };
 
@@ -81,6 +82,23 @@ const char *state_name(enum client_state);
 		log_error("Errore su malloc()");\
 		exit(EXIT_FAILURE);\
 	}
+
+/**
+ * Send a buffer through socket, iterating until all data is sent.
+ * @param int socket
+ * @param const char *buffer
+ * @param int length the number of bytes to be sent
+ * @return int 0 on success, < 0 on send() error
+ */
+int send_buffer(int socket, const char *buffer, int length);
+
+/**
+ * Send a byte through socket.
+ * @param int socket
+ * @param uint8_t byte
+ * @return int @see send_buffer()
+ */
+int send_byte(int socket, uint8_t byte);
 
 /* ========================================================================== */
 

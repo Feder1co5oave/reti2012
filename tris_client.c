@@ -63,11 +63,9 @@ int sock_server, error;
 int main (int argc, char **argv) {
 	struct timeval tv = DEFAULT_TIMEOUT_INIT;
 	struct sockaddr_in server_host;
-	socklen_t sockaddrlen = sizeof(struct sockaddr_in);
 	int received;
 	fd_set _readfds, _writefds;
 	int sel_status;
-	uint8_t resp;
 
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
@@ -133,12 +131,11 @@ int main (int argc, char **argv) {
 			
 			switch ( cmd ) {
 				case REQ_PLAY:
-					if ( my_state == FREE ) {
+					if ( my_state == FREE )
 						got_play_request();
-					} else {
-						resp = RESP_BUSY;
-						send(sock_server, &resp, 1, 0); /*FIXME è bloccante */
-					}
+					else if ( send_byte(sock_server, RESP_REFUSE) < 0 )
+						server_disconnected();
+					
 					break;
 				
 				case RESP_OK_PLAY:
@@ -147,6 +144,9 @@ int main (int argc, char **argv) {
 				default:
 					flog_message(LOG_WARNING, "Unexpected server response: %s",
                                                                magic_name(cmd));
+					
+					if ( send_byte(sock_server, RESP_BADREQ) < 0 )
+						log_error("Error send()");
 					/*FIXME */
 			}
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
@@ -220,6 +220,7 @@ void client_shell() {
 		}
 		
 	} else if ( strcmp(cmd, "end") == 0 ) {
+		
 		buffer[0] = (char) REQ_END;
 		sent = send(sock_server, buffer, 1, 0);
 		if ( sent != 1 ) server_disconnected();
@@ -232,22 +233,29 @@ void client_shell() {
 			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(buffer[0]));
 		}
 		/*TODO send REQ_END to opponent */
+		
 	} else if ( strcmp(buffer, "exit") == 0 ) {
+		
 		if ( my_state == PLAY ) {
 			/*TODO */
 		}
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
+		
 	} else if ( strcmp(buffer, "") == 0 ) {
+		
 		log_prompt(console);
+		
 	} else {
+		
 		log_message(LOG_CONSOLE, "Unknown command");
+		
 	}
 }
 
 void login() {
-	int line_length, received, sent;
+	int line_length;
 	int p;
 	char *s;
 	uint8_t resp;
@@ -288,10 +296,12 @@ void login() {
                                                       my_username, my_udp_port);
 		
 		my_host.sin_port = htons(my_udp_port);
-		sent = send(sock_server, buffer, 4 + my_username_length, 0);
-		if ( sent != 4 + my_username_length ) server_disconnected();
-		received = recv(sock_server, &resp, 1, 0);
-		if ( received != 1 ) server_disconnected();
+		
+		if ( send_buffer(sock_server, buffer, 4 + my_username_length) < 0 )
+			server_disconnected();
+		
+		if ( recv(sock_server, &resp, 1, 0) != 1 )
+			server_disconnected();
 		
 		switch ( resp ) {
 			case RESP_OK_LOGIN:
@@ -313,16 +323,14 @@ void login() {
 }
 
 void got_play_request() {
-	uint8_t length, resp;
+	uint8_t length;
 	int line_length;
-	bool repeat = TRUE;
-	int received, sent;
 	
 	my_state = BUSY;
-	received = recv(sock_server, &length, 1, 0);
-	if ( received != 1 ) server_disconnected();
-	received = recv(sock_server, buffer, length, 0);
-	if ( received != length ) server_disconnected();
+	
+	if ( recv(sock_server, &length, 1, 0) != 1 ) server_disconnected();
+	if ( recv(sock_server, buffer, length, 0) != length ) server_disconnected();
+	
 	buffer[length] = '\0';
 	flog_message(LOG_INFO, "Got play request from [%s]. Accept (y) or refuse (n) ?", buffer);
 	do {
@@ -331,26 +339,31 @@ void got_play_request() {
 		buffer[line_length - 1] = '\0';
 
 		if ( strcmp(buffer, "y") == 0 ) {
-			repeat = FALSE;
-			resp = RESP_OK_PLAY;
-			sent = send(sock_server, &resp, 1, 0);
-			if ( sent != 1 ) server_disconnected();
+			
+			if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
+				server_disconnected();
+			
 			my_state = PLAY;
 			/*TODO */
 			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection "
                                                     "from the other client...");
+			break;
 			
 		} else if ( strcmp(buffer, "n") == 0 ) {
-			repeat = FALSE;
-			resp = RESP_REFUSE;
-			sent = send(sock_server, &resp, 1, 0);
-			if ( sent != 1 ) server_disconnected();
+			
+			if ( send_byte(sock_server, RESP_REFUSE) < 0 )
+				server_disconnected();
+			
 			my_state = FREE;
 			log_message(LOG_CONSOLE, "Request refused");
+			break;
+			
 		} else {
+			
 			log_message(LOG_CONSOLE, "Accept (y) or refuse (n) ?");
+			
 		}
-	} while (repeat);
+	} while (TRUE);
 }
 
 void get_play_response() {
@@ -391,41 +404,41 @@ void get_play_response() {
 			break;
 		
 		case RESP_BUSY:
-			flog_message(LOG_CONSOLE, "[%s] is occupied in another match", opp_username);
+			flog_message(LOG_CONSOLE, "[%s] is occupied in another match",
+                                                                  opp_username);
 			my_state = FREE;
 			break;
 		
 		default:
-			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
+			flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                              magic_name(resp));
 	}
 }
 
 void list_connected_clients() {
-	int received, sent;
 	uint8_t resp, length;
 	uint32_t count, i;
 
 	buffer[0] = REQ_WHO;
 	
-	sent = send(sock_server, buffer, 1, 0);
-	if ( sent != 1 ) server_disconnected();
-	received = recv(sock_server, &resp, 1, 0);
-	if ( received != 1 ) server_disconnected();
+	if ( send_byte(sock_server, REQ_WHO) < 0 ) server_disconnected();
+	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
 	
 	switch ( resp ) {
 		case RESP_WHO:
-			received = recv(sock_server, buffer, 4, 0);
-			if ( received != 4 ) server_disconnected();
+			if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
 			unpack(buffer, "l", &count);
 			if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
 
 			console->prompt = FALSE;
 			flog_message(LOG_CONSOLE, "There are %u connected clients", count);
 			for (i = 0; i < count; i++) {
-				received = recv(sock_server, &length, 1, 0);
-				if ( received != 1 ) server_disconnected();
-				received = recv(sock_server, buffer, length, 0);
-				if ( received != length ) server_disconnected();
+				if ( recv(sock_server, &length, 1, 0) != 1 )
+					server_disconnected();
+				
+				if ( recv(sock_server, buffer, length, 0) != length )
+					server_disconnected();
+				
 				buffer[length] = '\0';
 				flog_message(LOG_CONSOLE, "[%s]", buffer);
 			}

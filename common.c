@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 bool username_is_valid(const char *username, uint8_t length) {
 	int i;
@@ -51,4 +52,20 @@ const char *state_name(enum client_state state) {
 	}
 
 	return NULL; /* never executed */
+}
+
+int send_buffer(int socket, const char *buffer, int length) {
+	int sent, counter = 0;
+	
+	while ( length > counter ) {
+		sent = send(socket, buffer + counter, length - counter, 0);
+		if ( sent < 0 ) return sent;
+		counter += sent;
+	}
+	
+	return 0;
+}
+
+int send_byte(int socket, uint8_t byte) {
+	return send(socket, &byte, 1, 0);
 }
