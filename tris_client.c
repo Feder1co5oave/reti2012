@@ -61,7 +61,7 @@ int sock_server, error;
 /* ===[ Main ]=============================================================== */
 
 int main (int argc, char **argv) {
-	struct timeval tv = DEFAULT_TIMEOUT_INIT;
+	struct timeval tv = DEFAULT_TIMEOUT_INIT, _tv;
 	struct sockaddr_in server_host;
 	int received;
 	fd_set _readfds, _writefds;
@@ -113,14 +113,22 @@ int main (int argc, char **argv) {
 	monitor_socket_r(sock_server);
 	_readfds = readfds;
 	_writefds = writefds;
+	_tv = tv;
 	
 	
-	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &tv)) >= 0 ) {
+	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &_tv)) >= 0 ) {
 		uint8_t cmd;
 		
-		if ( sel_status == 0 && my_state == PLAY ) {
-			/* TODO end_match(); */
-			continue;
+		if ( sel_status == 0 ) {
+			flog_message(LOG_DEBUG, "Select() timed out while %s",
+                                                          state_name(my_state));
+			if ( my_state == PLAY ) /* TODO end_match(); */;
+			else {
+				_readfds = readfds;
+				_writefds = writefds;
+				_tv = tv;
+				continue;
+			}
 		}
 		
 		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {
@@ -154,9 +162,11 @@ int main (int argc, char **argv) {
 		} else {
 			/*FIXME */
 			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			sleep(1);
 		}
 		_readfds = readfds;
 		_writefds = writefds;
+		_tv = tv;
 	}
 
 	log_error("Error select()");
