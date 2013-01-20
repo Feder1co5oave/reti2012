@@ -44,6 +44,23 @@ char get_winner(const struct tris_grid *grid) {
 	else return GAME_DRAW;
 }
 
+/*
+ * a,b in {HOST, GUEST, DRAW}
+ * player in {HOST, GUEST}
+ */
+bool better_for(char a, char b, char player) {
+	assert(a == GAME_HOST || a == GAME_GUEST || a == GAME_DRAW);
+	assert(b == GAME_HOST || b == GAME_GUEST || b == GAME_DRAW);
+	assert(player == GAME_HOST || player == GAME_GUEST);
+	
+	if ( a == b || b == player ) return FALSE;
+	if ( a == player ) return TRUE;
+	assert(a != b && b != player && player != a);
+	if ( a == GAME_DRAW ) return TRUE;
+	assert(b == GAME_DRAW);
+	return FALSE;
+}
+
 char inverse(char player) {
 	switch ( player ) {
 		case GAME_HOST: return GAME_GUEST;
@@ -76,4 +93,48 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	strcat(buffer, "+---+---+---+");
 	
 	return buffer;
+}
+
+char backtrack(const struct tris_grid *grid, char player, int *move) {
+	int i, best_move;
+	char opp = inverse(player);
+	char best_result = opp;
+	struct tris_grid try;
+	
+	assert(player == GAME_HOST || player == GAME_GUEST);
+	assert(get_winner(grid) == GAME_UNDEF);
+	
+	try = *grid;
+	
+	for ( i = 1; i <= 9; i++ ) {
+		if ( try.cells[i] == GAME_UNDEF ) {
+			char this_best_result;
+			
+			try.cells[i] = player;
+			this_best_result = evaluate(&try, opp);
+			
+			if ( this_best_result == player ) {
+				*move = i;
+				return this_best_result;
+			} else if ( better_for(this_best_result, best_result, player) ) {
+				best_result = this_best_result;
+				best_move = i;
+			}
+			
+			try.cells[i] = GAME_UNDEF;
+		}
+	}
+	
+	*move = best_move;
+	return best_result;
+}
+
+char evaluate(const struct tris_grid *grid, char player) {
+	char best_result;
+	int move;
+	
+	assert(player == GAME_HOST || player == GAME_GUEST);
+	
+	if ( (best_result = get_winner(grid)) != GAME_UNDEF ) return best_result;
+	else return backtrack(grid, player, &move);
 }

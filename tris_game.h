@@ -39,6 +39,14 @@ struct tris_grid {
 char get_winner(const struct tris_grid*);
 
 /**
+ * @param char a first comparison item
+ * @param char b secondo comparison item
+ * @param char player GAME_HOST or GAME_GUEST
+ * @return TRUE if a is better than b, for player, FALSE otherwise
+ */
+bool better_for(char a, char b, char player);
+
+/**
  * @param char player
  * @return char GAME_HOST if player == GAME_GUEST or GAME_GUEST if player ==
  * GAME_HOST. Return player otherwise.
@@ -55,6 +63,17 @@ char inverse(char player);
  */
 char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
                                                                       size_t n);
+
+/**
+ * Compute the optimal move to make on grid, by player.
+ * @param const struct tris_grid *grid the grid
+ * @param char player GAME_HOST or GAME_GUEST
+ * @param int *mode returns the best move to make
+ * @return char the best result obtainable by player
+ */
+char backtrack(const struct tris_grid *grid, char player, int *move);
+
+char evaluate(const struct tris_grid *grid, char player);
 
 /* ========================================================================== */
 
