@@ -423,6 +423,9 @@ void get_play_response() {
 			flog_message(LOG_WARNING, "Unexpected server response: %s",
                                                               magic_name(resp));
 	}
+	
+	console->prompt = '>';
+	log_prompt(console);
 }
 
 void list_connected_clients() {
@@ -469,6 +472,8 @@ void send_play_request(int sock_server, const char *opp_username) {
 	pack(buffer, "bbs", REQ_PLAY, username_length, opp_username);
 	sent = send(sock_server, buffer, 2 + username_length, 0);
 	if ( sent != 2 + username_length ) server_disconnected();
+	
+	console->prompt = FALSE;
 	flog_message(LOG_CONSOLE,
             "Sent play request to [%s], waiting for response...", opp_username);
 	
