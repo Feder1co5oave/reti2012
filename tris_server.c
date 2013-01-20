@@ -560,12 +560,8 @@ void send_data(struct client_node *client) {
 
 void server_shell() {
 	int line_length;
-	char *s;
 	
-	s = fgets(buffer, BUFFER_SIZE, stdin);
-	/* TODO if ( s == NULL ) */
-	line_length = strlen(buffer);
-	if ( line_length > 0 ) buffer[line_length - 1] = '\0';
+	line_length = get_line(buffer, BUFFER_SIZE);
 	
 	log_message(LOG_USERINPUT, buffer);
 	

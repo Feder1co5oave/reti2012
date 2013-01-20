@@ -84,6 +84,14 @@ const char *state_name(enum client_state);
 	}
 
 /**
+ * Get a line from stdin. Must compile in C89 (-ansi).
+ * @param char *buffer the buffer used to store the string
+ * @param int size the size of the buffer
+ * @return int the length of the line
+ */
+int get_line(char *buffer, int size);
+
+/**
  * Send a buffer through socket, iterating until all data is sent.
  * @param int socket
  * @param const char *buffer

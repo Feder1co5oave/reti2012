@@ -25,11 +25,12 @@
 
 /* ===[ Helpers ]============================================================ */
 
-void client_shell(void);
+void free_shell(void);
 void got_play_request(void);
 void get_play_response(void);
 void list_connected_clients(void);
 void login(void);
+void play_shell(void);
 void send_play_request(int sock_server, const char *opp_username);
 void server_disconnected(void);
 
@@ -132,7 +133,17 @@ int main (int argc, char **argv) {
 		}
 		
 		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {
-			client_shell();
+			
+			switch ( my_state ) {
+				case FREE: free_shell(); break;
+				case PLAY: play_shell(); break;
+				default:
+					get_line(buffer, BUFFER_SIZE);
+					flog_message(LOG_WARNING, "Got unwanted user input while %s:", state_name(my_state));
+					log_message(LOG_USERINPUT, buffer);
+					log_message(LOG_ERROR, "");
+			}
+			
 		} else if ( my_state != NONE && FD_ISSET(sock_server, &_readfds) ) {
 			received = recv(sock_server, &cmd, 1, 0);
 			if ( received != 1 ) server_disconnected();
@@ -178,15 +189,12 @@ int main (int argc, char **argv) {
 
 /* ========================================================================== */
 
-void client_shell() {
+void free_shell() {
 	int line_length, cmd_length;
 	char cmd[BUFFER_SIZE];
-	int sent, received;
 	
-	fgets(buffer, BUFFER_SIZE, stdin);
+	line_length = get_line(buffer, BUFFER_SIZE);
 	
-	line_length = strlen(buffer) - 1;
-	buffer[line_length] = '\0';
 	sscanf(buffer, "%s", cmd); /*FIXME check return value */
 	cmd_length = strlen(cmd);
 	
@@ -229,26 +237,8 @@ void client_shell() {
 			get_play_response();
 		}
 		
-	} else if ( strcmp(cmd, "end") == 0 ) {
-		
-		buffer[0] = (char) REQ_END;
-		sent = send(sock_server, buffer, 1, 0);
-		if ( sent != 1 ) server_disconnected();
-		received = recv(sock_server, buffer, 1, 0);
-		if ( received != 1 ) server_disconnected();
-		if ( buffer[0] == RESP_OK_FREE ) {
-			my_state = FREE;
-			log_message(LOG_CONSOLE, "End of match. You are now free.");
-		} else {
-			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(buffer[0]));
-		}
-		/*TODO send REQ_END to opponent */
-		
 	} else if ( strcmp(buffer, "exit") == 0 ) {
 		
-		if ( my_state == PLAY ) {
-			/*TODO */
-		}
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
@@ -265,36 +255,30 @@ void client_shell() {
 }
 
 void login() {
-	int line_length;
 	int p;
-	char *s;
+	int username_length;
 	uint8_t resp;
 	
 	do {
 		log_message(LOG_CONSOLE, "Insert your username:");
-		s = fgets(buffer, BUFFER_SIZE, stdin); /*FIXME if ( s == NULL ) */
-		line_length = strlen(buffer) - 1;
-		if ( line_length >= 0 ) buffer[line_length] = '\0';
-		
+		username_length = get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 		
-		if ( line_length > MAX_USERNAME_LENGTH ) {
+		if ( username_length > MAX_USERNAME_LENGTH ) {
 			log_message(LOG_CONSOLE, "This username is too long");
 			continue;
 		}
 		
-		if ( line_length < MIN_USERNAME_LENGTH ) {
+		if ( username_length < MIN_USERNAME_LENGTH ) {
 			log_message(LOG_CONSOLE, "This username is too short");
 			continue;
 		}
 		
 		strcpy(my_username, buffer);
-		my_username_length = line_length;
+		my_username_length = username_length;
 		
 		log_message(LOG_CONSOLE, "Insert your UDP port:");
-		s = fgets(buffer, BUFFER_SIZE, stdin); /*FIXME if ( s == NULL ) */
-		line_length = strlen(buffer);
-		if ( line_length >= 0 ) buffer[line_length - 1] = '\0';
+		get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 		p = sscanf(buffer, "%hu", &my_udp_port); /*FIXME if ( p != 1 ) */
 		
@@ -332,6 +316,54 @@ void login() {
 	} while ( resp != RESP_OK_LOGIN );
 }
 
+void play_shell() {
+	int line_length, cmd_length;
+	char cmd[BUFFER_SIZE] = "";
+	
+	line_length = get_line(buffer, BUFFER_SIZE);
+	sscanf(buffer, "%s", cmd); /*FIXME check return value */
+	cmd_length = strlen(cmd);
+	log_message(LOG_USERINPUT, buffer);
+	
+	if ( strcmp(buffer, "help") == 0 || strcmp(buffer, "?") == 0 ) {
+		
+		log_message(LOG_CONSOLE, "Commands: help, who, hit, map, end, exit");
+		
+	} else if ( strcmp(buffer, "who") == 0 ) {
+		
+		list_connected_clients();
+		
+	} else if ( strcmp(buffer, "end") == 0 ) {
+		
+		/*TODO end_match();	*/
+		
+	} else if ( strcmp(buffer, "exit") == 0 ) {
+		
+		/*TODO end_match(); */
+		shutdown(sock_server, SHUT_RDWR);
+		close(sock_server);
+		exit(EXIT_SUCCESS);
+		
+	} else if ( strcmp(cmd, "hit") == 0 ) {
+		
+		unsigned int cell;
+		
+		if ( sscanf(buffer + cmd_length, "%1u", &cell) == 1 && cell >= 1 && cell
+                                                                        <= 9 ) {
+			/*TODO */
+		} else log_message(LOG_CONSOLE, "Syntax: hit n, where n is 1-9");
+		
+	} else if ( strcmp(buffer, "") == 0 ) {
+		
+		log_prompt(console);
+		
+	} else {
+		
+		log_message(LOG_CONSOLE, "Unknown command");
+		
+	}
+}
+
 void got_play_request() {
 	uint8_t length;
 	int line_length;
@@ -343,10 +375,9 @@ void got_play_request() {
 	
 	buffer[length] = '\0';
 	flog_message(LOG_INFO, "Got play request from [%s]. Accept (y) or refuse (n) ?", buffer);
+	
 	do {
-		fgets(buffer, BUFFER_SIZE, stdin);
-		line_length = strlen(buffer);
-		buffer[line_length - 1] = '\0';
+		line_length = get_line(buffer, BUFFER_SIZE);
 
 		if ( strcmp(buffer, "y") == 0 ) {
 			

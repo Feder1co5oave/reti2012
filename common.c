@@ -54,6 +54,15 @@ const char *state_name(enum client_state state) {
 	return NULL; /* never executed */
 }
 
+int get_line(char *buffer, int size) {
+	int length;
+	
+	fgets(buffer, size, stdin);
+	length = strlen(buffer) - 1;
+	buffer[length] = '\0';
+	return length;
+}
+
 int send_buffer(int socket, const char *buffer, int length) {
 	int sent, counter = 0;
 	
