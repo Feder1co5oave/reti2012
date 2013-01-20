@@ -422,7 +422,10 @@ void idle_play(struct client_node *client) {
                                                               client->username);
 			
 			client->state = FREE;
-			client->play_with = NULL;
+			if ( client->play_with != NULL ) {
+				client->play_with->play_with = NULL; /*FIXME */
+				client->play_with = NULL;
+			}
 			log_statechange(client);
 			prepare_byte(client, RESP_OK_FREE);
 			break;
