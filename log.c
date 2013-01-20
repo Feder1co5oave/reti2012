@@ -2,8 +2,12 @@
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/timeb.h>
 
 struct log_file *log_files = NULL;
+
+struct timeb start = {0, 0, 0, 0};
+char stamp[10];
 
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
@@ -23,6 +27,8 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->wrap = wrap;
 	new->prompt = FALSE;
 	new->next = NULL;
+	
+	if ( start.time == 0 ) ftime(&start);
 
 	/* We don't want log delimiters on the console */
 	if ( wrap && file != stdout && file != stderr )
@@ -55,7 +61,9 @@ struct log_file *close_log(struct log_file *logfile) {
 
 		lf = logfile->next;
 
-		if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
+		if ( logfile->wrap && logfile->file != stdout && logfile->file !=
+                                                                      stderr ) {
+			
 			time_t now = time(NULL);
 			fprintf(logfile->file, "======== Closing logfile at %s\n\n",
 				ctime(&now));
@@ -95,39 +103,54 @@ int log_message(loglevel_t level, const char *message) {
 			else pre = "";
 			
 
-			if ( lf->wrap ) switch ( level ) {
-				case LOG_DEBUG:
-					mark = "((DEBUG))     ";
-					break;
-				case LOG_USERINPUT:
-					mark = "((USERINPUT)) ";
-					break;
-				case LOG_ERROR:
-					mark = "((ERROR))     ";
-					break;
-				case LOG_ERROR_VERBOSE:
-					mark = "((ERROR_VRB)) ";
-					break;
-				case LOG_WARNING:
-					mark = "((WARNING))   ";
-					break;
-				case LOG_INFO:
-					mark = "((INFO))      ";
-					break;
-				case LOG_INFO_VERBOSE:
-					mark = "((INFO_VRB))  ";
-					break;
-				case LOG_CONSOLE:
-					mark = "((CONSOLE))   ";
-					break;
-				default:
-					mark = "((UNDEFINED)) ";
+			if ( lf->wrap ) {
+				struct timeb now;
+				
+				ftime(&now);
+				now.time -= start.time;
+				if ( now.millitm >= start.millitm ) {
+					now.millitm -= start.millitm;
+				} else {
+					now.time--;
+					now.millitm = start.millitm - now.millitm;
+				}
+				sprintf(stamp, "%5d.%03hd ", (int) now.time, now.millitm);
+				
+				switch ( level ) {
+					case LOG_DEBUG:
+						mark = "((DEBUG))     ";
+						break;
+					case LOG_USERINPUT:
+						mark = "((USERINPUT)) ";
+						break;
+					case LOG_ERROR:
+						mark = "((ERROR))     ";
+						break;
+					case LOG_ERROR_VERBOSE:
+						mark = "((ERROR_VRB)) ";
+						break;
+					case LOG_WARNING:
+						mark = "((WARNING))   ";
+						break;
+					case LOG_INFO:
+						mark = "((INFO))      ";
+						break;
+					case LOG_INFO_VERBOSE:
+						mark = "((INFO_VRB))  ";
+						break;
+					case LOG_CONSOLE:
+						mark = "((CONSOLE))   ";
+						break;
+					default:
+						mark = "((UNDEFINED)) ";
+				}
 			} else {
 				mark = "";
+				strcpy(stamp, "");
 			}
 
 			/*FIXME togliere post se è inutile */
-			fprintf(lf->file, "%s%s%s%s\n", pre, mark, message, post);
+			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
 			if ( lf->prompt ) fprintf(lf->file, "%c ", lf->prompt);
 			fflush(lf->file); /*FIXME non flushare inutilmente */
 		}
