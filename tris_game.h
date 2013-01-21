@@ -13,10 +13,11 @@
 #define GAME_DRAW  'D'
 #define GAME_UNDEF ' '
 
-#define TRIS_GRID_MAP_INIT {{'\0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}}
+#define TRIS_GRID_MAP_INIT \
+               {{'\0', '1', '2', '3', '4', '5', '6', '7', '8', '9'}, 0xc66b58c5}
 
 #define TRIS_GRID_INIT {{'\0', GAME_UNDEF, GAME_UNDEF, GAME_UNDEF, GAME_UNDEF,\
-                    GAME_UNDEF, GAME_UNDEF, GAME_UNDEF, GAME_UNDEF, GAME_UNDEF}}
+        GAME_UNDEF, GAME_UNDEF, GAME_UNDEF, GAME_UNDEF, GAME_UNDEF}, 0x92fd0413}
 
 
 
@@ -24,6 +25,7 @@
 
 struct tris_grid {
 	char cells[10];
+	uint32_t hash;
 };
 
 
@@ -63,6 +65,10 @@ char inverse(char player);
  */
 char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
                                                                       size_t n);
+
+uint32_t jenkins1(const char *data, size_t length);
+
+void update_hash(struct tris_grid*);
 
 /**
  * Compute the optimal move to make on grid, by player.

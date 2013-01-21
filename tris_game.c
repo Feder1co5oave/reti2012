@@ -95,6 +95,26 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	return buffer;
 }
 
+uint32_t jenkins1(const char *data, size_t length) {
+	uint32_t h = 0, i;
+	
+	for ( i = 0; i < length; i++ ) {
+		h += data[i];
+		h += (h << 10);
+		h ^= (h >> 6);
+	}
+	
+	h += (h << 3);
+	h ^= (h >> 11);
+	h += (h << 15);
+	
+	return h;
+}
+
+void update_hash(struct tris_grid *grid) {
+	grid->hash = jenkins1(grid->cells, 10);
+}
+
 char backtrack(const struct tris_grid *grid, char player, int *move) {
 	int i, best_move;
 	char opp = inverse(player);
