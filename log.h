@@ -31,15 +31,15 @@ struct log_file {
 
 /* ===[ Log levels ]========================================================= */
 
-#define LOG_DEBUG			  1
-#define LOG_USERINPUT		  2
-#define LOG_ERROR			  4
-#define LOG_ERROR_VERBOSE	  8
-#define LOG_WARNING			 16
-#define LOG_INFO			 32
-#define LOG_INFO_VERBOSE	 64
-#define LOG_CONSOLE			128
-#define LOG_ALL				255
+#define LOG_DEBUG             1
+#define LOG_USERINPUT         2
+#define LOG_ERROR             4
+#define LOG_ERROR_VERBOSE     8
+#define LOG_WARNING          16
+#define LOG_INFO             32
+#define LOG_INFO_VERBOSE     64
+#define LOG_CONSOLE         128
+#define LOG_ALL             255
 
 
 
