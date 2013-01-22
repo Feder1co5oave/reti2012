@@ -11,8 +11,7 @@ OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
 all : $(EXEs)
 
--include tris_client.d tris_server.d
--include $(OBJs:.o=.d)
+-include *.d
 	
 tris_server : $(COMMONOBJs) $(SOBJs)
 
