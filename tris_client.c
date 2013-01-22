@@ -19,7 +19,11 @@
 #define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
-#define log_statechange() flog_message(LOG_DEBUG, "I am now %s", state_name(my_state))
+#define log_statechange() \
+                    flog_message(LOG_DEBUG, "I am now %s", state_name(my_state))
+
+#define print_ip(host) \
+        inet_ntop(AF_INET, &(host.sin_addr), buffer, sizeof(struct sockaddr_in))
 
 
 
@@ -423,7 +427,7 @@ void get_play_response() {
 			opp_host.sin_family = AF_INET;
 			memset(opp_host.sin_zero, 0, sizeof(opp_host.sin_zero));
 			unpack(buffer, "lw", &(opp_host.sin_addr), &opp_udp_port);
-			inet_ntop(AF_INET, &(opp_host.sin_addr), buffer, INET_ADDRSTRLEN);
+			print_ip(opp_host);
 			opp_host.sin_port = htons(opp_udp_port);
 			
 			flog_message(LOG_CONSOLE,
