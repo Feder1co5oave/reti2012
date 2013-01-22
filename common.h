@@ -37,6 +37,8 @@
 #define RESP_REFUSE     0x47
 #define RESP_OK_PLAY    0x16
 
+#define REQ_HELLO       0x44
+
 #define RESP_OK_FREE    0x72
 
 #define RESP_BADREQ     0x54

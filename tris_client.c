@@ -29,12 +29,16 @@
 
 /* ===[ Helpers ]============================================================ */
 
+bool connect_play_socket(void);
 void free_shell(void);
-void got_play_request(void);
+bool get_hello(void);
 void get_play_response(void);
+void got_play_request(void);
 void list_connected_clients(void);
 void login(void);
+bool open_play_socket(void);
 void play_shell(void);
+bool say_hello(void);
 void send_play_request(void);
 void server_disconnected(void);
 
@@ -65,6 +69,7 @@ int sock_server, error;
 int main (int argc, char **argv) {
 	struct timeval tv = DEFAULT_TIMEOUT_INIT, _tv;
 	struct sockaddr_in server_host;
+	socklen_t sockaddrlen = sizeof(struct sockaddr_in);
 	fd_set _readfds, _writefds;
 	int sel_status;
 
@@ -100,6 +105,16 @@ int main (int argc, char **argv) {
 		log_error("Error connect()");
 		exit(EXIT_FAILURE);
 	}
+	
+	if ( getsockname(sock_server, (struct sockaddr*) &my_host, &sockaddrlen) !=
+                               0 || sockaddrlen > sizeof(struct sockaddr_in) ) {
+		
+		log_error("Error getsockname()");
+		exit(EXIT_FAILURE);
+	}
+	
+	print_ip(my_host);
+	flog_message(LOG_DEBUG, "I am host %s:%hu", buffer, ntohs(my_host.sin_port));
 	
 	my_state = CONNECTED;
 	log_message(LOG_CONSOLE, "Connected to the server");
@@ -235,7 +250,7 @@ void free_shell() {
 			return;
 		}
 		
-		if ( !username_is_valid(buffer, username_length) ) {
+		if ( !username_is_valid(username, username_length) ) {
 			log_message(LOG_CONSOLE, "This username is badly formatted");
 			return;
 		}
@@ -264,6 +279,45 @@ void free_shell() {
 		log_message(LOG_CONSOLE, "Unknown command");
 		
 	}
+}
+
+bool open_play_socket() {
+	opp_host.sin_family = AF_INET;
+	opp_socket = socket(opp_host.sin_family, SOCK_DGRAM, 0);
+	if ( opp_socket == -1 ) {
+		log_error("Error socket(SOCK_DGRAM)");
+		return FALSE;
+	}
+	
+	log_message(LOG_DEBUG, "Opened opp_socket");
+	
+	if ( bind(opp_socket, (struct sockaddr*) &my_host, sizeof(my_host)) != 0 ) {
+		
+		log_error("Error bind(SOCK_DGRAM)");
+		opp_socket = -1;
+		return FALSE;
+	}
+	
+	print_ip(my_host);
+	flog_message(LOG_DEBUG, "Bound opp_socket to %s:%hu", buffer,
+                                                       ntohs(my_host.sin_port));
+	
+	return TRUE;
+}
+
+bool connect_play_socket() {
+	if ( connect(opp_socket, (struct sockaddr*) &opp_host, sizeof(opp_host)) !=
+                                                                           0 ) {
+		log_error("Error connect(SOCK_DGRAM)");
+		opp_socket = -1;
+		return FALSE;
+	}
+	
+	print_ip(opp_host);
+	flog_message(LOG_DEBUG, "Connected opp_socket to %s:%hu", buffer,
+                                                      ntohs(opp_host.sin_port));
+	
+	return TRUE;
 }
 
 void login() {
@@ -376,7 +430,7 @@ void play_shell() {
 		unsigned int cell;
 		
 		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
-			/*TODO */
+			/*TODO make_move(cell); */
 		} else log_message(LOG_CONSOLE, "Syntax: hit n, where n is 1-9");
 		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
@@ -388,6 +442,17 @@ void play_shell() {
 		log_message(LOG_CONSOLE, "Unknown command");
 		
 	}
+}
+
+bool say_hello() {
+	log_message(LOG_DEBUG, "Going to say hello...");
+	
+	if ( send_byte(opp_socket, REQ_HELLO) < 0 ) {
+		log_error("Error send()");
+		return FALSE;
+	}
+	
+	return TRUE;
 }
 
 void got_play_request() {
@@ -408,13 +473,25 @@ void got_play_request() {
 
 		if ( strcmp(buffer, "y") == 0 ) {
 			
-			if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
-				server_disconnected();
+			if ( open_play_socket() ) {
+				if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
+					server_disconnected();
+				
+				my_state = BUSY;
+				console->prompt = FALSE;
+				/*TODO */
+				log_message(LOG_CONSOLE, "Request accepted. Waiting for "
+                                         "connection from the other client...");
+				
+				if ( get_hello() && connect_play_socket() ) {
+					/*TODO start_match(GAME_GUEST); */
+					return;
+				}
+			} /*TODO else */
 			
-			my_state = PLAY;
-			/*TODO */
-			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection "
-                                                    "from the other client...");
+			log_message(LOG_CONSOLE,
+                                   "Cannot connect to client, go back to FREE");
+			my_state = FREE;
 			break;
 			
 		} else if ( strcmp(buffer, "n") == 0 ) {
@@ -432,6 +509,25 @@ void got_play_request() {
 			
 		}
 	} while (TRUE);
+}
+
+bool get_hello() {
+	uint8_t byte;
+	int received;
+	socklen_t addrlen = sizeof(opp_host);
+	
+	received = recvfrom(opp_socket, &byte, 1, 0, (struct sockaddr*) &opp_host,
+                                                                      &addrlen);
+	
+	if ( received != 1 ) return FALSE;
+	
+	print_ip(opp_host);
+	flog_message(LOG_DEBUG, "Got %s from %s:%hu", magic_name(byte), buffer,
+                                                      ntohs(opp_host.sin_port));
+	
+	if ( byte != REQ_HELLO ) return FALSE;
+	
+	return TRUE;
 }
 
 void get_play_response() {
@@ -460,9 +556,13 @@ void get_play_response() {
                     "[%s] accepted to play with you. Contacting host %s:%hu...",
                                             opp_username, buffer, opp_udp_port);
 			
-			my_state = PLAY;
-			/*TODO start_match(); */
-			return;
+			if ( open_play_socket() && connect_play_socket() && say_hello() ) {
+				/*TODO start_match(GAME_HOST); */
+				return;
+			} else log_message(LOG_CONSOLE,
+                                   "Cannot connect to client, go back to FREE");
+			
+			break;
 		
 		case RESP_REFUSE:
 			flog_message(LOG_CONSOLE, "[%s] refused to play", opp_username);
