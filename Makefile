@@ -4,7 +4,7 @@ CFLAGS = -Wall -Wextra -pedantic -ansi -MMD
 EXEs = tris_client tris_server
 SOBJs = client_list.o
 COBJs =
-COMMONOBJs = common.o pack.o log.o
+COMMONOBJs = common.o pack.o log.o set_handler.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
 .PHONY : all clean server_log
@@ -17,6 +17,10 @@ tris_server : $(COMMONOBJs) $(SOBJs)
 
 tris_client : $(COMMONOBJs) $(COBJs)
 
+log.o : set_handler.o
+
+set_handler.o :
+	$(CC) -Wall -Wextra -pedantic       -MMD   -c -o set_handler.o set_handler.c
 
 clean :
 	- rm $(OBJs) $(EXEs) *.log *.d

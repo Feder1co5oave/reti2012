@@ -1,13 +1,17 @@
 #include "log.h"
+#include "set_handler.h"
 #include <time.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 #include <sys/timeb.h>
 
 struct log_file *log_files = NULL;
 
 struct timeb start = {0, 0, 0, 0};
 char stamp[10];
+
+void sig_handler(int signal);
 
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
@@ -43,8 +47,13 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		log_files = new;
 		/* close logs on process termination */
 		atexit(close_logs);
-		/*TODO set signal handler on ^C too */
+		
+		if ( set_handler(SIGTERM, sig_handler) != 0 || set_handler(SIGINT,
+                                                             sig_handler) != 0 )
+			
+			log_error("Error sigaction()");
 	}
+	
 	return new;
 }
 
@@ -203,4 +212,14 @@ int log_prompt(struct log_file *logfile) {
 		return 1;
 	}
 	return 0;
+}
+
+void sig_handler(int signal) {
+	switch ( signal ) {
+		case SIGTERM: log_message(LOG_INFO_VERBOSE, "Received SIGTERM"); break;
+		case SIGINT:  log_message(LOG_INFO_VERBOSE, "Received SIGINT"); break;
+		default: flog_message(LOG_INFO_VERBOSE, "Received signal %d", signal);
+	}
+	
+	exit(EXIT_FAILURE);
 }
