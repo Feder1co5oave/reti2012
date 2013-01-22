@@ -32,6 +32,7 @@
 /* ===[ Helpers ]============================================================ */
 
 bool connect_play_socket(void);
+void end_match(void);
 void free_shell(void);
 bool get_hello(void);
 void get_play_response(void);
@@ -43,6 +44,7 @@ void play_shell(void);
 bool say_hello(void);
 void send_play_request(void);
 void server_disconnected(void);
+void start_match(char me);
 
 
 
@@ -65,6 +67,7 @@ char               opp_username[MAX_USERNAME_LENGTH + 1];
 int sock_server, error;
 
 struct tris_grid grid = TRIS_GRID_INIT;
+char player;
 
 
 
@@ -143,7 +146,8 @@ int main (int argc, char **argv) {
 		if ( sel_status == 0 ) {
 			flog_message(LOG_DEBUG, "Select() timed out while %s",
                                                           state_name(my_state));
-			if ( my_state == PLAY ) /* TODO end_match(); */;
+			
+			if ( my_state == PLAY ) end_match();
 			else {
 				_readfds = readfds;
 				_writefds = writefds;
@@ -324,6 +328,31 @@ bool connect_play_socket() {
 	return TRUE;
 }
 
+void end_match() {
+	uint8_t resp;
+	
+	/*TODO send REQ_END to opp */
+	
+	if ( send_byte(sock_server, REQ_END) < 0 ) server_disconnected();
+	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
+	if ( resp == RESP_OK_FREE ) {
+		log_message(LOG_CONSOLE, "End of match. You are now free.");
+	} else {
+		flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                              magic_name(resp));
+	}
+	
+	my_state = FREE;
+	log_statechange();
+	console->prompt = '>';
+	log_prompt(console);
+	
+	unmonitor_socket_r(opp_socket);
+	opp_socket = -1;
+	memset(&opp_host, 0, sizeof(opp_host));
+	opp_username[0] = '\0';
+}
+
 void login() {
 	int username_length;
 	uint8_t resp;
@@ -420,7 +449,7 @@ void play_shell() {
 		
 	} else if ( strcmp(buffer, "end") == 0 ) { /* --------------------- > end */
 		
-		/*TODO end_match();	*/
+		end_match();
 		
 	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
 		
@@ -500,7 +529,7 @@ void got_play_request() {
                                          "connection from the other client...");
 				
 				if ( get_hello() && connect_play_socket() ) {
-					/*TODO start_match(GAME_GUEST); */
+					start_match(GAME_GUEST);
 					return;
 				}
 			} /*TODO else */
@@ -581,7 +610,7 @@ void get_play_response() {
                                             opp_username, buffer, opp_udp_port);
 			
 			if ( open_play_socket() && connect_play_socket() && say_hello() ) {
-				/*TODO start_match(GAME_HOST); */
+				start_match(GAME_HOST);
 				return;
 			} else log_message(LOG_CONSOLE,
                                    "Cannot connect to client, go back to FREE");
@@ -645,7 +674,8 @@ void list_connected_clients() {
 			break;
 		
 		default:
-			flog_message(LOG_WARNING, "Unexpected server response: %s", magic_name(resp));
+			flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                              magic_name(resp));
 	}
 }
 
@@ -670,4 +700,13 @@ void server_disconnected() {
 	close(sock_server);
 	/*TODO if ( state == PLAYING ) */
 	exit(EXIT_FAILURE);
+}
+
+void start_match(char me) {
+	my_state = PLAY;
+	console->prompt = '#';
+	log_prompt(console);
+	player = me;
+	monitor_socket_r(opp_socket);
+	/*TODO */
 }
