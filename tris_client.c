@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -13,6 +14,7 @@
 #include "pack.h"
 #include "common.h"
 #include "log.h"
+#include "tris_game.h"
 
 #define update_maxfds(n) maxfds = (maxfds < (n) ? (n) : maxfds)
 #define monitor_socket_r(sock) { FD_SET(sock, &readfds); update_maxfds(sock); }
@@ -61,6 +63,8 @@ int                opp_socket;
 char               opp_username[MAX_USERNAME_LENGTH + 1];
 
 int sock_server, error;
+
+struct tris_grid grid = TRIS_GRID_INIT;
 
 
 
@@ -445,9 +449,21 @@ void play_shell() {
 }
 
 bool say_hello() {
+	int c, salt;
+	
 	log_message(LOG_DEBUG, "Going to say hello...");
 	
-	if ( send_byte(opp_socket, REQ_HELLO) < 0 ) {
+	/* Generate salt */
+	srand(time(NULL));
+	c = (rand() % 102394) / 1059; /* c in [0, 96] */
+	for ( ; c >= 0; c-- ) salt = rand();
+	grid.salt = salt;
+	update_hash(&grid);
+	
+	flog_message(LOG_DEBUG, "Salt is %08x", salt);
+	
+	pack(buffer, "bl", REQ_HELLO, salt);
+	if ( send_buffer(opp_socket, buffer, 5) < 0 ) {
 		log_error("Error send()");
 		return FALSE;
 	}
@@ -513,19 +529,27 @@ void got_play_request() {
 
 bool get_hello() {
 	uint8_t byte;
+	uint32_t salt;
 	int received;
 	socklen_t addrlen = sizeof(opp_host);
 	
-	received = recvfrom(opp_socket, &byte, 1, 0, (struct sockaddr*) &opp_host,
+	received = recvfrom(opp_socket, buffer, 5, 0, (struct sockaddr*) &opp_host,
                                                                       &addrlen);
 	
-	if ( received != 1 ) return FALSE;
+	if ( received != 5 ) return FALSE;
+	
+	unpack(buffer, "bl", &byte, &salt);
 	
 	print_ip(opp_host);
 	flog_message(LOG_DEBUG, "Got %s from %s:%hu", magic_name(byte), buffer,
                                                       ntohs(opp_host.sin_port));
 	
 	if ( byte != REQ_HELLO ) return FALSE;
+	
+	grid.salt = salt;
+	update_hash(&grid);
+	
+	flog_message(LOG_DEBUG, "Salt is %08x", salt);
 	
 	return TRUE;
 }
