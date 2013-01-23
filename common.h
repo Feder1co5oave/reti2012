@@ -38,6 +38,7 @@
 #define RESP_OK_PLAY    0x16
 
 #define REQ_HELLO       0x44
+#define REQ_HIT         0x66
 
 #define RESP_OK_FREE    0x72
 

@@ -36,9 +36,11 @@ void end_match(void);
 void free_shell(void);
 bool get_hello(void);
 void get_play_response(void);
+void got_hit(void);
 void got_play_request(void);
 void list_connected_clients(void);
 void login(void);
+void make_move(unsigned int cell);
 bool open_play_socket(void);
 void play_shell(void);
 bool say_hello(void);
@@ -195,7 +197,7 @@ int main (int argc, char **argv) {
 			
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
 			
-			/*TODO */
+			got_hit();
 			
 		} else {
 			/*FIXME */
@@ -463,8 +465,14 @@ void play_shell() {
 		unsigned int cell;
 		
 		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
-			/*TODO make_move(cell); */
-		} else log_message(LOG_CONSOLE, "Syntax: hit n, where n is 1-9");
+			if ( grid.cells[cell] != GAME_UNDEF ) {
+				log_message(LOG_CONSOLE, "That cell is already taken");
+				return;
+			}
+			
+			make_move(cell);
+			
+		} else log_message(LOG_CONSOLE, "Syntax: hit <n>, where n is 1-9");
 		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
 		
@@ -498,6 +506,48 @@ bool say_hello() {
 	}
 	
 	return TRUE;
+}
+
+void got_hit() {
+	uint8_t byte, move;
+	uint32_t hash;
+	int received;
+	
+	received = recv(opp_socket, buffer, 6, 0);
+	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
+	if ( received == 0 ) return;
+	if ( received != 6 ) log_error("Error recv()");
+	
+	
+	/* if ( received == 0 ) return; */
+	
+	unpack(buffer, "bbl", &byte, &move, &hash);
+	
+	flog_message(LOG_DEBUG, "Got %s from player", magic_name(byte));
+	
+	if ( byte == REQ_HIT ) {
+		if ( move >= 1 && move <= 9 ) {
+			if ( grid.cells[move] == GAME_UNDEF ) {
+				
+				grid.cells[move] = inverse(player);
+				update_hash(&grid);
+				flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+				
+				if ( grid.hash != hash ) {
+					log_message(LOG_ERROR, "Hash mismatch");
+				} else {
+					flog_message(LOG_INFO, "[%s] hit on cell %d", opp_username,
+                                                                          move);
+				}
+				
+			} else flog_message(LOG_WARNING, "Unexpected event on line %d",
+                                                                      __LINE__);
+			
+		} else flog_message(LOG_WARNING, "Unexpected event on line %d",
+                                                                      __LINE__);
+		
+	} else flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
+                                                    __LINE__, magic_name(byte));
 }
 
 void got_play_request() {
@@ -677,6 +727,14 @@ void list_connected_clients() {
 			flog_message(LOG_WARNING, "Unexpected server response: %s",
                                                               magic_name(resp));
 	}
+}
+
+void make_move(unsigned int cell) {
+	grid.cells[cell] = player;
+	update_hash(&grid);
+	pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
+	if ( send_buffer(opp_socket, buffer, 6) < 0 )
+		log_error("Error send()");
 }
 
 void send_play_request() {

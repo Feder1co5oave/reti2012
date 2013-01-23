@@ -24,6 +24,7 @@ const char *magic_name(uint8_t value) {
 	switch ( value ) {
 		case REQ_END:       return "REQ_END";
 		case REQ_HELLO:     return "REQ_HELLO";
+		case REQ_HIT:       return "REQ_HIT";
 		case REQ_LOGIN:     return "REQ_LOGIN";
 		case REQ_PLAY:      return "REQ_PLAY";
 		case REQ_WHO:       return "REQ_WHO";
