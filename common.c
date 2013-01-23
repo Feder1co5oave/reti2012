@@ -2,6 +2,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <sys/socket.h>
 
 bool username_is_valid(const char *username, uint8_t length) {
 	int i;
@@ -21,8 +22,10 @@ char magic_name_buffer[10];
 
 const char *magic_name(uint8_t value) {
 	switch ( value ) {
-		case REQ_LOGIN:     return "REQ_LOGIN";
 		case REQ_END:       return "REQ_END";
+		case REQ_HELLO:     return "REQ_HELLO";
+		case REQ_HIT:       return "REQ_HIT";
+		case REQ_LOGIN:     return "REQ_LOGIN";
 		case REQ_PLAY:      return "REQ_PLAY";
 		case REQ_WHO:       return "REQ_WHO";
 		case RESP_BADREQ:   return "RESP_BADREQ";
@@ -51,4 +54,29 @@ const char *state_name(enum client_state state) {
 	}
 
 	return NULL; /* never executed */
+}
+
+int get_line(char *buffer, int size) {
+	int length;
+	
+	fgets(buffer, size, stdin);
+	length = strlen(buffer) - 1;
+	buffer[length] = '\0';
+	return length;
+}
+
+int send_buffer(int socket, const char *buffer, int length) {
+	int sent, counter = 0;
+	
+	while ( length > counter ) {
+		sent = send(socket, buffer + counter, length - counter, 0);
+		if ( sent < 0 ) return sent;
+		counter += sent;
+	}
+	
+	return 0;
+}
+
+int send_byte(int socket, uint8_t byte) {
+	return send(socket, &byte, 1, 0);
 }

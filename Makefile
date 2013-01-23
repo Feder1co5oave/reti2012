@@ -3,8 +3,8 @@ CFLAGS = -Wall -Wextra -pedantic -ansi -MMD
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o
-COBJs =
-COMMONOBJs = common.o pack.o log.o
+COBJs = tris_game.o
+COMMONOBJs = common.o pack.o log.o set_handler.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 LOCALE = it
 
@@ -12,13 +12,16 @@ LOCALE = it
 
 all : $(EXEs) locale/$(LOCALE)/LC_MESSAGES/tris.mo
 
--include tris_client.d tris_server.d
--include $(OBJs:.o=.d)
+-include *.d
 	
 tris_server : $(COMMONOBJs) $(SOBJs)
 
 tris_client : $(COMMONOBJs) $(COBJs)
 
+log.o : set_handler.o
+
+set_handler.o :
+	$(CC) -Wall -Wextra -pedantic       -MMD   -c -o set_handler.o set_handler.c
 
 tris.pot : *.c *.h
 	xgettext -k_ -d tris --from-code=UTF-8 -s -o tris.pot $^

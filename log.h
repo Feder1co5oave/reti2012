@@ -31,15 +31,15 @@ struct log_file {
 
 /* ===[ Log levels ]========================================================= */
 
-#define LOG_DEBUG			  1
-#define LOG_USERINPUT		  2
-#define LOG_ERROR			  4
-#define LOG_ERROR_VERBOSE	  8
-#define LOG_WARNING			 16
-#define LOG_INFO			 32
-#define LOG_INFO_VERBOSE	 64
-#define LOG_CONSOLE			128
-#define LOG_ALL				255
+#define LOG_DEBUG             1
+#define LOG_USERINPUT         2
+#define LOG_ERROR             4
+#define LOG_ERROR_VERBOSE     8
+#define LOG_WARNING          16
+#define LOG_INFO             32
+#define LOG_INFO_VERBOSE     64
+#define LOG_CONSOLE         128
+#define LOG_ALL             255
 
 
 
@@ -103,21 +103,26 @@ void close_logs(void);
  * levels, but to show marked as '((UNDEFINED))' on wrapped log_files.
  * @param const char *message the string to be logged, preferably without any
  * trailing space
- * @return the number of open log_files with matching level
+ * @return int the number of open log_files with matching level
  */
 int log_message(loglevel_t level, const char *message);
 
 /**
+ * Print a multiline message. Each line will have its own level mark.
+ * @param loglevel_t level @see log_message()
+ * @param const char *message the multiline message, lines are separated by \n
+ * @return int @see log_message()
+ */
+int log_multiline(loglevel_t level, const char *message);
+
+/**
  * Log a formatted message to all open log_files with (level & maxlevel) != 0.
  * @see printf(const char *format, ...)
- * @param loglevel_t level the log level of the message, normally one of the
- * LOG_* constants, except LOG_ALL. OR-ing multiple LOG_* will cause the message
- * to be printed on all log_files associated with at least one of the OR-ed
- * levels, but to show marked as '((UNDEFINED))' on wrapped log_files.
+ * @param loglevel_t level @see log_message()
  * @param const char *format the format string containing some format specifiers
  * @param ... additional arguments, used to replace specifiers in the format
  * string
- * @return the number of open log_files with matching level
+ * @return int @see log_message()
  */
 int flog_message(loglevel_t level, const char *format, ...);
 
@@ -126,9 +131,16 @@ int flog_message(loglevel_t level, const char *format, ...);
  * specified in errno.
  * @see strerror()
  * @param const char *message
- * @return the number of open log_files with matching level
+ * @return int @see log_message()
  */
 int log_error(const char *message);
+
+/**
+ * Print a prompt on a log_file, if logfile->prompt is set.
+ * @param struct log_file *logfile
+ * @return int 1 if logfile->prompt is set, 0 otherwise
+ */
+int log_prompt(struct log_file *file);
 
 /* ========================================================================== */
 

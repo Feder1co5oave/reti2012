@@ -119,7 +119,9 @@ const char *client_canon_p(struct client_node *client) {
 }
 
 int log_statechange(struct client_node *client) {
-	if ( client != NULL ) return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client), state_name(client->state));
+	if ( client != NULL )
+		return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
+                                                     state_name(client->state));
 	
 	log_message(LOG_WARNING, "Client is NULL in log_statechange");
 	return 0;

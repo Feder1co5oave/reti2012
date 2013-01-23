@@ -14,6 +14,7 @@
 #define MAX_USERNAME_LENGTH 30
 #define USERNAME_ALPHABET \
              "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
+
 #define DEFAULT_TIMEOUT_INIT {60, 0}
 
 #define BUFFER_SIZE 1024
@@ -38,6 +39,9 @@
 #define RESP_REFUSE     0x47
 #define RESP_OK_PLAY    0x16
 
+#define REQ_HELLO       0x44
+#define REQ_HIT         0x66
+
 #define RESP_OK_FREE    0x72
 
 #define RESP_BADREQ     0x54
@@ -53,7 +57,7 @@ enum client_state {
 	NONE,       /* default value, client does not exist yet                   */
 	CONNECTED,  /* client is connected, not logged in yet                     */
 	FREE,       /* client is connected and logged in (username and udp port)  */
-	BUSY,		/* client has/is requested to play a match                    */
+	BUSY,       /* client has/is requested to play a match                    */
 	PLAY        /* client is playing                                          */
 };
 
@@ -79,17 +83,36 @@ const char *magic_name(uint8_t);
 const char *state_name(enum client_state);
 
 #define _(STR) gettext(STR)
-#define fl() fflush(stdout)
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
 		log_error(_("Error malloc()"));\
 		exit(EXIT_FAILURE);\
 	}
 
-#define XSTR(S) #S
-#define STR(S) XSTR(S)
-#define prompt(c) { fputs(STR(c)" ", stdout); fflush(stdout); }
-/* E.g.: prompt(>) prompt($) */
+/**
+ * Get a line from stdin. Must compile in C89 (-ansi).
+ * @param char *buffer the buffer used to store the string
+ * @param int size the size of the buffer
+ * @return int the length of the line
+ */
+int get_line(char *buffer, int size);
+
+/**
+ * Send a buffer through socket, iterating until all data is sent.
+ * @param int socket
+ * @param const char *buffer
+ * @param int length the number of bytes to be sent
+ * @return int 0 on success, < 0 on send() error
+ */
+int send_buffer(int socket, const char *buffer, int length);
+
+/**
+ * Send a byte through socket.
+ * @param int socket
+ * @param uint8_t byte
+ * @return int @see send_buffer()
+ */
+int send_byte(int socket, uint8_t byte);
 
 /* ========================================================================== */
 
