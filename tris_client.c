@@ -474,6 +474,14 @@ void play_shell() {
 			
 		} else log_message(LOG_CONSOLE, "Syntax: hit <n>, where n is 1-9");
 		
+	} else if ( strcmp(buffer, "show") == 0 ) { /* ------------------- > show */
+		
+		sprintgrid(buffer, &grid, "", BUFFER_SIZE);
+		console->prompt = FALSE;
+		log_multiline(LOG_CONSOLE, buffer);
+		console->prompt = '#';
+		log_prompt(console);
+		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
 		
 		log_prompt(console);
