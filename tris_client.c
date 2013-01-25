@@ -69,7 +69,7 @@ char               opp_username[MAX_USERNAME_LENGTH + 1];
 int sock_server, error;
 
 struct tris_grid grid = TRIS_GRID_INIT;
-char player;
+char player, turn;
 
 
 
@@ -465,6 +465,12 @@ void play_shell() {
 		unsigned int cell;
 		
 		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
+			
+			if ( turn != player ) {
+				log_message(LOG_CONSOLE, "It is not your turn");
+				return;
+			}
+			
 			if ( grid.cells[cell] != GAME_UNDEF ) {
 				log_message(LOG_CONSOLE, "That cell is already taken");
 				return;
@@ -480,7 +486,8 @@ void play_shell() {
 		console->prompt = FALSE;
 		log_multiline(LOG_CONSOLE, buffer);
 		console->prompt = '#';
-		log_prompt(console);
+		if ( turn == player ) log_message(LOG_CONSOLE, "It is your turn.");
+		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
 		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
 		
@@ -533,29 +540,39 @@ void got_hit() {
 	
 	flog_message(LOG_DEBUG, "Got %s from player", magic_name(byte));
 	
-	if ( byte == REQ_HIT ) {
-		if ( move >= 1 && move <= 9 ) {
-			if ( grid.cells[move] == GAME_UNDEF ) {
-				
-				grid.cells[move] = inverse(player);
-				update_hash(&grid);
-				flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
-				
-				if ( grid.hash != hash ) {
-					log_message(LOG_ERROR, "Hash mismatch");
-				} else {
-					flog_message(LOG_INFO, "[%s] hit on cell %d", opp_username,
-                                                                          move);
-				}
-				
-			} else flog_message(LOG_WARNING, "Unexpected event on line %d",
-                                                                      __LINE__);
-			
-		} else flog_message(LOG_WARNING, "Unexpected event on line %d",
-                                                                      __LINE__);
-		
-	} else flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
+	if ( byte != REQ_HIT ) {
+		flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
                                                     __LINE__, magic_name(byte));
+		return;
+	}
+	
+	if ( turn == player ) {
+		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+		return;
+	}
+	
+	if ( move < 1 || move > 9 ) {
+		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+		return;
+	}
+	
+	if ( grid.cells[move] != GAME_UNDEF ) {
+		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+		return;
+	}
+	
+	grid.cells[move] = turn;
+	update_hash(&grid);
+	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+	
+	if ( grid.hash != hash ) {
+		log_message(LOG_ERROR, "Hash mismatch");
+		end_match();
+		/*TODO */
+	} else {
+		turn = inverse(turn);
+		flog_message(LOG_INFO, "%s hit on cell %d", opp_username, move);
+	}
 }
 
 void got_play_request() {
@@ -710,38 +727,44 @@ void list_connected_clients() {
 	if ( send_byte(sock_server, REQ_WHO) < 0 ) server_disconnected();
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
 	
-	switch ( resp ) {
-		case RESP_WHO:
-			if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
-			unpack(buffer, "l", &count);
-			if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
-			
-			oldprompt = console->prompt;
-			console->prompt = FALSE;
-			flog_message(LOG_CONSOLE, "There are %u connected clients", count);
-			for (i = 0; i < count; i++) {
-				if ( recv(sock_server, &length, 1, 0) != 1 )
-					server_disconnected();
-				
-				if ( recv(sock_server, buffer, length, 0) != length )
-					server_disconnected();
-				
-				buffer[length] = '\0';
-				flog_message(LOG_CONSOLE, "[%s]", buffer);
-			}
-			console->prompt = oldprompt;
-			log_prompt(console);
-			break;
-		
-		default:
-			flog_message(LOG_WARNING, "Unexpected server response: %s",
+	if ( resp != RESP_WHO ) {
+		flog_message(LOG_WARNING, "Unexpected server response: %s",
                                                               magic_name(resp));
+		return;
 	}
+	
+	if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
+	unpack(buffer, "l", &count);
+	if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
+	
+	oldprompt = console->prompt;
+	console->prompt = FALSE;
+	flog_message(LOG_CONSOLE, "There are %u connected clients:", count);
+	for (i = 0; i < count; i++) {
+		if ( recv(sock_server, &length, 1, 0) != 1 )
+			server_disconnected();
+		
+		if ( recv(sock_server, buffer, length, 0) != length )
+			server_disconnected();
+		
+		buffer[length] = '\0';
+		
+		if ( strcmp(buffer, my_username) == 0 )
+			flog_message(LOG_CONSOLE, "[%s] **", buffer);
+		else
+			flog_message(LOG_CONSOLE, "[%s]", buffer);
+	}
+	console->prompt = oldprompt;
+	log_message(LOG_CONSOLE, "** That's you!");
 }
 
 void make_move(unsigned int cell) {
 	grid.cells[cell] = player;
+	turn = inverse(turn);
 	update_hash(&grid);
+	
+	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+	
 	pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
 	if ( send_buffer(opp_socket, buffer, 6) < 0 )
 		log_error("Error send()");
@@ -772,9 +795,23 @@ void server_disconnected() {
 
 void start_match(char me) {
 	my_state = PLAY;
-	console->prompt = '#';
-	log_prompt(console);
+	log_statechange();
 	player = me;
+	turn = GAME_GUEST;
 	monitor_socket_r(opp_socket);
-	/*TODO */
+	
+	console->prompt = '#';
+	switch ( me ) {
+		case GAME_HOST:
+			flog_message(LOG_CONSOLE, "Match has started and it's %s's turn",
+                                                                  opp_username);
+			break;
+			
+		case GAME_GUEST:
+			log_message(LOG_CONSOLE, "Match has started and it's your turn");
+			break;
+			
+		default:
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+	}
 }
