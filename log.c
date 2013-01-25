@@ -53,8 +53,9 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		/* close logs on process termination */
 		atexit(close_logs);
 		
-		if ( set_handler(SIGTERM, sig_handler) != 0 || set_handler(SIGINT,
-                                                             sig_handler) != 0 )
+		if ( set_handler(SIGABRT, sig_handler) != 0 ||
+		     set_handler(SIGINT,  sig_handler) != 0 ||
+		     set_handler(SIGTERM, sig_handler) != 0 )
 			
 			log_error("Error sigaction()");
 	}
@@ -233,8 +234,9 @@ int log_prompt(struct log_file *logfile) {
 
 void sig_handler(int signal) {
 	switch ( signal ) {
-		case SIGTERM: log_message(LOG_INFO_VERBOSE, "Received SIGTERM"); break;
+		case SIGABRT: log_message(LOG_INFO_VERBOSE, "Received SIGABRT"); break;
 		case SIGINT:  log_message(LOG_INFO_VERBOSE, "Received SIGINT"); break;
+		case SIGTERM: log_message(LOG_INFO_VERBOSE, "Received SIGTERM"); break;
 		default: flog_message(LOG_INFO_VERBOSE, "Received signal %d", signal);
 	}
 	
