@@ -109,7 +109,7 @@ const char *client_canon_p(struct client_node *client) {
 			case FREE:
 			case BUSY:
 			case PLAY:
-				sprintf(client_repr_buffer, "[%s]", client->username);
+				sprintf(client_repr_buffer, _("[%s]"), client->username);
 		}
 
 		return client_repr_buffer;
@@ -120,9 +120,9 @@ const char *client_canon_p(struct client_node *client) {
 
 int log_statechange(struct client_node *client) {
 	if ( client != NULL )
-		return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
+		return flog_message(LOG_DEBUG, _("%s is now %s"), client_canon_p(client),
                                                      state_name(client->state));
 	
-	log_message(LOG_WARNING, "Client is NULL in log_statechange");
+	log_message(LOG_WARNING, _("Client is NULL in log_statechange"));
 	return 0;
 }

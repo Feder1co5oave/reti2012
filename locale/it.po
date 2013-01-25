@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-01-25 02:17+0100\n"
-"PO-Revision-Date: 2013-01-25 02:05+0100\n"
+"POT-Creation-Date: 2013-01-25 02:22+0100\n"
+"PO-Revision-Date: 2013-01-25 02:23+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -32,6 +32,10 @@ msgstr "%s è %s"
 #, c-format
 msgid "%s is NONE on line %d"
 msgstr "%s è NONE alla linea %d"
+
+#, c-format
+msgid "%s is now %s"
+msgstr "%s è diventato %s"
 
 #, c-format
 msgid ""
@@ -82,6 +86,9 @@ msgstr "Il client %s ha tentato di loggarsi con uno username non valido"
 
 msgid "Client has invalid address"
 msgstr "Indirizzo host non valido"
+
+msgid "Client is NULL in log_statechange"
+msgstr "Client è NULL in log_statechange"
 
 #, c-format
 msgid "Closing %d client connections..."
@@ -144,6 +151,9 @@ msgstr "Errore send()"
 
 msgid "Error setsockopt()"
 msgstr "Errore setsockopt()"
+
+msgid "Error sigaction()"
+msgstr "Errore sigaction()"
 
 msgid "Error socket()"
 msgstr "Errore socket()"
@@ -294,6 +304,16 @@ msgstr "Mi preparo a inviare dati RESP_OK_PLAY a [%s]"
 msgid "Preparing to send RESP_WHO data to [%s]"
 msgstr "Mi preparo a inviare dati RESP_WHO a [%s]"
 
+msgid "Received SIGINT"
+msgstr "Ricevuto SIGINT"
+
+msgid "Received SIGTERM"
+msgstr "Ricevuto SIGTERM"
+
+#, c-format
+msgid "Received signal %d"
+msgstr "Ricevuto il segnale %d"
+
 #, c-format
 msgid "Received=%d on line %d"
 msgstr "Ricevuti=%d alla linea %d"
@@ -385,9 +405,7 @@ msgstr "Evento inatteso alla linea %d, ricevuti dati sul descrittore socket %d"
 
 #, c-format
 msgid "Unexpected event on line %d, got write event on socket descriptor %d"
-msgstr ""
-"Evento inatteso alla linea %d, buffer di uscita vuoto sul descrittore socket "
-"%d"
+msgstr "Evento inatteso alla linea %d, buffer di uscita vuoto sul descrittore socket %d"
 
 #, c-format
 msgid "Unexpected event on line %d: byte=%s"
@@ -424,8 +442,7 @@ msgid "You cannot play with yourself"
 msgstr "Non puoi giocare con te stesso"
 
 msgid "Your UDP port is in the system range, it might not work"
-msgstr ""
-"La tua porta UDP è nel range delle porte di sistema, potrebbe non funzionare"
+msgstr "La tua porta UDP è nel range delle porte di sistema, potrebbe non funzionare"
 
 msgid "Your UDP port is not in port range"
 msgstr "La porta UDP non è valida"
@@ -516,8 +533,7 @@ msgstr "[%s] ha richiesto di giocare con il giocatore non FREE %s"
 
 #, c-format
 msgid "[%s] requested to play with nonexistent player (too long)"
-msgstr ""
-"[%s] ha richiesto di giocare con un giocatore dallo username troppo lungo"
+msgstr "[%s] ha richiesto di giocare con un giocatore dallo username troppo lungo"
 
 #, c-format
 msgid "[%s] stopped playing with [%s]"
@@ -551,12 +567,10 @@ msgstr "s"
 
 #~ msgid "%s is %s (should be BUSY)"
 #~ msgstr "%s è %s (dovrebbe essere BUSY)"
-
 #~ msgid "Unexpected client state on line %d in get_play_resp from %s"
 #~ msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
-
 #~ msgid "[%s] requested to play with nonexistent player"
 #~ msgstr "[%s] ha richiesto di giocare con un giocatore inesistente"
-
 #~ msgid "idle_play not implemented yet"
 #~ msgstr "idle_play non ancora implementato"
+
