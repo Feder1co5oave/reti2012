@@ -489,6 +489,19 @@ void play_shell() {
 		if ( turn == player ) log_message(LOG_CONSOLE, "It is your turn.");
 		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
 		
+	} else if ( strcmp(buffer, "cheat") == 0 ) { /* ----------------- > cheat */
+		
+		int move;
+		
+		if ( turn != player ) {
+			log_message(LOG_CONSOLE, "It is not your turn");
+			return;
+		}
+		
+		backtrack(&grid, player, &move);
+		flog_message(LOG_CONSOLE, "Hitting on cell %d...", move);
+		make_move(move);
+		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
 		
 		log_prompt(console);
