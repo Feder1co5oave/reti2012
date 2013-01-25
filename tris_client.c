@@ -565,11 +565,13 @@ void got_play_request() {
 	my_state = BUSY;
 	
 	if ( recv(sock_server, &length, 1, 0) != 1 ) server_disconnected();
+	/*FIXME check length */
 	if ( recv(sock_server, buffer, length, 0) != length ) server_disconnected();
 	
 	buffer[length] = '\0';
+	strcpy(opp_username, buffer);
 	flog_message(LOG_INFO,
-              "Got play request from [%s]. Accept (y) or refuse (n) ?", buffer);
+        "Got play request from [%s]. Accept (y) or refuse (n) ?", opp_username);
 	
 	do {
 		line_length = get_line(buffer, BUFFER_SIZE);
