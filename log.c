@@ -13,6 +13,7 @@ struct timeb start = {0, 0, 0, 0};
 char stamp[10];
 
 void sig_handler(int signal);
+loglevel_t priority_encoder(loglevel_t level);
 
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
@@ -135,6 +136,8 @@ int log_message(loglevel_t level, const char *message) {
 				}
 				sprintf(stamp, "%5d.%03hd ", (int) now.time, now.millitm);
 				
+				level = priority_encoder(level & lf->maxlevel);
+				
 				switch ( level ) {
 					case LOG_DEBUG:
 						mark = "((DEBUG))     ";
@@ -241,4 +244,17 @@ void sig_handler(int signal) {
 	}
 	
 	exit(EXIT_FAILURE);
+}
+
+loglevel_t priority_encoder(loglevel_t level) {
+	loglevel_t mask = 1 << (8 * sizeof(loglevel_t) - 1);
+	
+	if ( level == 0 ) return level;
+	
+	while ( (level & (~mask)) > 1 ) {
+		level &= ~mask;
+		mask >>= 1;
+	}
+	
+	return level;
 }
