@@ -21,23 +21,20 @@ const int print[][3] = {
 };
 
 char get_winner(const struct tris_grid *grid) {
-	char players[] = {GAME_HOST, GAME_GUEST};
-	int h, i, c = 0;
+	int i, c = 0;
 	
 	for ( i = 1; i <= 9; i++ ) {
 		if ( grid->cells[i] == GAME_HOST || grid->cells[i] == GAME_GUEST) c++;
 		else assert(grid->cells[i] == GAME_UNDEF);
 	}
 	
-	for ( h = 0; h < 2; h++ ) {
-		for ( i = 0; i < 8; i++ ) {
-			if ( grid->cells[ win[i][0] ] == players[h] &&
-                                       grid->cells[ win[i][1] ] == players[h] &&
-                                      grid->cells[ win[i][2] ] == players[h] ) {
-				
-				return players[h];
-			}
-		}
+	for ( i = 0; i < 8; i++ ) {
+		if ( grid->cells[ win[i][0] ] == GAME_HOST &&
+		     grid->cells[ win[i][1] ] == GAME_HOST &&
+		     grid->cells[ win[i][2] ] == GAME_HOST ) return GAME_HOST;
+		if ( grid->cells[ win[i][0] ] == GAME_GUEST &&
+		     grid->cells[ win[i][1] ] == GAME_GUEST &&
+		     grid->cells[ win[i][2] ] == GAME_GUEST ) return GAME_GUEST;
 	}
 	
 	if ( c < 9 ) return GAME_UNDEF;
