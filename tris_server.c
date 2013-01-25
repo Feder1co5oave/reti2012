@@ -70,7 +70,8 @@ int main (int argc, char **argv) {
 	int y = 1, s, i;
 	
 	char *_setlocale, *_bindtextdomain, *_textdomain;
-
+	
+	/* Set localization */
 	_setlocale = setlocale(LC_ALL, "");
 	_bindtextdomain = bindtextdomain("tris", "locale");
 	_textdomain = textdomain("tris");
