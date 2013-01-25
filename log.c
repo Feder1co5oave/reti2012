@@ -1,6 +1,7 @@
 #include "log.h"
 #include "set_handler.h"
 #include <time.h>
+#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
@@ -19,12 +20,16 @@ struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 		perror("Errore fopen()");
 		exit(EXIT_FAILURE);
 	}
+	
 	return new_log(file, maxlevel, TRUE); /* wrapped */
 }
 
 struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	time_t now = time(NULL);
 	struct log_file *new = malloc(sizeof(struct log_file));
+	
+	assert(file != NULL);
+	
 	check_alloc(new);
 	new->file = file;
 	new->maxlevel = maxlevel;
@@ -59,34 +64,35 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 
 struct log_file *close_log(struct log_file *logfile) {
 	struct log_file *lf = NULL;
-	if ( logfile != NULL ) {
-		if ( logfile == log_files ) {
-			log_files = logfile->next;
-		} else {
-			lf = log_files;
-			while ( lf != NULL && lf->next != logfile ) lf = lf->next;
-			if ( lf != NULL ) lf->next = logfile->next;
-		}
-
-		lf = logfile->next;
-
-		if ( logfile->wrap && logfile->file != stdout && logfile->file !=
-                                                                      stderr ) {
-			
-			time_t now = time(NULL);
-			fprintf(logfile->file, "======== Closing logfile at %s\n\n",
-				ctime(&now));
-		}
-
-		if ( logfile->prompt ) fputs("\n", logfile->file);
-
-		fflush(logfile->file);
-		/* prevent stdout/stderr from being fclose()d */
-		if ( logfile->file != stdout && logfile->file != stderr )
-			fclose(logfile->file);
-
-		free(logfile);
+	
+	assert(logfile != NULL);
+	
+	if ( logfile == log_files ) {
+		log_files = logfile->next;
+	} else {
+		lf = log_files;
+		while ( lf != NULL && lf->next != logfile ) lf = lf->next;
+		if ( lf != NULL ) lf->next = logfile->next;
 	}
+
+	lf = logfile->next;
+
+	if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
+		time_t now = time(NULL);
+		fprintf(logfile->file, "======== Closing logfile at %s\n\n",
+                                                                   ctime(&now));
+	}
+
+	if ( logfile->prompt ) fputs("\n", logfile->file);
+
+	fflush(logfile->file);
+	
+	/* prevent stdout/stderr from being fclose()d */
+	if ( logfile->file != stdout && logfile->file != stderr )
+		fclose(logfile->file);
+
+	free(logfile);
+	
 	return lf;
 }
 
@@ -98,6 +104,9 @@ void close_logs() {
 int log_message(loglevel_t level, const char *message) {
 	struct log_file *lf;
 	int count = 0;
+	
+	assert(message != NULL);
+	
 	for ( lf = log_files; lf != NULL; lf = lf->next ) {
 		if ( level & lf->maxlevel ) {
 			char *pre, *mark, *post = "";
@@ -172,6 +181,9 @@ int log_multiline(loglevel_t level, const char *message) {
 	char *split, *start, *end;
 	int count;
 	
+	assert(message != NULL);
+	assert(strlen(message) > 0);
+	
 	split = malloc(strlen(message));
 	check_alloc(split);
 	strcpy(split, message);
@@ -188,10 +200,13 @@ int log_multiline(loglevel_t level, const char *message) {
 	return count;
 }
 
-int flog_message(loglevel_t level, const char* format, ...) {
+int flog_message(loglevel_t level, const char *format, ...) {
 	va_list args;
 	int count;
 	char *message = malloc(BUFFER_SIZE);
+	
+	assert(format != NULL);
+	
 	check_alloc(message);
 	va_start(args, format);
 	vsprintf(message, format, args);
@@ -206,6 +221,8 @@ int log_error(const char *message) {
 }
 
 int log_prompt(struct log_file *logfile) {
+	assert(logfile != NULL);
+	
 	if ( logfile->prompt ) {
 		fprintf(logfile->file, "%c ", logfile->prompt);
 		fflush(logfile->file);

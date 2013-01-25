@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -ansi -MMD
+CFLAGS = -Wall -Wextra -pedantic -ansi -MMD -DNDEBUG
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o
@@ -12,7 +12,7 @@ OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 all : $(EXEs)
 
 -include *.d
-	
+
 tris_server : $(COMMONOBJs) $(SOBJs)
 
 tris_client : $(COMMONOBJs) $(COBJs)
@@ -20,7 +20,7 @@ tris_client : $(COMMONOBJs) $(COBJs)
 log.o : set_handler.o
 
 set_handler.o :
-	$(CC) -Wall -Wextra -pedantic       -MMD   -c -o set_handler.o set_handler.c
+	$(CC) -Wall -Wextra -pedantic       -MMD            -c -o set_handler.o set_handler.c
 
 clean :
 	- rm $(OBJs) $(EXEs) *.log *.d

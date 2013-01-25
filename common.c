@@ -1,19 +1,22 @@
 #include "common.h"
 
+#include <assert.h>
 #include <string.h>
 #include <stdio.h>
 #include <sys/socket.h>
 
 bool username_is_valid(const char *username, uint8_t length) {
 	int i;
+	
+	assert(username != NULL);
+	
 	if ( length < MIN_USERNAME_LENGTH ) return FALSE;
 	if ( length > MAX_USERNAME_LENGTH ) return FALSE;
-	if ( username[length] != '\0' ) return FALSE;
+	assert(username[length] == '\0');
 	
-	for ( i = 0; i < length; i++ ) {
+	for ( i = 0; i < length; i++ )
 		if ( strchr(USERNAME_ALPHABET, username[i]) == NULL )
 			return FALSE;
-	}
 	
 	return TRUE;
 }
@@ -52,12 +55,15 @@ const char *state_name(enum client_state state) {
 		case BUSY:      return "BUSY";
 		case PLAY:      return "PLAY";
 	}
-
+	
+	assert(FALSE);
 	return NULL; /* never executed */
 }
 
 int get_line(char *buffer, int size) {
 	int length;
+	
+	assert(size > 0);
 	
 	fgets(buffer, size, stdin);
 	length = strlen(buffer) - 1;

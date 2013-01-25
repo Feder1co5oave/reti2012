@@ -63,7 +63,7 @@ bool better_for(char a, char b, char player) {
 
 char inverse(char player) {
 	switch ( player ) {
-		case GAME_HOST: return GAME_GUEST;
+		case GAME_HOST:  return GAME_GUEST;
 		case GAME_GUEST: return GAME_HOST;
 		default: return player;
 	}
@@ -75,6 +75,9 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	int i, j;
 	char temp[5];
 	buffer[0] = '\0';
+	
+	assert(buffer != NULL);
+	assert(grid != NULL);
 	
 	if ( pre == NULL ) pre = "";
 	
