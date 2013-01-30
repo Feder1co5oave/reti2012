@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/poll.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -649,8 +650,29 @@ void got_play_request() {
 bool get_hello() {
 	uint8_t byte;
 	uint32_t salt;
-	int received;
+	int poll_ret, received;
 	socklen_t addrlen = sizeof(opp_host);
+	struct pollfd pfd = {0, POLLIN, 0};
+	pfd.fd = opp_socket;
+	
+	poll_ret = poll(&pfd, 1, HELLO_TIMEOUT);
+	
+	if ( poll_ret < 0 ) {
+		log_error("Error poll()");
+		return FALSE;
+	}
+	
+	if ( poll_ret == 0 ) {
+		log_message(LOG_CONSOLE,
+                  "Timeout while waiting for connection from the other client");
+		return FALSE;
+	}
+	
+	if ( pfd.revents != POLLIN ) {
+		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
+                                                                      __LINE__);
+		return FALSE;
+	}
 	
 	received = recvfrom(opp_socket, buffer, 5, 0, (struct sockaddr*) &opp_host,
                                                                       &addrlen);

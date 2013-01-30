@@ -14,6 +14,7 @@
              "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
 
 #define DEFAULT_TIMEOUT_INIT {60, 0}
+#define HELLO_TIMEOUT (10 * 1000)
 
 #define BUFFER_SIZE 1024
 
