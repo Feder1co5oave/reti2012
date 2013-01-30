@@ -14,6 +14,7 @@ char stamp[10];
 
 void sig_handler(int signal);
 loglevel_t priority_encoder(loglevel_t level);
+struct timeb get_elapsed(void);
 
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
@@ -41,9 +42,12 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	if ( start.time == 0 ) ftime(&start);
 
 	/* We don't want log delimiters on the console */
-	if ( wrap && file != stdout && file != stderr )
-		fprintf(file, "======== Opening logfile at %s", ctime(&now));
+	if ( wrap && file != stdout && file != stderr ) {
+		struct timeb elapsed = get_elapsed();
+		fprintf(file, TIMESTAMP_FORMAT "======== Opening logfile at %s",
+                              (int) elapsed.time, elapsed.millitm, ctime(&now));
 		/* ctime() terminates with \n\0 */
+	}
 
 	if ( log_files != NULL ) {
 		struct log_file *ptr = log_files;
@@ -81,8 +85,10 @@ struct log_file *close_log(struct log_file *logfile) {
 
 	if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
 		time_t now = time(NULL);
-		fprintf(logfile->file, "======== Closing logfile at %s\n\n",
-                                                                   ctime(&now));
+		struct timeb elapsed = get_elapsed();
+		fprintf(logfile->file,
+                           TIMESTAMP_FORMAT"======== Closing logfile at %s\n\n",
+                              (int) elapsed.time, elapsed.millitm, ctime(&now));
 	}
 
 	if ( logfile->prompt ) fputs("\n", logfile->file);
@@ -124,17 +130,9 @@ int log_message(loglevel_t level, const char *message) {
 			
 
 			if ( lf->wrap ) {
-				struct timeb now;
-				
-				ftime(&now);
-				now.time -= start.time;
-				if ( now.millitm >= start.millitm ) {
-					now.millitm -= start.millitm;
-				} else {
-					now.time--;
-					now.millitm = start.millitm - now.millitm;
-				}
-				sprintf(stamp, "%5d.%03hd ", (int) now.time, now.millitm);
+				struct timeb elapsed = get_elapsed();
+				sprintf(stamp, TIMESTAMP_FORMAT, (int) elapsed.time,
+                                                               elapsed.millitm);
 				
 				level = priority_encoder(level & lf->maxlevel);
 				
@@ -233,6 +231,19 @@ int log_prompt(struct log_file *logfile) {
 		return 1;
 	}
 	return 0;
+}
+
+struct timeb get_elapsed() {
+	struct timeb now;
+	ftime(&now);
+	now.time -= start.time;
+	if ( now.millitm >= start.millitm ) {
+		now.millitm -= start.millitm;
+	} else {
+		now.time--;
+		now.millitm = start.millitm - now.millitm;
+	}
+	return now;
 }
 
 void sig_handler(int signal) {
