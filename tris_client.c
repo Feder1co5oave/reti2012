@@ -37,7 +37,7 @@ void end_match(bool send_opp);
 void free_shell(void);
 bool get_hello(void);
 void get_play_response(void);
-void got_hit(void);
+void got_hit_or_end(void);
 void got_play_request(void);
 void list_connected_clients(void);
 void login(void);
@@ -204,7 +204,7 @@ int main (int argc, char **argv) {
 			
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
 			
-			got_hit();
+			got_hit_or_end();
 			
 		} else {
 			/*FIXME */
@@ -543,56 +543,59 @@ bool say_hello() {
 	return TRUE;
 }
 
-void got_hit() {
+void got_hit_or_end() {
 	uint8_t byte, move;
 	uint32_t hash;
 	int received;
 	
 	received = recv(opp_socket, buffer, 6, 0);
 	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
-	if ( received == 0 ) return;
-	if ( received != 6 ) log_error("Error recv()");
-	
-	
-	/* if ( received == 0 ) return; */
+	if ( received == 0 ) return; /*FIXME inutile */
+	if ( received < 0 ) log_error("Error recv()");
 	
 	unpack(buffer, "bbl", &byte, &move, &hash);
 	
 	flog_message(LOG_DEBUG, "Got %s from player", magic_name(byte));
 	
-	if ( byte != REQ_HIT ) {
-		flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
+	if ( byte == REQ_HIT ) {
+		
+		if ( received != 6 ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( turn == player ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( move < 1 || move > 9 ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( grid.cells[move] != GAME_UNDEF ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		make_move(move, FALSE);
+		
+		if ( grid.hash != hash ) {
+			console->prompt = FALSE;
+			log_message(LOG_ERROR, "Hash mismatch");
+			if ( my_state == PLAY) end_match(FALSE); /*FIXME perché? */
+			/*TODO */
+		}
+		
+	} else if ( byte == REQ_END ) {
+		
+		console->prompt = FALSE;
+		log_message(LOG_INFO, "Your opponent surrendered: you win!");
+		end_match(FALSE);
+		
+	} else flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
                                                     __LINE__, magic_name(byte));
-		return;
-	}
-	
-	if ( turn == player ) {
-		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
-		return;
-	}
-	
-	if ( move < 1 || move > 9 ) {
-		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
-		return;
-	}
-	
-	if ( grid.cells[move] != GAME_UNDEF ) {
-		flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
-		return;
-	}
-	
-	grid.cells[move] = turn;
-	update_hash(&grid);
-	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
-	
-	if ( grid.hash != hash ) {
-		log_message(LOG_ERROR, "Hash mismatch");
-		end_match();
-		/*TODO */
-	} else {
-		turn = inverse(turn);
-		flog_message(LOG_INFO, "%s hit on cell %d", opp_username, move);
-	}
 }
 
 void got_play_request() {
