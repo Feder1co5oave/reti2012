@@ -191,7 +191,9 @@ int main (int argc, char **argv) {
 				flog_message(LOG_WARNING, "Unexpected server cmd: %s",
                                                                magic_name(cmd));
 				
-				if ( send_byte(sock_server, RESP_BADREQ) < 0 )
+				if ( cmd != RESP_BADREQ &&
+                                       send_byte(sock_server, RESP_BADREQ) < 0 )
+					
 					server_disconnected();
 				/*FIXME */
 			}

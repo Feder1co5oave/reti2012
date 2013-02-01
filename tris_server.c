@@ -228,7 +228,7 @@ void get_username(struct client_node *client) {
 	int received;
 	
 	received = recv(client->socket, &cmd, 1, 0);
-	if (received != 1) {
+	if ( received != 1 ) {
 		flog_message(LOG_DEBUG, "Received=%d on line %d from %s", received,
                                               __LINE__, client_canon_p(client));
 		
@@ -236,11 +236,11 @@ void get_username(struct client_node *client) {
 		return;
 	}
 	
-	if (cmd != REQ_LOGIN) {
+	if ( cmd != REQ_LOGIN ) {
 		flog_message(LOG_WARNING, "Got BADREQ on line %d, cmd=%s from %s",
                              __LINE__, magic_name(cmd), client_canon_p(client));
 		
-		prepare_byte(client, RESP_BADREQ);
+		if ( cmd != RESP_BADREQ ) prepare_byte(client, RESP_BADREQ);
 		return;
 	}
 	
@@ -386,7 +386,7 @@ void idle_free(struct client_node *client) {
 			flog_message(LOG_WARNING, "Unexpected request from %s in idle_free",
                                                         client_canon_p(client));
 			
-			prepare_byte(client, RESP_BADREQ);
+			if ( cmd != RESP_BADREQ ) prepare_byte(client, RESP_BADREQ);
 	}
 }
 
@@ -434,7 +434,7 @@ void idle_play(struct client_node *client) {
 			flog_message(LOG_WARNING, "Unexpected request from %s in idle_play",
                                                         client_canon_p(client));
 			
-			prepare_byte(client, RESP_BADREQ);
+			if ( cmd != RESP_BADREQ ) prepare_byte(client, RESP_BADREQ);
 	}
 }
 
@@ -565,9 +565,12 @@ void server_shell() {
 	
 	log_message(LOG_USERINPUT, buffer);
 	
-	if ( strcmp(buffer, "help" ) == 0 || strcmp(buffer, "?") == 0 ) {
+	if ( strcmp(buffer, "help" ) == 0 ) { /* ------------------------- > help */
+	
 		log_message(LOG_CONSOLE, "Commands: help, who, playing, exit");
-	} else if ( strcmp(buffer, "who") == 0 ) {
+		
+	} else if ( strcmp(buffer, "who") == 0 ) { /* --------------------- > who */
+		
 		struct client_node *cn;
 		
 		if (client_list.count == 0) {
@@ -590,7 +593,9 @@ void server_shell() {
 			console->prompt = '>';
 			log_prompt(console);
 		}
-	} else if ( strcmp(buffer, "playing") == 0 ) {
+		
+	} else if ( strcmp(buffer, "playing") == 0 ) { /* ------------- > playing */
+		
 		struct client_node *cn, *opp;
 		bool playing = FALSE;
 		
@@ -609,7 +614,9 @@ void server_shell() {
 		if ( !playing ) log_message(LOG_CONSOLE, "No one is playing");
 		console->prompt = '>';
 		log_prompt(console);
-	} else if ( strcmp(buffer, "exit") == 0 ) {
+		
+	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
+		
 		int i;
 		flog_message(LOG_INFO_VERBOSE, "Closing %d client connections...",
                                                              client_list.count);
@@ -625,10 +632,15 @@ void server_shell() {
 		destroy_client_list(client_list.head);
 		log_message(LOG_CONSOLE, "Exiting...");
 		exit(EXIT_SUCCESS);
-	} else if ( strcmp(buffer, "") == 0 ) {
+		
+	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
+		
 		log_prompt(console);
+		
 	} else {
+		
 		log_message(LOG_CONSOLE, "Unknown command");
+		
 	}
 }
 
@@ -806,8 +818,6 @@ void start_match(struct client_node *a, struct client_node *b) {
 	else
 		flog_message(LOG_WARNING,
                 "Unexpected event on line %d, both clients are NULL", __LINE__);
-	
-	/*TODO #__LINE__ */
 }
 
 void inactive(struct client_node *client) {
