@@ -525,44 +525,43 @@ void send_data(struct client_node *client) {
 		sent = send(client->socket, client->data + client->data_cursor,
                                    client->data_count - client->data_cursor, 0);
 	
-	if ( sent > 0 ) {
-		client->data_cursor += sent;
-		if ( client->data_cursor == client->data_count ) {
-			flog_message(LOG_DEBUG, "Finished sending %d bytes of data to %s",
-                                    client->data_count, client_canon_p(client));
-			
-			if ( client->data != NULL ) {
-				flog_message(LOG_DEBUG, "Freeing %d bytes on line %d",
-                                                  client->data_count, __LINE__);
-				
-				free(client->data);
-				client->data = NULL;
-			}
-			
-			flog_message(LOG_DEBUG, "%s is %s", client_canon_p(client),
-                                                     state_name(client->state));
-			
-			switch ( client->state ) {
-				case CONNECTED: client->read_dispatch = &get_username; break;
-				case FREE: client->read_dispatch = &idle_free; break;
-				case BUSY: client->read_dispatch = &get_play_resp; break;
-				case PLAY: client->read_dispatch = &idle_play; break;
-				case NONE:
-					flog_message(LOG_WARNING, "%s is NONE on line %d",
-                                              client_canon_p(client), __LINE__);
-					
-					client_disconnected(client);
-					return;
-			}
-			
-			client->muted = FALSE;
-			unmonitor_socket_w(client->socket);
-		}
-	} else {
-		flog_message(LOG_WARNING, "Sent=%d on line %d to %s", sent, __LINE__,
-                                                        client_canon_p(client));
-			
+	if ( sent < 0 ) {
+		log_error("Error send()");
 		client_disconnected(client);
+		return;
+	}
+	
+	client->data_cursor += sent;
+	if ( client->data_cursor == client->data_count ) {
+		flog_message(LOG_DEBUG, "Finished sending %d bytes of data to %s",
+                                    client->data_count, client_canon_p(client));
+		
+		if ( client->data != NULL ) {
+			flog_message(LOG_DEBUG, "Freeing %d bytes on line %d",
+                                                  client->data_count, __LINE__);
+			
+			free(client->data);
+			client->data = NULL;
+		}
+		
+		flog_message(LOG_DEBUG, "%s is %s", client_canon_p(client),
+                                                     state_name(client->state));
+		
+		switch ( client->state ) {
+			case CONNECTED: client->read_dispatch = &get_username; break;
+			case FREE: client->read_dispatch = &idle_free; break;
+			case BUSY: client->read_dispatch = &get_play_resp; break;
+			case PLAY: client->read_dispatch = &idle_play; break;
+			case NONE:
+				flog_message(LOG_WARNING, "%s is NONE on line %d",
+                                              client_canon_p(client), __LINE__);
+				
+				client_disconnected(client);
+				return;
+		}
+		
+		client->muted = FALSE;
+		unmonitor_socket_w(client->socket);
 	}
 }
 
@@ -778,6 +777,7 @@ void get_play_resp(struct client_node *client) {
 			flog_message(LOG_INFO_VERBOSE,
                               "[%s] refused to play with a disconnected client",
                                                               client->username);
+			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, "[%s] refused to play with [%s]",
                                                client->username, opp->username);
@@ -829,17 +829,17 @@ void start_match(struct client_node *a, struct client_node *b) {
 }
 
 void inactive(struct client_node *client) {
-	int received;
+	int received = recv(client->socket, buffer, BUFFER_SIZE, 0);
 	
-	received = recv(client->socket, buffer, BUFFER_SIZE, 0);
-	if ( received == 0 ) {
+	if ( received == 0 )
 		client_disconnected(client);
-	} else if ( received == 1 ) {
+	
+	else if ( received == 1 )
 		flog_message(LOG_WARNING, "Got %s in inactive from %s",
                                  magic_name(buffer[0]), client_canon_p(client));
-	} else {
+	
+	else
 		flog_message(LOG_WARNING, "Got %d bytes in inactive from %s", received,
                                                         client_canon_p(client));
-	}
 	/*FIXME what to do? */
 }
