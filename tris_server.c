@@ -125,6 +125,7 @@ int main (int argc, char **argv) {
 	while ( (s = select(maxfds + 1, &_readfds, &_writefds, NULL, NULL)) > 0 ) {
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( FD_ISSET(i, &_readfds) ) {
+				
 				if ( i == sock_listen ) {
 					accept_connection();
 				} else if ( i == STDIN_FILENO ) {
@@ -151,11 +152,12 @@ int main (int argc, char **argv) {
 				break; /* goto select() */
 				
 			} else if ( FD_ISSET(i, &_writefds) ) {
+				
 				struct client_node *client;
 				int sock_client = i;
 				
 				client = get_client_by_socket(sock_client);
-				if ( client != NULL && client->read_dispatch != NULL ) {
+				if ( client != NULL && client->write_dispatch != NULL ) {
 					client->write_dispatch(client);
 				} else { /*FIXME non dovrebbe mai succedere */
 					flog_message(LOG_WARNING,
@@ -167,8 +169,8 @@ int main (int argc, char **argv) {
 					shutdown(sock_client, SHUT_RDWR);
 					close(sock_client);
 				}
-				
 				break; /* goto select() */
+				
 			}
 		}
 		_readfds = readfds;
@@ -178,54 +180,53 @@ int main (int argc, char **argv) {
 	flog_message(LOG_DEBUG, "Just exited main while loop with s=%d", s);
 	
 	for ( i = 0; i <= maxfds; i++ ) {
-		if ( i == STDIN_FILENO ) continue;
-		if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
+		if ( i != STDIN_FILENO &&
+                         ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) ) {
+			
 			shutdown(i, SHUT_RDWR);
 			close(i);
 		}
 	}
 	
-	if ( s == 0 ) {
-		log_message(LOG_INFO, "Timeout. Exit.");
-		exit(EXIT_SUCCESS);
-	} else {
-		log_error("Error select()");
-		exit(EXIT_FAILURE);
-	}
+	log_error("Error select()");
+	exit(EXIT_FAILURE);
 }
 
 /* ========================================================================== */
 
 void accept_connection() {
 	int sock_client;
-	struct sockaddr_in yourhost;
-	socklen_t addrlen = sizeof(yourhost);
+	struct sockaddr_in clienthost;
+	struct client_node *client;
+	socklen_t addrlen = sizeof(clienthost);
 	
 	log_message(LOG_DEBUG, "Going to accept a new connection...");
-	sock_client = accept(sock_listen, (struct sockaddr*) &yourhost, &addrlen);
-	if ( sock_client >= 0 ) {
-		struct client_node *client = create_client_node();
-		add_client_node(client);
-		client->addr = yourhost;
-		client->socket = sock_client;
-		client->state = CONNECTED;
-		client->read_dispatch = &get_username;
-		flog_message(LOG_INFO, "Incoming connection from %s",
-                                                     client_sockaddr_p(client));
-		
-		log_statechange(client);
-		monitor_socket_r(sock_client);
-	} else {
+	sock_client = accept(sock_listen, (struct sockaddr*) &clienthost, &addrlen);
+	
+	if ( sock_client < 0 ) {
 		/*FIXME Potrebbe verificarsi ECONNABORTED, vorrei ritentare */
 		log_error("Error accept()");
 		close(sock_listen);
 		exit(EXIT_FAILURE);
 	}
+	
+	client = create_client_node();
+	add_client_node(client);
+	client->addr = clienthost;
+	client->socket = sock_client;
+	client->state = CONNECTED;
+	client->read_dispatch = &get_username;
+	flog_message(LOG_INFO, "Incoming connection from %s",
+                                                     client_sockaddr_p(client));
+	
+	log_statechange(client);
+	monitor_socket_r(sock_client);
 }
 
 void get_username(struct client_node *client) {
 	uint8_t cmd;
 	int received;
+	struct client_node *dbl;
 	
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
@@ -247,71 +248,76 @@ void get_username(struct client_node *client) {
 	flog_message(LOG_DEBUG, "Got REQ_LOGIN from %s", client_sockaddr_p(client));
 	
 	received = recv(client->socket, &(client->username_len), 1, 0);
-	/*FIXME use select(_readfds) */
 	
-	if ( received == 1 ) {
-		if ( client->username_len > MAX_USERNAME_LENGTH ) {
-			flog_message(LOG_INFO_VERBOSE,
-                               "Client %s tried to login with invalid username",
-                                                     client_sockaddr_p(client));
-			
-			prepare_byte(client, RESP_BADUSR);
-			/*FIXME username is received from inactive() */
-			return;
-		}
-		
-		received = recv(client->socket, buffer, client->username_len + 2, 0);
-		if ( received == client->username_len + 2 ) {
-			struct client_node *dbl;
-			unpack(buffer, "sw", client->username_len, &(client->username),
-                                                           &(client->udp_port));
-			
-			if ( !username_is_valid(client->username, client->username_len) ) {
-				/*TODO print escaped username string */
-				flog_message(LOG_INFO_VERBOSE,
-                               "Client %s tried to login with invalid username",
-                                                     client_sockaddr_p(client));
-				
-				prepare_byte(client, RESP_BADUSR);
-			} else if ( (dbl = get_client_by_username(client->username)) !=
-                                                                        NULL ) {
-				flog_message(LOG_INFO_VERBOSE,
-                           "Client %s tried to login with existing username=%s",
-                                      client_sockaddr_p(client), dbl->username);
-				
-				prepare_byte(client, RESP_EXIST);
-			} else {
-				inet_ntop(AF_INET, &(client->addr.sin_addr), buffer,
-                                                               INET_ADDRSTRLEN);
-				
-				flog_message(LOG_INFO, "Client %s has username [%s]",
-                                   client_sockaddr_p(client), client->username);
-				
-				flog_message(LOG_INFO, "[%s] Listening on %s:%hu (udp)",
-                                    client->username, buffer, client->udp_port);
-				
-				client->state = FREE;
-				/* client->read_dispatch = &idle_free; */
-				log_statechange(client);
-				prepare_byte(client, RESP_OK_LOGIN);
-			}
-		} else {
-			flog_message(LOG_WARNING, "Received=%d on line %d from %s",
-                                    received, __LINE__, client_canon_p(client));
-			
-			client_disconnected(client);
-		}
-	} else {
+	if ( received != 1 ) {
 		flog_message(LOG_WARNING, "Received=%d on line %d from %s", received,
                                               __LINE__, client_canon_p(client));
 		
 		client_disconnected(client);
+		return;
 	}
+	
+	if ( client->username_len < MIN_USERNAME_LENGTH || 
+         client->username_len > MAX_USERNAME_LENGTH ) {
+		flog_message(LOG_INFO_VERBOSE,
+                            "Client %s tried to login with an invalid username",
+                                                     client_sockaddr_p(client));
+		
+		prepare_byte(client, RESP_BADUSR);
+		return;
+	}
+	
+	received = recv(client->socket, buffer, client->username_len + 2, 0);
+	
+	if ( received != client->username_len + 2 ) {
+		flog_message(LOG_WARNING, "Received=%d on line %d from %s",
+                                    received, __LINE__, client_canon_p(client));
+		
+		client_disconnected(client);
+		return;
+	}
+		
+	unpack(buffer, "sw", client->username_len, &(client->username),
+                                                           &(client->udp_port));
+	
+	if ( !username_is_valid(client->username, client->username_len) ) {
+		/*TODO print escaped username string */
+		flog_message(LOG_INFO_VERBOSE,
+                               "Client %s tried to login with invalid username",
+                                                     client_sockaddr_p(client));
+		
+		prepare_byte(client, RESP_BADUSR);
+		return;	
+	} 
+	
+	dbl = get_client_by_username(client->username);
+	if ( dbl != NULL ) {
+		flog_message(LOG_INFO_VERBOSE,
+                           "Client %s tried to login with existing username=%s",
+                                      client_sockaddr_p(client), dbl->username);
+		
+		prepare_byte(client, RESP_EXIST);
+		return;
+	}
+	
+	inet_ntop(AF_INET, &(client->addr.sin_addr), buffer, INET_ADDRSTRLEN);
+	
+	flog_message(LOG_INFO, "Client %s has username [%s]",
+                                   client_sockaddr_p(client), client->username);
+	
+	flog_message(LOG_INFO, "[%s] Listening on %s:%hu (udp)",
+                                    client->username, buffer, client->udp_port);
+	
+	client->state = FREE;
+	/* client->read_dispatch = &idle_free; */
+	log_statechange(client);
+	prepare_byte(client, RESP_OK_LOGIN);
 }
 
 void idle_free(struct client_node *client) {
 	uint8_t cmd, length;
 	int received;
+	struct client_node *opp;
 	
 	received = recv(client->socket, &cmd, 1, 0);
 	if ( received != 1 ) {
@@ -332,54 +338,53 @@ void idle_free(struct client_node *client) {
 		
 		case REQ_PLAY:
 			received = recv(client->socket, &length, 1, 0);
-			if ( received == 1 ) {
-				if ( length > MAX_USERNAME_LENGTH ) {
-					flog_message(LOG_WARNING,
-                    "[%s] requested to play with nonexistent player (too long)",
-                                                              client->username);
-					
-					prepare_byte(client, RESP_NONEXIST);
-					break;
-				}
-				
-				received = recv(client->socket, buffer, length, 0);
-				if ( received == length ) {
-					struct client_node *opp;
-					buffer[length] = '\0';
-					opp = get_client_by_username(buffer);
-					if ( opp == NULL ) {
-						flog_message(LOG_INFO_VERBOSE,
-                               "[%s] requested to play with nonexistent player",
-                                                              client->username);
-						
-						prepare_byte(client, RESP_NONEXIST);
-					} else if ( opp == client ) {
-						flog_message(LOG_INFO_VERBOSE,
-                                          "[%s] requested to play with himself",
-                                                              client->username);
-						
-						prepare_byte(client, RESP_NONEXIST);
-					} else if ( opp->state != FREE ) {
-						flog_message(LOG_INFO_VERBOSE,
-                               "[%s] requested to play with non-FREE player %s",
-                                         client->username, client_canon_p(opp));
-						
-						prepare_byte(client, RESP_BUSY);
-					} else {
-						prepare_play_request(client, opp);
-					}
-				} else {
-					flog_message(LOG_WARNING, "Received=%d on line %d from %s",
-                                    received, __LINE__, client_canon_p(client));
-					
-					client_disconnected(client);
-				}
-			} else {
+			if ( received != 1 ) {
 				flog_message(LOG_WARNING, "Received=%d on line %d from %s",
                                     received, __LINE__, client_canon_p(client));
 				
 				client_disconnected(client);
+				return;
 			}
+			
+			if ( length < MIN_USERNAME_LENGTH ||
+				 length > MAX_USERNAME_LENGTH ) {
+				flog_message(LOG_WARNING,
+                    "[%s] requested to play with nonexistent player (too long)",
+                                                              client->username);
+				
+				prepare_byte(client, RESP_NONEXIST);
+				return;
+			}
+				
+			received = recv(client->socket, buffer, length, 0);
+			if ( received != length ) {
+				flog_message(LOG_WARNING, "Received=%d on line %d from %s",
+                                    received, __LINE__, client_canon_p(client));
+				
+				client_disconnected(client);
+				return;
+			}
+					
+			buffer[length] = '\0';
+			opp = get_client_by_username(buffer);
+			if ( opp == NULL ) {
+				flog_message(LOG_INFO_VERBOSE,
+                               "[%s] requested to play with nonexistent player",
+                                                              client->username);
+				
+				prepare_byte(client, RESP_NONEXIST);
+			} else if ( opp == client ) {
+				flog_message(LOG_INFO_VERBOSE,
+                       "[%s] requested to play with himself", client->username);
+				
+				prepare_byte(client, RESP_NONEXIST);
+			} else if ( opp->state != FREE ) {
+				flog_message(LOG_INFO_VERBOSE,
+                               "[%s] requested to play with non-FREE player %s",
+                                         client->username, client_canon_p(opp));
+				
+				prepare_byte(client, RESP_BUSY);
+			} else prepare_play_request(client, opp);
 			break;
 		
 		default:
@@ -762,7 +767,13 @@ void get_play_resp(struct client_node *client) {
 		}
 		
 		start_match(client, opp);
-	} else if ( resp == RESP_REFUSE ) {
+	} else {
+		/* FIXME May be some other valid command such as REQ_WHO or REQ_PLAY */
+		/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY / PERCHÉ?! */
+		if ( resp != RESP_REFUSE )
+			flog_message(LOG_WARNING, "Got %s in get_play_resp from %s",
+                                      magic_name(resp), client_canon_p(client));
+		
 		if ( opp == NULL ) {
 			flog_message(LOG_INFO_VERBOSE,
                               "[%s] refused to play with a disconnected client",
@@ -780,13 +791,6 @@ void get_play_resp(struct client_node *client) {
 		client->req_from = NULL;
 		client->read_dispatch = &idle_free;
 		log_statechange(client);
-	} else {
-		/* May be some other valid command such as REQ_WHO or REQ_PLAY */
-		/* RESP_REFUSE o, per sbaglio, anche RESP_BUSY / PERCHÉ?! */
-		flog_message(LOG_WARNING, "Got %s in get_play_resp from %s",
-                                      magic_name(resp), client_canon_p(client));
-		
-		/*FIXME what to do? */
 	}
 }
 
