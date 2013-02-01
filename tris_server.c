@@ -27,6 +27,7 @@
 
 /* ===[ Client handlers ]==================================================== */
 
+void cancel_request(struct client_node*);
 void get_username(struct client_node*);
 void idle_free(struct client_node*);
 void idle_play(struct client_node*);
@@ -446,6 +447,36 @@ void idle_play(struct client_node *client) {
 	}
 }
 
+void cancel_request(struct client_node *client) {
+	uint8_t cmd;
+	int received;
+	
+	received = recv(client->socket, &cmd, 1, 0);
+	if ( received != 1 ) {
+		flog_message(LOG_DEBUG, "Received=%d on line %d from %s", received,
+                                              __LINE__, client_canon_p(client));
+		
+		client_disconnected(client);
+		return;
+	}
+	
+	flog_message(LOG_DEBUG, "Got cmd=%s from %s in cancel_request",
+                                       magic_name(cmd), client_canon_p(client));
+	
+	if ( cmd == REQ_END ) {
+		if ( client->req_to != NULL ) {
+			flog_message(LOG_INFO, "[%s] canceled playing with [%s]",
+                                    client->username, client->req_to->username);
+			client->req_to->req_from = NULL;
+			client->req_to = NULL;
+		}
+		client->state = FREE;
+		log_statechange(client);
+		prepare_byte(client, RESP_OK_FREE);
+	} else if ( cmd != RESP_BADREQ )
+		prepare_byte(client, RESP_BADREQ);
+}
+
 void client_disconnected(struct client_node *client) {
 	struct client_node *opp;
 	
@@ -714,8 +745,7 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	
 	from->req_to = to;
 	to->req_from = from;
-	from->state = PLAY;
-	to->state = BUSY;
+	from->state = to->state = BUSY;
 	log_statechange(from);
 	log_statechange(to);
 	to->data_count = 2 + from->username_len;
@@ -732,7 +762,7 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	to->write_dispatch = &send_data;
 	monitor_socket_w(to->socket);
 	to->muted = TRUE;
-	from->read_dispatch = &idle_play;
+	from->read_dispatch = &cancel_request;
 }
 
 void get_play_resp(struct client_node *client) {
