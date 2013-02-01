@@ -412,20 +412,23 @@ void idle_play(struct client_node *client) {
 			break;
 		
 		case REQ_END:
-			if ( client->play_with != NULL )
+			if ( client->play_with != NULL ) {
 				flog_message(LOG_INFO, "[%s] stopped playing with [%s]",
                                  client->username, client->play_with->username);
 			
-			else
+				client->play_with->play_with = NULL;
+				client->play_with = NULL;
+			} else if ( client->req_to != NULL ) {
+				flog_message(LOG_INFO, "[%s] canceled playing with [%s]",
+                                    client->username, client->req_to->username);
+				client->req_to->req_from = NULL;
+				client->req_to = NULL;
+			} else
 				flog_message(LOG_INFO,
                               "[%s] stopped playing with a disconnected client",
                                                               client->username);
 			
 			client->state = FREE;
-			if ( client->play_with != NULL ) {
-				client->play_with->play_with = NULL; /*FIXME */
-				client->play_with = NULL;
-			}
 			log_statechange(client);
 			prepare_byte(client, RESP_OK_FREE);
 			break;
@@ -707,7 +710,8 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	
 	from->req_to = to;
 	to->req_from = from;
-	from->state = to->state = BUSY;
+	from->state = PLAY;
+	to->state = BUSY;
 	log_statechange(from);
 	log_statechange(to);
 	to->data_count = 2 + from->username_len;
@@ -723,9 +727,8 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	
 	to->write_dispatch = &send_data;
 	monitor_socket_w(to->socket);
-	/* to->read_dispatch = &inactive; */
-	/* from->read_dispatch = &inactive; */
-	to->muted = from->muted = TRUE;
+	to->muted = TRUE;
+	from->read_dispatch = &idle_play;
 }
 
 void get_play_resp(struct client_node *client) {
@@ -750,6 +753,7 @@ void get_play_resp(struct client_node *client) {
 			flog_message(LOG_INFO_VERBOSE,
                              "[%s] accepted to play with a disconnected client",
                                                               client->username);
+			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, "[%s] accepted to play with [%s]",
                                                client->username, opp->username);
