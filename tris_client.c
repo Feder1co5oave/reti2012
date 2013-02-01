@@ -182,8 +182,9 @@ int main (int argc, char **argv) {
 			
 			if ( recv(sock_server, &cmd, 1, 0) != 1 )
 				server_disconnected();
-						
-			if ( cmd == REQ_PLAY ) {
+			
+			switch ( cmd ) {
+				case REQ_PLAY:
 					flog_message(LOG_DEBUG, "Got REQ_PLAY from server while %s",
                                                           state_name(my_state));
 					
@@ -191,15 +192,26 @@ int main (int argc, char **argv) {
 						got_play_request();
 					else if ( send_byte(sock_server, RESP_REFUSE) < 0 )
 						server_disconnected();
-			} else {
-				flog_message(LOG_WARNING, "Unexpected server cmd: %s",
+					break;
+				
+				case RESP_OK_PLAY:
+					recv(sock_server, buffer, sizeof(struct in_addr) + 2, 0);
+					/*FIXME check return value */
+				case RESP_BUSY:
+				case RESP_NONEXIST:
+				case RESP_REFUSE:
+					flog_message(LOG_INFO_VERBOSE,
+                               "Got delayed play response=%s", magic_name(cmd));
+					break;
+				default:
+					flog_message(LOG_WARNING, "Unexpected server cmd: %s",
                                                                magic_name(cmd));
 				
-				if ( cmd != RESP_BADREQ &&
+					if ( cmd != RESP_BADREQ &&
                                        send_byte(sock_server, RESP_BADREQ) < 0 )
 					
-					server_disconnected();
-				/*FIXME */
+						server_disconnected();
+					/*FIXME */
 			}
 			
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
