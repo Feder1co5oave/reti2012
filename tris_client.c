@@ -44,6 +44,7 @@ void login(void);
 void make_move(unsigned int cell);
 bool open_play_socket(void);
 void play_shell(void);
+int poll_in(int socket, int timeout);
 bool say_hello(void);
 void send_play_request(void);
 void server_disconnected(void);
@@ -652,27 +653,12 @@ void got_play_request() {
 bool get_hello() {
 	uint8_t byte;
 	uint32_t salt;
-	int poll_ret, received;
+	int received;
 	socklen_t addrlen = sizeof(opp_host);
-	struct pollfd pfd = {0, POLLIN, 0};
-	pfd.fd = opp_socket;
 	
-	poll_ret = poll(&pfd, 1, HELLO_TIMEOUT);
-	
-	if ( poll_ret < 0 ) {
-		log_error("Error poll()");
-		return FALSE;
-	}
-	
-	if ( poll_ret == 0 ) {
+	if ( poll_in(opp_socket, HELLO_TIMEOUT) <= 0 ) {
 		log_message(LOG_CONSOLE,
                   "Timeout while waiting for connection from the other client");
-		return FALSE;
-	}
-	
-	if ( pfd.revents != POLLIN ) {
-		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
-                                                                      __LINE__);
 		return FALSE;
 	}
 	
@@ -702,7 +688,11 @@ void get_play_response() {
 	uint16_t opp_udp_port;
 	int received;
 	
-	/*TODO set timeout */
+	if ( poll_in(sock_server, PLAY_RESPONSE_TIMEOUT) <= 0 ) {
+		log_message(LOG_CONSOLE, "Timeout while waiting for play response");
+		end_match(FALSE);
+		return;
+	}
 	
 	if ( recv(sock_server, &resp, 1, 0) != 1 )
 		server_disconnected();
@@ -851,4 +841,19 @@ void start_match(char me) {
 		default:
 			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
 	}
+}
+
+int poll_in(int socket, int timeout) {
+	int poll_ret;
+	struct pollfd pfd = {0, POLLIN, 0};
+	pfd.fd = socket;
+	
+	poll_ret = poll(&pfd, 1, timeout);
+	
+	if ( poll_ret < 0 )
+		log_error("Error poll()");
+	else if ( poll_ret > 0 && pfd.revents != POLLIN )
+		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
+                                                                      __LINE__);
+	return poll_ret;
 }
