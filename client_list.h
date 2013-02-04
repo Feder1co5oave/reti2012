@@ -29,6 +29,17 @@ struct client_node {
 };
 
 /**
+ * Represents a dead client or a client who has cancelled his play request.
+ */
+struct client_zombie {
+	uint8_t username_len;
+	char username[MAX_USERNAME_LENGTH + 1];
+	enum client_state state;
+	struct sockaddr_in addr;
+	uint16_t udp_port;
+};
+
+/**
  * A list of client_nodes.
  */
 typedef struct {
@@ -104,6 +115,8 @@ const char *client_canon_p(struct client_node*);
  * Logs a change of state for a client, as LOG_DEBUG.
  */
 int log_statechange(struct client_node*);
+
+struct client_node *get_zombie(struct client_node*);
 
 /* ========================================================================== */
 

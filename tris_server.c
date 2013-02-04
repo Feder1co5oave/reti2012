@@ -468,7 +468,7 @@ void cancel_request(struct client_node *client) {
 		if ( client->req_to != NULL ) {
 			flog_message(LOG_INFO, "[%s] cancelled playing with [%s]",
                                     client->username, client->req_to->username);
-			client->req_to->req_from = NULL;
+			client->req_to->req_from = get_zombie(client);
 			client->req_to = NULL;
 		}
 		client->state = FREE;
@@ -588,9 +588,9 @@ void send_data(struct client_node *client) {
 			case FREE: client->read_dispatch = &idle_free; break;
 			case BUSY: client->read_dispatch = &get_play_resp; break;
 			case PLAY: client->read_dispatch = &idle_play; break;
-			case NONE:
-				flog_message(LOG_WARNING, "%s is NONE on line %d",
-                                              client_canon_p(client), __LINE__);
+			default:
+				flog_message(LOG_WARNING, "%s is %s on line %d",
+                   client_canon_p(client), state_name(client->state), __LINE__);
 				
 				client_disconnected(client);
 				return;
