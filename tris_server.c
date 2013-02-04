@@ -425,7 +425,8 @@ void idle_play(struct client_node *client) {
 				client->play_with->play_with = NULL;
 				client->play_with = NULL;
 			} else if ( client->req_to != NULL ) {
-				flog_message(LOG_INFO, "[%s] canceled playing with [%s]",
+				/* cancel_request() */
+				flog_message(LOG_INFO, "[%s] cancelled playing with [%s]",
                                     client->username, client->req_to->username);
 				client->req_to->req_from = NULL;
 				client->req_to = NULL;
@@ -465,7 +466,7 @@ void cancel_request(struct client_node *client) {
 	
 	if ( cmd == REQ_END ) {
 		if ( client->req_to != NULL ) {
-			flog_message(LOG_INFO, "[%s] canceled playing with [%s]",
+			flog_message(LOG_INFO, "[%s] cancelled playing with [%s]",
                                     client->username, client->req_to->username);
 			client->req_to->req_from = NULL;
 			client->req_to = NULL;
@@ -503,7 +504,11 @@ void client_disconnected(struct client_node *client) {
 			unmonitor_socket_w(opp->socket);
 			monitor_socket_r(opp->socket); /*FIXME inutile? */
 		} else {
-			flog_message(LOG_WARNING, "%s has unconsistent data on line %d",
+			/* in case client->req_from or req_to are set to NULL by
+			cancel_request() or idle_play() */
+			/*TODO use a better log message */
+			flog_message(LOG_INFO_VERBOSE,
+                           "[%s] had a play request with a disconnected client",
                                               client_canon_p(client), __LINE__);
 		}
 	} else if ( client->state == PLAY ) {
