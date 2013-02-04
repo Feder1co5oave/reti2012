@@ -165,7 +165,7 @@ int main (int argc, char **argv) {
                                                           state_name(my_state));
 			
 			if ( my_state == PLAY ) {
-				log_message(LOG_INFO, "Time out: leaving game...");
+				log_message(LOG_INFO, _("Time out: leaving game..."));
 				/*FIXME if ( turn == player ) send REQ_END, don't otherwise */
 				end_match(TRUE);
 			} else {
@@ -198,7 +198,8 @@ int main (int argc, char **argv) {
 			
 			switch ( cmd ) {
 				case REQ_PLAY:
-					flog_message(LOG_DEBUG, "Got REQ_PLAY from server while %s",
+					flog_message(LOG_DEBUG,
+                                         _("Got REQ_PLAY from server while %s"),
                                                           state_name(my_state));
 					
 					if ( my_state == FREE )
@@ -214,10 +215,10 @@ int main (int argc, char **argv) {
 				case RESP_NONEXIST:
 				case RESP_REFUSE:
 					flog_message(LOG_INFO_VERBOSE,
-                               "Got delayed play response=%s", magic_name(cmd));
+                            _("Got delayed play response=%s"), magic_name(cmd));
 					break;
 				default:
-					flog_message(LOG_WARNING, "Unexpected server cmd: %s",
+					flog_message(LOG_WARNING, _("Unexpected server cmd: %s"),
                                                                magic_name(cmd));
 				
 					if ( cmd != RESP_BADREQ &&
@@ -366,7 +367,7 @@ void end_match(bool send_opp) {
 	uint8_t resp;
 	
 	if ( send_opp && send_byte(opp_socket, REQ_END) < 0 )
-		log_error("Error send()");
+		log_error(_("Error send()"));
 	
 	if ( send_byte(sock_server, REQ_END) < 0 ) server_disconnected();
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
@@ -376,10 +377,10 @@ void end_match(bool send_opp) {
 	console->prompt = '>';
 	
 	if ( resp != RESP_OK_FREE )
-		flog_message(LOG_WARNING, "Unexpected server response: %s",
+		flog_message(LOG_WARNING, _("Unexpected server response: %s"),
                                                               magic_name(resp));
 	
-	log_message(LOG_CONSOLE, "End of match. You are now free.");
+	log_message(LOG_CONSOLE, _("End of match. You are now free."));
 	
 	if ( opp_socket > 0 ) unmonitor_socket_r(opp_socket);
 	opp_socket = -1;
@@ -503,7 +504,7 @@ void play_shell() {
 		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
 			
 			if ( turn != player ) {
-				log_message(LOG_CONSOLE, "It is not your turn");
+				log_message(LOG_CONSOLE, _("It is not your turn"));
 				return;
 			}
 			
@@ -522,20 +523,20 @@ void play_shell() {
 		console->prompt = FALSE;
 		log_multiline(LOG_CONSOLE, buffer);
 		console->prompt = '#';
-		if ( turn == player ) log_message(LOG_CONSOLE, "It is your turn.");
-		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
+		if ( turn == player ) log_message(LOG_CONSOLE, _("It is your turn."));
+		else flog_message(LOG_CONSOLE, _("It is %s's turn"), opp_username);
 		
 	} else if ( strcmp(buffer, "cheat") == 0 ) { /* ----------------- > cheat */
 		
 		int move;
 		
 		if ( turn != player ) {
-			log_message(LOG_CONSOLE, "It is not your turn");
+			log_message(LOG_CONSOLE, _("It is not your turn"));
 			return;
 		}
 		
 		backtrack(&grid, player, &move);
-		flog_message(LOG_CONSOLE, "Hitting on cell %d...", move);
+		flog_message(LOG_CONSOLE, _("Hitting on cell %d..."), move);
 		make_move(move, TRUE);
 		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
@@ -578,7 +579,7 @@ void got_hit_or_end() {
 	int received;
 	
 	received = recv(opp_socket, buffer, 6, 0);
-	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
+	flog_message(LOG_DEBUG, _("Received=%d on line %d"), received, __LINE__);
 	if ( received == 0 ) return; /*FIXME inutile */
 	if ( received < 0 ) log_error("Error recv()");
 	
@@ -589,22 +590,22 @@ void got_hit_or_end() {
 	if ( byte == REQ_HIT ) {
 		
 		if ( received != 6 ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, _("Unexpected event on line %d"), __LINE__);
 			return;
 		}
 		
 		if ( turn == player ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, _("Unexpected event on line %d"), __LINE__);
 			return;
 		}
 		
 		if ( move < 1 || move > 9 ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, _("Unexpected event on line %d"), __LINE__);
 			return;
 		}
 		
 		if ( grid.cells[move] != GAME_UNDEF ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, _("Unexpected event on line %d"), __LINE__);
 			return;
 		}
 		
@@ -612,7 +613,7 @@ void got_hit_or_end() {
 		
 		if ( grid.hash != hash ) {
 			console->prompt = FALSE;
-			log_message(LOG_ERROR, "Hash mismatch");
+			log_message(LOG_ERROR, _("Hash mismatch"));
 			if ( my_state == PLAY) end_match(FALSE); /*FIXME perché? */
 			/*TODO */
 		}
@@ -620,7 +621,7 @@ void got_hit_or_end() {
 	} else if ( byte == REQ_END ) {
 		
 		console->prompt = FALSE;
-		log_message(LOG_INFO, "Your opponent surrendered: you win!");
+		log_message(LOG_INFO, _("Your opponent surrendered: you win!"));
 		end_match(FALSE);
 		
 	} else flog_message(LOG_WARNING, _("Unexpected event on line %d: byte=%s"),
@@ -640,7 +641,7 @@ void got_play_request() {
 	buffer[length] = '\0';
 	strcpy(opp_username, buffer);
 	flog_message(LOG_INFO,
-        "Got play request from [%s]. Accept (y) or refuse (n) ?", opp_username);
+     _("Got play request from [%s]. Accept (y) or refuse (n) ?"), opp_username);
 	
 	do {
 		line_length = get_line(buffer, BUFFER_SIZE);
@@ -655,7 +656,7 @@ void got_play_request() {
 				console->prompt = FALSE;
 				/*TODO */
 				log_message(LOG_CONSOLE,
-		   "Request accepted. Waiting for connection from the other client...");
+		_("Request accepted. Waiting for connection from the other client..."));
 				
 				if ( get_hello() && connect_play_socket() )
 					start_match(GAME_GUEST);
@@ -667,7 +668,7 @@ void got_play_request() {
 					server_disconnected();
 				
 				log_message(LOG_CONSOLE,
-                               "Request automatically refused due to an error");
+                            _("Request automatically refused due to an error"));
 				
 				my_state = FREE;
 			}
@@ -698,7 +699,7 @@ bool get_hello() {
 	
 	if ( poll_in(opp_socket, HELLO_TIMEOUT) <= 0 ) {
 		log_message(LOG_CONSOLE,
-                  "Timeout while waiting for connection from the other client");
+               _("Timeout while waiting for connection from the other client"));
 		return FALSE;
 	}
 	
@@ -729,7 +730,7 @@ void get_play_response() {
 	int received;
 	
 	if ( poll_in(sock_server, PLAY_RESPONSE_TIMEOUT) <= 0 ) {
-		log_message(LOG_CONSOLE, "Timeout while waiting for play response");
+		log_message(LOG_CONSOLE, _("Timeout while waiting for play response"));
 		end_match(FALSE);
 		return;
 	}
@@ -760,7 +761,7 @@ void get_play_response() {
 			
 			end_match(FALSE);
 			log_message(LOG_CONSOLE,
-                                   "Cannot connect to client, go back to FREE");
+                                _("Cannot connect to client, go back to FREE"));
 			
 			break;
 		
@@ -798,7 +799,7 @@ void list_connected_clients() {
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
 	
 	if ( resp != RESP_WHO ) {
-		flog_message(LOG_WARNING, "Unexpected server response: %s",
+		flog_message(LOG_WARNING, _("Unexpected server response: %s"),
                                                               magic_name(resp));
 		return;
 	}
@@ -809,7 +810,7 @@ void list_connected_clients() {
 	
 	oldprompt = console->prompt;
 	console->prompt = FALSE;
-	flog_message(LOG_CONSOLE, "There are %u connected clients:", count);
+	flog_message(LOG_CONSOLE, _("There are %u connected clients:"), count);
 	for (i = 0; i < count; i++) {
 		if ( recv(sock_server, &length, 1, 0) != 1 )
 			server_disconnected();
@@ -820,12 +821,12 @@ void list_connected_clients() {
 		buffer[length] = '\0';
 		
 		if ( strcmp(buffer, my_username) == 0 )
-			flog_message(LOG_CONSOLE, "[%s] **", buffer);
+			flog_message(LOG_CONSOLE, _("[%s] **"), buffer);
 		else
-			flog_message(LOG_CONSOLE, "[%s]", buffer);
+			flog_message(LOG_CONSOLE, _("[%s]"), buffer);
 	}
 	console->prompt = oldprompt;
-	log_message(LOG_CONSOLE, "** That's you!");
+	log_message(LOG_CONSOLE, _("** That's you!"));
 }
 
 void make_move(unsigned int cell, bool send_opp) {
@@ -835,29 +836,30 @@ void make_move(unsigned int cell, bool send_opp) {
 	update_hash(&grid);
 	winner = get_winner(&grid);
 	turn = inverse(turn);
-	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+	flog_message(LOG_DEBUG, _("Hash is %08x"), grid.hash);
 	
 	if ( send_opp ) {
 		pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
 		if ( send_buffer(opp_socket, buffer, 6) < 0 )
-			log_error("Error send()");
+			log_error(_("Error send()"));
 	}
 	
 	if ( winner == GAME_UNDEF ) {
 		if ( turn == player )
-			flog_message(LOG_CONSOLE, "Hit on cell %d. It's your turn.", cell);
+			flog_message(LOG_CONSOLE, _("Hit on cell %d. It's your turn."),
+                                                                          cell);
 		else
-			flog_message(LOG_CONSOLE, "Hit on cell %d. It's %s's turn.",
+			flog_message(LOG_CONSOLE, _("Hit on cell %d. It's %s's turn."),
                                                                   opp_username);
 		return;
 	}
 	
 	if ( winner == player )
-		flog_message(LOG_CONSOLE, "Hit on cell %d. You won!", cell);
+		flog_message(LOG_CONSOLE, _("Hit on cell %d. You won!"), cell);
 	else if ( winner == inverse(player) )
-		flog_message(LOG_CONSOLE, "Hit on cell %d. You lost!", cell);
+		flog_message(LOG_CONSOLE, _("Hit on cell %d. You lost!"), cell);
 	else if ( winner == GAME_DRAW )
-		flog_message(LOG_CONSOLE, "Hit on cell %d. Draw!", cell);
+		flog_message(LOG_CONSOLE, _("Hit on cell %d. Draw!"), cell);
 }
 
 void send_play_request() {
@@ -893,16 +895,16 @@ void start_match(char me) {
 	console->prompt = '#';
 	switch ( me ) {
 		case GAME_HOST:
-			flog_message(LOG_CONSOLE, "Match has started and it's %s's turn",
+			flog_message(LOG_CONSOLE, _("Match has started and it's %s's turn"),
                                                                   opp_username);
 			break;
 			
 		case GAME_GUEST:
-			log_message(LOG_CONSOLE, "Match has started and it's your turn");
+			log_message(LOG_CONSOLE, _("Match has started and it's your turn"));
 			break;
 			
 		default:
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, _("Unexpected event on line %d"), __LINE__);
 	}
 }
 
@@ -914,9 +916,9 @@ int poll_in(int socket, int timeout) {
 	poll_ret = poll(&pfd, 1, timeout);
 	
 	if ( poll_ret < 0 )
-		log_error("Error poll()");
+		log_error(_("Error poll()"));
 	else if ( poll_ret > 0 && pfd.revents != POLLIN )
-		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
+		flog_message(LOG_WARNING | LOG_ERROR, _("Unexpected event on line %d"),
                                                                       __LINE__);
 	return poll_ret;
 }

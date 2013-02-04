@@ -105,7 +105,7 @@ const char *client_sockaddr_p(struct client_node *client) {
 	
 	s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
 		INET_ADDRSTRLEN);
-	if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
+	if ( s == NULL ) log_message(LOG_DEBUG, _("Client has invalid address"));
 	sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
 		ntohs(client->addr.sin_port));
 	return client_repr_buffer;
@@ -121,7 +121,7 @@ const char *client_canon_p(struct client_node *client) {
 		case FREE:
 		case BUSY:
 		case PLAY:
-			sprintf(client_repr_buffer, "[%s]", client->username);
+			sprintf(client_repr_buffer, _("[%s]"), client->username);
 	}
 
 	return client_repr_buffer;
@@ -129,7 +129,7 @@ const char *client_canon_p(struct client_node *client) {
 
 int log_statechange(struct client_node *client) {
 	assert(client != NULL);
-	return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
+	return flog_message(LOG_DEBUG, _("%s is now %s"), client_canon_p(client),
                                                      state_name(client->state));
 	return 0;
 }

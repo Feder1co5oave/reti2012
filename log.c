@@ -43,8 +43,9 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 
 	/* We don't want log delimiters on the console */
 	if ( wrap && file != stdout && file != stderr ) {
+		char ts[] = TIMESTAMP_FORMAT "\0                                      ";
 		struct timeb elapsed = get_elapsed();
-		fprintf(file, TIMESTAMP_FORMAT "======== Opening logfile at %s",
+		fprintf(file, strcat(ts, _("======== Opening logfile at %s")),
                               (int) elapsed.time, elapsed.millitm, ctime(&now));
 		/* ctime() terminates with \n\0 */
 	}
@@ -84,10 +85,11 @@ struct log_file *close_log(struct log_file *logfile) {
 	lf = logfile->next;
 
 	if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
+		char ts[] = TIMESTAMP_FORMAT "\0                                      ";
 		time_t now = time(NULL);
 		struct timeb elapsed = get_elapsed();
-		fprintf(logfile->file,
-                           TIMESTAMP_FORMAT"======== Closing logfile at %s\n\n",
+		fprintf(logfile->file, 
+                            strcat(ts, _("======== Closing logfile at %s\n\n")),
                               (int) elapsed.time, elapsed.millitm, ctime(&now));
 	}
 
@@ -248,10 +250,10 @@ struct timeb get_elapsed() {
 
 void sig_handler(int signal) {
 	switch ( signal ) {
-		case SIGABRT: log_message(LOG_INFO_VERBOSE, "Received SIGABRT"); break;
-		case SIGINT:  log_message(LOG_INFO_VERBOSE, "Received SIGINT"); break;
-		case SIGTERM: log_message(LOG_INFO_VERBOSE, "Received SIGTERM"); break;
-		default: flog_message(LOG_INFO_VERBOSE, "Received signal %d", signal);
+		case SIGABRT: log_message(LOG_INFO_VERBOSE, _("Received SIGABRT")); break;
+		case SIGINT:  log_message(LOG_INFO_VERBOSE, _("Received SIGINT")); break;
+		case SIGTERM: log_message(LOG_INFO_VERBOSE, _("Received SIGTERM")); break;
+		default: flog_message(LOG_INFO_VERBOSE, _("Received signal %d"), signal);
 	}
 	
 	exit(EXIT_FAILURE);
