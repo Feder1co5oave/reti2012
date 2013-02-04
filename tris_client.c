@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/select.h>
+#include <sys/poll.h>
 #include <netdb.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -32,17 +33,18 @@
 /* ===[ Helpers ]============================================================ */
 
 bool connect_play_socket(void);
-void end_match(void);
+void end_match(bool send_opp);
 void free_shell(void);
 bool get_hello(void);
 void get_play_response(void);
-void got_hit(void);
+void got_hit_or_end(void);
 void got_play_request(void);
 void list_connected_clients(void);
 void login(void);
-void make_move(unsigned int cell);
+void make_move(unsigned int cell, bool send_opp);
 bool open_play_socket(void);
 void play_shell(void);
+int poll_in(int socket, int timeout);
 bool say_hello(void);
 void send_play_request(void);
 void server_disconnected(void);
@@ -69,7 +71,7 @@ char               opp_username[MAX_USERNAME_LENGTH + 1];
 int sock_server, error;
 
 struct tris_grid grid = TRIS_GRID_INIT;
-char player;
+char player, turn;
 
 
 
@@ -162,8 +164,11 @@ int main (int argc, char **argv) {
 			flog_message(LOG_DEBUG, _("Select() timed out while %s"),
                                                           state_name(my_state));
 			
-			if ( my_state == PLAY ) end_match();
-			else {
+			if ( my_state == PLAY ) {
+				log_message(LOG_INFO, "Time out: leaving game...");
+				/*FIXME if ( turn == player ) send REQ_END, don't otherwise */
+				end_match(TRUE);
+			} else {
 				_readfds = readfds;
 				_writefds = writefds;
 				_tv = tv;
@@ -190,28 +195,41 @@ int main (int argc, char **argv) {
 			
 			if ( recv(sock_server, &cmd, 1, 0) != 1 )
 				server_disconnected();
-						
-			if ( cmd == REQ_PLAY ) {
-					flog_message(LOG_DEBUG,
-                                         _("Got REQ_PLAY from server while %s"),
+			
+			switch ( cmd ) {
+				case REQ_PLAY:
+					flog_message(LOG_DEBUG, "Got REQ_PLAY from server while %s",
                                                           state_name(my_state));
 					
 					if ( my_state == FREE )
 						got_play_request();
 					else if ( send_byte(sock_server, RESP_REFUSE) < 0 )
 						server_disconnected();
-			} else {
-				flog_message(LOG_WARNING, _("Unexpected server cmd: %s"),
+					break;
+				
+				case RESP_OK_PLAY:
+					recv(sock_server, buffer, sizeof(struct in_addr) + 2, 0);
+					/*FIXME check return value */
+				case RESP_BUSY:
+				case RESP_NONEXIST:
+				case RESP_REFUSE:
+					flog_message(LOG_INFO_VERBOSE,
+                               "Got delayed play response=%s", magic_name(cmd));
+					break;
+				default:
+					flog_message(LOG_WARNING, "Unexpected server cmd: %s",
                                                                magic_name(cmd));
 				
-				if ( send_byte(sock_server, RESP_BADREQ) < 0 )
-					server_disconnected();
-				/*FIXME */
+					if ( cmd != RESP_BADREQ &&
+                                       send_byte(sock_server, RESP_BADREQ) < 0 )
+					
+						server_disconnected();
+					/*FIXME */
 			}
 			
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
 			
-			got_hit();
+			got_hit_or_end();
 			
 		} else {
 			/*FIXME */
@@ -344,26 +362,26 @@ bool connect_play_socket() {
 	return TRUE;
 }
 
-void end_match() {
+void end_match(bool send_opp) {
 	uint8_t resp;
 	
-	/*TODO send REQ_END to opp */
+	if ( send_opp && send_byte(opp_socket, REQ_END) < 0 )
+		log_error("Error send()");
 	
 	if ( send_byte(sock_server, REQ_END) < 0 ) server_disconnected();
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
-	if ( resp == RESP_OK_FREE ) {
-		log_message(LOG_CONSOLE, _("End of match. You are now free."));
-	} else {
-		flog_message(LOG_WARNING, _("Unexpected server response: %s"),
-                                                              magic_name(resp));
-	}
 	
 	my_state = FREE;
 	log_statechange();
 	console->prompt = '>';
-	log_prompt(console);
 	
-	unmonitor_socket_r(opp_socket);
+	if ( resp != RESP_OK_FREE )
+		flog_message(LOG_WARNING, "Unexpected server response: %s",
+                                                              magic_name(resp));
+	
+	log_message(LOG_CONSOLE, "End of match. You are now free.");
+	
+	if ( opp_socket > 0 ) unmonitor_socket_r(opp_socket);
 	opp_socket = -1;
 	memset(&opp_host, 0, sizeof(opp_host));
 	opp_username[0] = '\0';
@@ -469,11 +487,11 @@ void play_shell() {
 		
 	} else if ( strcmp(buffer, "end") == 0 ) { /* --------------------- > end */
 		
-		end_match();
+		end_match(TRUE);
 		
 	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
 		
-		/*TODO end_match(); */
+		end_match(TRUE);
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
@@ -483,12 +501,18 @@ void play_shell() {
 		unsigned int cell;
 		
 		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
+			
+			if ( turn != player ) {
+				log_message(LOG_CONSOLE, "It is not your turn");
+				return;
+			}
+			
 			if ( grid.cells[cell] != GAME_UNDEF ) {
 				log_message(LOG_CONSOLE, _("That cell is already taken"));
 				return;
 			}
 			
-			make_move(cell);
+			make_move(cell, TRUE);
 			
 		} else log_message(LOG_CONSOLE, _("Syntax: hit <n>, where n is 1-9"));
 		
@@ -498,7 +522,21 @@ void play_shell() {
 		console->prompt = FALSE;
 		log_multiline(LOG_CONSOLE, buffer);
 		console->prompt = '#';
-		log_prompt(console);
+		if ( turn == player ) log_message(LOG_CONSOLE, "It is your turn.");
+		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
+		
+	} else if ( strcmp(buffer, "cheat") == 0 ) { /* ----------------- > cheat */
+		
+		int move;
+		
+		if ( turn != player ) {
+			log_message(LOG_CONSOLE, "It is not your turn");
+			return;
+		}
+		
+		backtrack(&grid, player, &move);
+		flog_message(LOG_CONSOLE, "Hitting on cell %d...", move);
+		make_move(move, TRUE);
 		
 	} else if ( strcmp(buffer, "") == 0 ) { /* ---------------------------- > */
 		
@@ -534,43 +572,56 @@ bool say_hello() {
 	return TRUE;
 }
 
-void got_hit() {
+void got_hit_or_end() {
 	uint8_t byte, move;
 	uint32_t hash;
 	int received;
 	
 	received = recv(opp_socket, buffer, 6, 0);
-	flog_message(LOG_DEBUG, _("Received=%d on line %d"), received, __LINE__);
-	if ( received == 0 ) return;
-	if ( received != 6 ) log_error(_("Error recv()"));
-	
-	
-	/* if ( received == 0 ) return; */
+	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
+	if ( received == 0 ) return; /*FIXME inutile */
+	if ( received < 0 ) log_error("Error recv()");
 	
 	unpack(buffer, "bbl", &byte, &move, &hash);
 	
 	flog_message(LOG_DEBUG, _("Got %s from player"), magic_name(byte));
 	
 	if ( byte == REQ_HIT ) {
-		if ( move >= 1 && move <= 9 ) {
-			if ( grid.cells[move] == GAME_UNDEF ) {
-				
-				grid.cells[move] = inverse(player);
-				update_hash(&grid);
-				flog_message(LOG_DEBUG, _("Hash is %08x"), grid.hash);
-				
-				if ( grid.hash != hash ) {
-					log_message(LOG_ERROR, _("Hash mismatch"));
-				} else {
-					flog_message(LOG_INFO, _("[%s] hit on cell %d"),
-                                                            opp_username, move);
-				}
-				
-			} else flog_message(LOG_WARNING, _("Unexpected event on line %d"),
-                                                                      __LINE__);
-			
-		} else flog_message(LOG_WARNING, _("Unexpected event on line %d"),
-                                                                      __LINE__);
+		
+		if ( received != 6 ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( turn == player ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( move < 1 || move > 9 ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		if ( grid.cells[move] != GAME_UNDEF ) {
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			return;
+		}
+		
+		make_move(move, FALSE);
+		
+		if ( grid.hash != hash ) {
+			console->prompt = FALSE;
+			log_message(LOG_ERROR, "Hash mismatch");
+			if ( my_state == PLAY) end_match(FALSE); /*FIXME perché? */
+			/*TODO */
+		}
+		
+	} else if ( byte == REQ_END ) {
+		
+		console->prompt = FALSE;
+		log_message(LOG_INFO, "Your opponent surrendered: you win!");
+		end_match(FALSE);
 		
 	} else flog_message(LOG_WARNING, _("Unexpected event on line %d: byte=%s"),
                                                     __LINE__, magic_name(byte));
@@ -583,11 +634,13 @@ void got_play_request() {
 	my_state = BUSY;
 	
 	if ( recv(sock_server, &length, 1, 0) != 1 ) server_disconnected();
+	/*FIXME check length */
 	if ( recv(sock_server, buffer, length, 0) != length ) server_disconnected();
 	
 	buffer[length] = '\0';
+	strcpy(opp_username, buffer);
 	flog_message(LOG_INFO,
-           _("Got play request from [%s]. Accept (y) or refuse (n) ?"), buffer);
+        "Got play request from [%s]. Accept (y) or refuse (n) ?", opp_username);
 	
 	do {
 		line_length = get_line(buffer, BUFFER_SIZE);
@@ -602,17 +655,22 @@ void got_play_request() {
 				console->prompt = FALSE;
 				/*TODO */
 				log_message(LOG_CONSOLE,
-        _("Request accepted. Waiting for connection from the other client..."));
+		   "Request accepted. Waiting for connection from the other client...");
 				
-				if ( get_hello() && connect_play_socket() ) {
+				if ( get_hello() && connect_play_socket() )
 					start_match(GAME_GUEST);
-					return;
-				}
-			} /*TODO else */
-			
-			log_message(LOG_CONSOLE,
-                                _("Cannot connect to client, go back to FREE"));
-			my_state = FREE;
+				else
+					end_match(FALSE);
+				
+			} else {
+				if ( send_byte(sock_server, RESP_REFUSE) < 0 )
+					server_disconnected();
+				
+				log_message(LOG_CONSOLE,
+                               "Request automatically refused due to an error");
+				
+				my_state = FREE;
+			}
 			break;
 			
 		} else if ( strcmp(buffer, _("n")) == 0 ) {
@@ -637,6 +695,12 @@ bool get_hello() {
 	uint32_t salt;
 	int received;
 	socklen_t addrlen = sizeof(opp_host);
+	
+	if ( poll_in(opp_socket, HELLO_TIMEOUT) <= 0 ) {
+		log_message(LOG_CONSOLE,
+                  "Timeout while waiting for connection from the other client");
+		return FALSE;
+	}
 	
 	received = recvfrom(opp_socket, buffer, 5, 0, (struct sockaddr*) &opp_host,
                                                                       &addrlen);
@@ -664,7 +728,11 @@ void get_play_response() {
 	uint16_t opp_udp_port;
 	int received;
 	
-	/*TODO set timeout */
+	if ( poll_in(sock_server, PLAY_RESPONSE_TIMEOUT) <= 0 ) {
+		log_message(LOG_CONSOLE, "Timeout while waiting for play response");
+		end_match(FALSE);
+		return;
+	}
 	
 	if ( recv(sock_server, &resp, 1, 0) != 1 )
 		server_disconnected();
@@ -688,8 +756,11 @@ void get_play_response() {
 			if ( open_play_socket() && connect_play_socket() && say_hello() ) {
 				start_match(GAME_HOST);
 				return;
-			} else log_message(LOG_CONSOLE,
-                                _("Cannot connect to client, go back to FREE"));
+			}
+			
+			end_match(FALSE);
+			log_message(LOG_CONSOLE,
+                                   "Cannot connect to client, go back to FREE");
 			
 			break;
 		
@@ -726,42 +797,67 @@ void list_connected_clients() {
 	if ( send_byte(sock_server, REQ_WHO) < 0 ) server_disconnected();
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
 	
-	switch ( resp ) {
-		case RESP_WHO:
-			if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
-			unpack(buffer, "l", &count);
-			if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
-			
-			oldprompt = console->prompt;
-			console->prompt = FALSE;
-			flog_message(LOG_CONSOLE, _("There are %u connected clients"),
-                                                                         count);
-			for (i = 0; i < count; i++) {
-				if ( recv(sock_server, &length, 1, 0) != 1 )
-					server_disconnected();
-				
-				if ( recv(sock_server, buffer, length, 0) != length )
-					server_disconnected();
-				
-				buffer[length] = '\0';
-				flog_message(LOG_CONSOLE, _("[%s]"), buffer);
-			}
-			console->prompt = oldprompt;
-			log_prompt(console);
-			break;
-		
-		default:
-			flog_message(LOG_WARNING, _("Unexpected server response: %s"),
+	if ( resp != RESP_WHO ) {
+		flog_message(LOG_WARNING, "Unexpected server response: %s",
                                                               magic_name(resp));
+		return;
 	}
+	
+	if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
+	unpack(buffer, "l", &count);
+	if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
+	
+	oldprompt = console->prompt;
+	console->prompt = FALSE;
+	flog_message(LOG_CONSOLE, "There are %u connected clients:", count);
+	for (i = 0; i < count; i++) {
+		if ( recv(sock_server, &length, 1, 0) != 1 )
+			server_disconnected();
+		
+		if ( recv(sock_server, buffer, length, 0) != length )
+			server_disconnected();
+		
+		buffer[length] = '\0';
+		
+		if ( strcmp(buffer, my_username) == 0 )
+			flog_message(LOG_CONSOLE, "[%s] **", buffer);
+		else
+			flog_message(LOG_CONSOLE, "[%s]", buffer);
+	}
+	console->prompt = oldprompt;
+	log_message(LOG_CONSOLE, "** That's you!");
 }
 
-void make_move(unsigned int cell) {
-	grid.cells[cell] = player;
+void make_move(unsigned int cell, bool send_opp) {
+	char winner;
+	
+	grid.cells[cell] = turn;
 	update_hash(&grid);
-	pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
-	if ( send_buffer(opp_socket, buffer, 6) < 0 )
-		log_error(_("Error send()"));
+	winner = get_winner(&grid);
+	turn = inverse(turn);
+	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+	
+	if ( send_opp ) {
+		pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
+		if ( send_buffer(opp_socket, buffer, 6) < 0 )
+			log_error("Error send()");
+	}
+	
+	if ( winner == GAME_UNDEF ) {
+		if ( turn == player )
+			flog_message(LOG_CONSOLE, "Hit on cell %d. It's your turn.", cell);
+		else
+			flog_message(LOG_CONSOLE, "Hit on cell %d. It's %s's turn.",
+                                                                  opp_username);
+		return;
+	}
+	
+	if ( winner == player )
+		flog_message(LOG_CONSOLE, "Hit on cell %d. You won!", cell);
+	else if ( winner == inverse(player) )
+		flog_message(LOG_CONSOLE, "Hit on cell %d. You lost!", cell);
+	else if ( winner == GAME_DRAW )
+		flog_message(LOG_CONSOLE, "Hit on cell %d. Draw!", cell);
 }
 
 void send_play_request() {
@@ -789,9 +885,38 @@ void server_disconnected() {
 
 void start_match(char me) {
 	my_state = PLAY;
-	console->prompt = '#';
-	log_prompt(console);
+	log_statechange();
 	player = me;
+	turn = GAME_GUEST;
 	monitor_socket_r(opp_socket);
-	/*TODO */
+	
+	console->prompt = '#';
+	switch ( me ) {
+		case GAME_HOST:
+			flog_message(LOG_CONSOLE, "Match has started and it's %s's turn",
+                                                                  opp_username);
+			break;
+			
+		case GAME_GUEST:
+			log_message(LOG_CONSOLE, "Match has started and it's your turn");
+			break;
+			
+		default:
+			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+	}
+}
+
+int poll_in(int socket, int timeout) {
+	int poll_ret;
+	struct pollfd pfd = {0, POLLIN, 0};
+	pfd.fd = socket;
+	
+	poll_ret = poll(&pfd, 1, timeout);
+	
+	if ( poll_ret < 0 )
+		log_error("Error poll()");
+	else if ( poll_ret > 0 && pfd.revents != POLLIN )
+		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
+                                                                      __LINE__);
+	return poll_ret;
 }

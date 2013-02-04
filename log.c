@@ -1,6 +1,7 @@
 #include "log.h"
 #include "set_handler.h"
 #include <time.h>
+#include <assert.h>
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
@@ -12,6 +13,8 @@ struct timeb start = {0, 0, 0, 0};
 char stamp[10];
 
 void sig_handler(int signal);
+loglevel_t priority_encoder(loglevel_t level);
+struct timeb get_elapsed(void);
 
 struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 	FILE *file = fopen(filename, "ab");
@@ -19,12 +22,16 @@ struct log_file *open_log(const char* filename, loglevel_t maxlevel) {
 		perror(_("Error fopen()"));
 		exit(EXIT_FAILURE);
 	}
+	
 	return new_log(file, maxlevel, TRUE); /* wrapped */
 }
 
 struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	time_t now = time(NULL);
 	struct log_file *new = malloc(sizeof(struct log_file));
+	
+	assert(file != NULL);
+	
 	check_alloc(new);
 	new->file = file;
 	new->maxlevel = maxlevel;
@@ -35,9 +42,12 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	if ( start.time == 0 ) ftime(&start);
 
 	/* We don't want log delimiters on the console */
-	if ( wrap && file != stdout && file != stderr )
-		fprintf(file, _("======== Opening logfile at %s"), ctime(&now));
+	if ( wrap && file != stdout && file != stderr ) {
+		struct timeb elapsed = get_elapsed();
+		fprintf(file, TIMESTAMP_FORMAT "======== Opening logfile at %s",
+                              (int) elapsed.time, elapsed.millitm, ctime(&now));
 		/* ctime() terminates with \n\0 */
+	}
 
 	if ( log_files != NULL ) {
 		struct log_file *ptr = log_files;
@@ -48,8 +58,9 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		/* close logs on process termination */
 		atexit(close_logs);
 		
-		if ( set_handler(SIGTERM, sig_handler) != 0 || set_handler(SIGINT,
-                                                             sig_handler) != 0 )
+		if ( set_handler(SIGABRT, sig_handler) != 0 ||
+		     set_handler(SIGINT,  sig_handler) != 0 ||
+		     set_handler(SIGTERM, sig_handler) != 0 )
 			
 			log_error(_("Error sigaction()"));
 	}
@@ -59,34 +70,37 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 
 struct log_file *close_log(struct log_file *logfile) {
 	struct log_file *lf = NULL;
-	if ( logfile != NULL ) {
-		if ( logfile == log_files ) {
-			log_files = logfile->next;
-		} else {
-			lf = log_files;
-			while ( lf != NULL && lf->next != logfile ) lf = lf->next;
-			if ( lf != NULL ) lf->next = logfile->next;
-		}
-
-		lf = logfile->next;
-
-		if ( logfile->wrap && logfile->file != stdout && logfile->file !=
-                                                                      stderr ) {
-			
-			time_t now = time(NULL);
-			fprintf(logfile->file, _("======== Closing logfile at %s\n\n"),
-				ctime(&now));
-		}
-
-		if ( logfile->prompt ) fputs("\n", logfile->file);
-
-		fflush(logfile->file);
-		/* prevent stdout/stderr from being fclose()d */
-		if ( logfile->file != stdout && logfile->file != stderr )
-			fclose(logfile->file);
-
-		free(logfile);
+	
+	assert(logfile != NULL);
+	
+	if ( logfile == log_files ) {
+		log_files = logfile->next;
+	} else {
+		lf = log_files;
+		while ( lf != NULL && lf->next != logfile ) lf = lf->next;
+		if ( lf != NULL ) lf->next = logfile->next;
 	}
+
+	lf = logfile->next;
+
+	if ( logfile->wrap && logfile->file != stdout && logfile->file != stderr ) {
+		time_t now = time(NULL);
+		struct timeb elapsed = get_elapsed();
+		fprintf(logfile->file,
+                           TIMESTAMP_FORMAT"======== Closing logfile at %s\n\n",
+                              (int) elapsed.time, elapsed.millitm, ctime(&now));
+	}
+
+	if ( logfile->prompt ) fputs("\n", logfile->file);
+
+	fflush(logfile->file);
+	
+	/* prevent stdout/stderr from being fclose()d */
+	if ( logfile->file != stdout && logfile->file != stderr )
+		fclose(logfile->file);
+
+	free(logfile);
+	
 	return lf;
 }
 
@@ -98,6 +112,9 @@ void close_logs() {
 int log_message(loglevel_t level, const char *message) {
 	struct log_file *lf;
 	int count = 0;
+	
+	assert(message != NULL);
+	
 	for ( lf = log_files; lf != NULL; lf = lf->next ) {
 		if ( level & lf->maxlevel ) {
 			char *pre, *mark, *post = "";
@@ -113,17 +130,11 @@ int log_message(loglevel_t level, const char *message) {
 			
 
 			if ( lf->wrap ) {
-				struct timeb now;
+				struct timeb elapsed = get_elapsed();
+				sprintf(stamp, TIMESTAMP_FORMAT, (int) elapsed.time,
+                                                               elapsed.millitm);
 				
-				ftime(&now);
-				now.time -= start.time;
-				if ( now.millitm >= start.millitm ) {
-					now.millitm -= start.millitm;
-				} else {
-					now.time--;
-					now.millitm = start.millitm - now.millitm;
-				}
-				sprintf(stamp, "%5d.%03hd ", (int) now.time, now.millitm);
+				level = priority_encoder(level & lf->maxlevel);
 				
 				switch ( level ) {
 					case LOG_DEBUG:
@@ -172,6 +183,9 @@ int log_multiline(loglevel_t level, const char *message) {
 	char *split, *start, *end;
 	int count;
 	
+	assert(message != NULL);
+	assert(strlen(message) > 0);
+	
 	split = malloc(strlen(message));
 	check_alloc(split);
 	strcpy(split, message);
@@ -188,10 +202,13 @@ int log_multiline(loglevel_t level, const char *message) {
 	return count;
 }
 
-int flog_message(loglevel_t level, const char* format, ...) {
+int flog_message(loglevel_t level, const char *format, ...) {
 	va_list args;
 	int count;
 	char *message = malloc(BUFFER_SIZE);
+	
+	assert(format != NULL);
+	
 	check_alloc(message);
 	va_start(args, format);
 	vsprintf(message, format, args);
@@ -206,6 +223,8 @@ int log_error(const char *message) {
 }
 
 int log_prompt(struct log_file *logfile) {
+	assert(logfile != NULL);
+	
 	if ( logfile->prompt ) {
 		fprintf(logfile->file, "%c ", logfile->prompt);
 		fflush(logfile->file);
@@ -214,12 +233,39 @@ int log_prompt(struct log_file *logfile) {
 	return 0;
 }
 
+struct timeb get_elapsed() {
+	struct timeb now;
+	ftime(&now);
+	now.time -= start.time;
+	if ( now.millitm >= start.millitm ) {
+		now.millitm -= start.millitm;
+	} else {
+		now.time--;
+		now.millitm = start.millitm - now.millitm;
+	}
+	return now;
+}
+
 void sig_handler(int signal) {
 	switch ( signal ) {
-		case SIGTERM: log_message(LOG_INFO_VERBOSE, _("Received SIGTERM")); break;
-		case SIGINT:  log_message(LOG_INFO_VERBOSE, _("Received SIGINT")); break;
-		default: flog_message(LOG_INFO_VERBOSE, _("Received signal %d"), signal);
+		case SIGABRT: log_message(LOG_INFO_VERBOSE, "Received SIGABRT"); break;
+		case SIGINT:  log_message(LOG_INFO_VERBOSE, "Received SIGINT"); break;
+		case SIGTERM: log_message(LOG_INFO_VERBOSE, "Received SIGTERM"); break;
+		default: flog_message(LOG_INFO_VERBOSE, "Received signal %d", signal);
 	}
 	
 	exit(EXIT_FAILURE);
+}
+
+loglevel_t priority_encoder(loglevel_t level) {
+	loglevel_t mask = 1 << (8 * sizeof(loglevel_t) - 1);
+	
+	if ( level == 0 ) return level;
+	
+	while ( (level & (~mask)) > 1 ) {
+		level &= ~mask;
+		mask >>= 1;
+	}
+	
+	return level;
 }

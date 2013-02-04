@@ -13,7 +13,7 @@ int pack(void *buffer, const char *format, ...) {
 
 	va_start(args, format);
 	
-	for (; *format != '\0'; format++) {
+	for ( ; *format != '\0'; format++ ) {
 		switch (*format) {
 			case 'b':
 				*buff = (uint8_t) va_arg(args, int);
@@ -58,8 +58,8 @@ void unpack(const void *buffer, const char *format, ...) {
 	
 	va_start(args, format);
 	
-	for (; *format != '\0'; format++) {
-		switch (*format) {
+	for ( ; *format != '\0'; format++ ) {
+		switch ( *format ) {
 			case 'b':
 				*(va_arg(args, uint8_t*)) = *buff;
 				buff++;

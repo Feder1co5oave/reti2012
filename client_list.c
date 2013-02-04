@@ -1,6 +1,7 @@
 #include "client_list.h"
 #include "log.h"
 
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,7 +27,11 @@ struct client_node *create_client_node() {
 }
 
 struct client_node *destroy_client_node(struct client_node *cn) {
-	struct client_node *ret = cn->next;
+	struct client_node *ret;
+	
+	assert(cn != NULL);
+	
+	ret = cn->next;
 	if ( cn->data != NULL ) free(cn->data);
 	free(cn);
 	return ret;
@@ -39,6 +44,7 @@ void destroy_client_list(struct client_node *cn) {
 
 
 void add_client_node(struct client_node *cn) {
+	assert(cn != NULL);
 	if ( client_list.tail == NULL ) {
 		client_list.head = client_list.tail = cn;
 	} else {
@@ -52,6 +58,8 @@ void add_client_node(struct client_node *cn) {
 struct client_node *remove_client_node(struct client_node *cn) {
 	struct client_node *ptr;
 	
+	assert(cn != NULL);
+	
 	if ( client_list.head == cn ) client_list.head = cn->next;
 	ptr = client_list.head;
 	while ( ptr != NULL && ptr->next != cn ) ptr = ptr->next;
@@ -63,15 +71,17 @@ struct client_node *remove_client_node(struct client_node *cn) {
 
 struct client_node *get_client_by_socket(int socket) {
 	struct client_node *nc = client_list.head;
-	while ( nc && nc->socket != socket ) nc = nc->next;
+	while ( nc != NULL && nc->socket != socket ) nc = nc->next;
 	return nc;
 }
 
 struct client_node *get_client_by_username(const char *username) {
 	struct client_node *nc = client_list.head;
 	while ( nc &&
-		(strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
+               (strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
+		
 		nc = nc->next;
+	
 	return nc;
 }
 
@@ -89,40 +99,37 @@ struct client_node *get_client_by_username(const char *username) {
 char client_repr_buffer[CLIENT_REPR_SIZE];
 
 const char *client_sockaddr_p(struct client_node *client) {
-	if ( client != NULL ) {
-		const char *s;
-		s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
-			INET_ADDRSTRLEN);
-		if ( s == NULL ) log_message(LOG_DEBUG, _("Client has invalid address"));
-		sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
-			ntohs(client->addr.sin_port));
-		return client_repr_buffer;
-	} else return NULL;
+	const char *s;
+	
+	assert(client != NULL);
+	
+	s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
+		INET_ADDRSTRLEN);
+	if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
+	sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
+		ntohs(client->addr.sin_port));
+	return client_repr_buffer;
 }
 
 const char *client_canon_p(struct client_node *client) {
-	if ( client != NULL ) {
-		switch ( client->state ) {
-			case NONE:
-			case CONNECTED:
-				return client_sockaddr_p(client);
-			case FREE:
-			case BUSY:
-			case PLAY:
-				sprintf(client_repr_buffer, _("[%s]"), client->username);
-		}
-
-		return client_repr_buffer;
-	} else {
-		return NULL;
+	assert(client != NULL);
+	
+	switch ( client->state ) {
+		case NONE:
+		case CONNECTED:
+			return client_sockaddr_p(client);
+		case FREE:
+		case BUSY:
+		case PLAY:
+			sprintf(client_repr_buffer, "[%s]", client->username);
 	}
+
+	return client_repr_buffer;
 }
 
 int log_statechange(struct client_node *client) {
-	if ( client != NULL )
-		return flog_message(LOG_DEBUG, _("%s is now %s"), client_canon_p(client),
+	assert(client != NULL);
+	return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
                                                      state_name(client->state));
-	
-	log_message(LOG_WARNING, _("Client is NULL in log_statechange"));
 	return 0;
 }

@@ -43,6 +43,12 @@ struct log_file {
 
 
 
+/* ===[ Constants ] ========================================================= */
+
+#define TIMESTAMP_FORMAT "%5d.%03hd "
+
+
+
 /* ===[ Data ]=============================================================== */
 
 /**
@@ -100,7 +106,8 @@ void close_logs(void);
  * @param loglevel_t level the log level of the message, normally one of the
  * LOG_* constants, except LOG_ALL. OR-ing multiple LOG_* will cause the message
  * to be printed on all log_files associated with at least one of the OR-ed
- * levels, but to show marked as '((UNDEFINED))' on wrapped log_files.
+ * levels and to show as marked with the *smallest* log_level among the matching
+ * ones.
  * @param const char *message the string to be logged, preferably without any
  * trailing space
  * @return int the number of open log_files with matching level

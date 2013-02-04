@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -pedantic -ansi -MMD
+CFLAGS = -Wall -Wextra -pedantic -ansi -MMD -DNDEBUG
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o
@@ -13,7 +13,7 @@ LOCALE = it
 all : $(EXEs) locale/$(LOCALE)/LC_MESSAGES/tris.mo
 
 -include *.d
-	
+
 tris_server : $(COMMONOBJs) $(SOBJs)
 
 tris_client : $(COMMONOBJs) $(COBJs)
@@ -21,7 +21,7 @@ tris_client : $(COMMONOBJs) $(COBJs)
 log.o : set_handler.o
 
 set_handler.o :
-	$(CC) -Wall -Wextra -pedantic       -MMD   -c -o set_handler.o set_handler.c
+	$(CC) -Wall -Wextra -pedantic       -MMD            -c -o set_handler.o set_handler.c
 
 tris.pot : *.c *.h
 	xgettext -k_ -d tris --from-code=UTF-8 --no-location -s -o tris.pot $^
