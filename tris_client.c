@@ -838,7 +838,7 @@ void make_move(unsigned int cell, bool send_opp) {
 		if ( turn == player )
 			flog_message(LOG_CONSOLE, "Hit on cell %d. It's your turn.", cell);
 		else
-			flog_message(LOG_CONSOLE, "Hit on cell %d. It's %s's turn.",
+			flog_message(LOG_CONSOLE, "Hit on cell %d. It's %s's turn.", cell,
                                                                   opp_username);
 		return;
 	}
