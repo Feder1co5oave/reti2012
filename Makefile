@@ -20,7 +20,7 @@ tris_client : $(COMMONOBJs) $(COBJs)
 log.o : set_handler.o
 
 set_handler.o :
-	$(CC) -Wall -Wextra -pedantic       -MMD            -c -o set_handler.o set_handler.c
+	$(CC) -Wall -Wextra -pedantic       -MMD -NDEBUG    -c -o set_handler.o set_handler.c
 
 clean :
 	- rm $(OBJs) $(EXEs) *.log *.d
