@@ -8,8 +8,8 @@
 
 /* ===[ Constants ]========================================================== */
 
-#define GAME_HOST  'X'
-#define GAME_GUEST 'O'
+#define GAME_HOST  'O'
+#define GAME_GUEST 'X'
 #define GAME_DRAW  'D'
 #define GAME_UNDEF ' '
 
