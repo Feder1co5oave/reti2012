@@ -150,6 +150,9 @@ struct client_node *get_zombie(struct client_node *cn) {
 	check_alloc(cz);
 	
 	memcpy(cz, cn, sizeof(struct client_zombie));
+	/*FIXME string overflow */
+	strcat(cz->username, "(Z)");
+	cz->username_len += 3;
 	cz->state = ZOMBIE;
 	
 	return (struct client_node*) cz;

@@ -418,17 +418,29 @@ void idle_play(struct client_node *client) {
 			break;
 		
 		case REQ_END:
+		/*TODO create end_match() */
 			if ( client->play_with != NULL ) {
+				struct client_node *opp = client->play_with;
 				flog_message(LOG_INFO, "[%s] stopped playing with [%s]",
-                                 client->username, client->play_with->username);
-			
-				client->play_with->play_with = NULL;
+                                               client->username, opp->username);
+				
+				if ( opp->state == ZOMBIE ) free(opp);
+				else opp->play_with = get_zombie(client);
 				client->play_with = NULL;
 			} else if ( client->req_to != NULL ) {
+				/*FIXME Events:
+					- client send REQ_PLAY to opp
+					- server send REQ_PLAY to opp
+					- opp send RESP_OK_PLAY to server (client becomes PLAY but
+					  play_with is significant, not req_to!!
+					- client send REQ_END to server (cancel request) */
 				/* cancel_request() */
+				struct client_node *opp = client->req_to;
 				flog_message(LOG_INFO, "[%s] cancelled playing with [%s]",
-                                    client->username, client->req_to->username);
-				client->req_to->req_from = NULL;
+                                               client->username, opp->username);
+				
+				if ( opp->state == ZOMBIE ) free(opp);
+				else opp->req_from = get_zombie(client);
 				client->req_to = NULL;
 			} else
 				flog_message(LOG_INFO,
@@ -466,9 +478,12 @@ void cancel_request(struct client_node *client) {
 	
 	if ( cmd == REQ_END ) {
 		if ( client->req_to != NULL ) {
+			struct client_node *opp = client->req_to;
 			flog_message(LOG_INFO, "[%s] cancelled playing with [%s]",
-                                    client->username, client->req_to->username);
-			client->req_to->req_from = get_zombie(client);
+                                               client->username, opp->username);
+			
+			if ( opp->state == ZOMBIE ) free(opp);
+			else opp->req_from = get_zombie(client);
 			client->req_to = NULL;
 		}
 		client->state = FREE;
@@ -487,11 +502,14 @@ void client_disconnected(struct client_node *client) {
 			opp = client->req_from;
 			flog_message(LOG_INFO_VERBOSE, "[%s] had a play request from [%s]",
                                                client->username, opp->username);
-				
-			prepare_byte(opp, RESP_NONEXIST);
-			opp->req_to = NULL;
-			opp->state = FREE;
-			log_statechange(opp);
+			
+			if ( opp->state == ZOMBIE ) free(opp);
+			else {
+				prepare_byte(opp, RESP_NONEXIST);
+				opp->req_to = get_zombie(client);
+				opp->state = FREE;
+				log_statechange(opp);
+			}
 		} else if ( client->req_to != NULL ) {
 			opp = client->req_to;
 			flog_message(LOG_INFO_VERBOSE,
@@ -499,14 +517,17 @@ void client_disconnected(struct client_node *client) {
                                                                  opp->username);
 			
 			/* opp->state == BUSY || opp->state == PLAY */
-			opp->req_from = NULL;
-			/* opp->read_dispatch = &idle_free; */
-			unmonitor_socket_w(opp->socket);
-			monitor_socket_r(opp->socket); /*FIXME inutile? */
+			if ( opp->state == ZOMBIE ) free(opp);
+			else {
+				opp->req_from = get_zombie(client);
+				unmonitor_socket_w(opp->socket);
+				monitor_socket_r(opp->socket); /*FIXME inutile? */
+			}
 		} else {
 			/* in case client->req_from or req_to are set to NULL by
 			cancel_request() or idle_play() */
 			/*TODO use a better log message */
+			/*FIXME should never be executed */
 			flog_message(LOG_INFO_VERBOSE,
                            "[%s] had a play request with a disconnected client",
                                               client_canon_p(client), __LINE__);
@@ -517,8 +538,10 @@ void client_disconnected(struct client_node *client) {
 			flog_message(LOG_INFO_VERBOSE, "[%s] was playing with [%s]",
                                                client->username, opp->username);
 			
-			opp->play_with = NULL;
+			if ( opp->state == ZOMBIE ) free(opp);
+			else opp->play_with = get_zombie(client);
 		} else {
+			/*FIXME should never be executed */
 			flog_message(LOG_INFO_VERBOSE, "[%s] was playing with [[unknown]]",
                                                               client->username);
 		}
@@ -797,7 +820,7 @@ void get_play_resp(struct client_node *client) {
 			flog_message(LOG_INFO, "[%s] accepted to play with [%s]",
                                                client->username, opp->username);
 			
-			prepare_client_contact(opp, client);
+			if ( opp->state != ZOMBIE ) prepare_client_contact(opp, client);
 		}
 		
 		start_match(client, opp);
@@ -817,10 +840,13 @@ void get_play_resp(struct client_node *client) {
 			flog_message(LOG_INFO, "[%s] refused to play with [%s]",
                                                client->username, opp->username);
 			
-			prepare_byte(opp, RESP_REFUSE);
-			opp->state = FREE;
-			opp->req_to = NULL;
-			log_statechange(opp);
+			if ( opp->state == ZOMBIE ) free(opp);
+			else {
+				prepare_byte(opp, RESP_REFUSE);
+				opp->state = FREE;
+				opp->req_to = NULL;
+				log_statechange(opp);
+			}
 		}
 		client->state = FREE;
 		client->req_from = NULL;
@@ -831,14 +857,14 @@ void get_play_resp(struct client_node *client) {
 
 void start_match(struct client_node *a, struct client_node *b) {
 	/* Symmetric */
-	if ( a != NULL ) {
+	if ( a != NULL && a->state != ZOMBIE ) {
 		a->state = PLAY;
 		a->play_with = b;
 		a->req_from = a->req_to = NULL;
 		a->read_dispatch = &idle_play;
 		log_statechange(a);
 	}
-	if ( b != NULL ) {
+	if ( b != NULL && b->state != ZOMBIE ) {
 		b->state = PLAY;
 		b->play_with = a;
 		b->req_from = b->req_to = NULL;

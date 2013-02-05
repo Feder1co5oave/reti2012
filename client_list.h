@@ -15,11 +15,11 @@
 struct client_node {
 	uint8_t username_len;
 	char username[MAX_USERNAME_LENGTH + 1];
-	int socket;
 	enum client_state state;
 	struct sockaddr_in addr;
 	uint16_t udp_port;
 	uint8_t byte_resp;
+	int socket;
 	struct client_node *next, *req_to, *req_from, *play_with;
 	char *data;
 	int data_count, data_cursor;

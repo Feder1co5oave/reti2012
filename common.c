@@ -54,6 +54,7 @@ const char *state_name(enum client_state state) {
 		case FREE:      return "FREE";
 		case BUSY:      return "BUSY";
 		case PLAY:      return "PLAY";
+		case ZOMBIE:    return "ZOMBIE";
 	}
 	
 	assert(FALSE);
