@@ -431,8 +431,7 @@ void idle_play(struct client_node *client) {
 				client->req_to->req_from = NULL;
 				client->req_to = NULL;
 			} else
-				flog_message(LOG_INFO,
-                              "[%s] stopped playing with a disconnected client",
+				flog_message(LOG_INFO, "[%s] stopped playing",
                                                               client->username);
 			
 			client->state = FREE;
@@ -507,8 +506,7 @@ void client_disconnected(struct client_node *client) {
 			/* in case client->req_from or req_to are set to NULL by
 			cancel_request() or idle_play() */
 			/*TODO use a better log message */
-			flog_message(LOG_INFO_VERBOSE,
-                           "[%s] had a play request with a disconnected client",
+			flog_message(LOG_INFO_VERBOSE, "[%s] had a play request",
                                               client_canon_p(client), __LINE__);
 		}
 	} else if ( client->state == PLAY ) {
@@ -789,9 +787,9 @@ void get_play_resp(struct client_node *client) {
 			/* opp si è disconnesso prima che client rispondesse. Facciamo
 			comunque finta che sia ancora collegato, perché non c'è modo di
 			comunicarlo a client */
-			flog_message(LOG_INFO_VERBOSE,
-                             "[%s] accepted to play with a disconnected client",
+			flog_message(LOG_INFO_VERBOSE, "[%s] accepted to play",
                                                               client->username);
+			
 			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, "[%s] accepted to play with [%s]",
@@ -809,9 +807,9 @@ void get_play_resp(struct client_node *client) {
                                       magic_name(resp), client_canon_p(client));
 		
 		if ( opp == NULL ) {
-			flog_message(LOG_INFO_VERBOSE,
-                              "[%s] refused to play with a disconnected client",
+			flog_message(LOG_INFO_VERBOSE, "[%s] refused to play",
                                                               client->username);
+			
 			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, "[%s] refused to play with [%s]",
@@ -851,12 +849,10 @@ void start_match(struct client_node *a, struct client_node *b) {
                                                                    b->username);
 	
 	else if ( a != NULL )
-		flog_message(LOG_INFO_VERBOSE,
-                     "[%s] is playing with a disconnected client", a->username);
+		flog_message(LOG_INFO_VERBOSE, "[%s] is playing", a->username);
 	
 	else if ( b != NULL )
-		flog_message(LOG_INFO_VERBOSE,
-                     "[%s] is playing with a disconnected client", b->username);
+		flog_message(LOG_INFO_VERBOSE, "[%s] is playing", b->username);
 	
 	else
 		flog_message(LOG_WARNING,
