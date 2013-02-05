@@ -102,7 +102,8 @@ int main (int argc, char **argv) {
 	}
 	
 	server_host.sin_family = AF_INET;
-	server_host.sin_port = htons((uint16_t) atoi(argv[2])); /*FIXME check cast */
+	server_host.sin_port = htons((uint16_t) atoi(argv[2]));
+	/*FIXME check cast */
 	memset(server_host.sin_zero, 0, sizeof(server_host.sin_zero));
 
 	sock_server = socket(server_host.sin_family, SOCK_STREAM , 0);
@@ -145,7 +146,8 @@ int main (int argc, char **argv) {
 	_tv = tv;
 	
 	
-	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &_tv)) >= 0 ) {
+	while ( (sel_status = select(maxfds + 1, &_readfds, &_writefds, NULL, &_tv))
+                                                                        >= 0 ) {
 		
 		if ( sel_status == 0 ) {
 			flog_message(LOG_DEBUG, "Select() timed out while %s",
@@ -153,8 +155,7 @@ int main (int argc, char **argv) {
 			
 			if ( my_state == PLAY ) {
 				log_message(LOG_INFO, "Time out: leaving game...");
-				/*FIXME if ( turn == player ) send REQ_END, don't otherwise */
-				end_match(TRUE);
+				end_match(FALSE);
 			} else {
 				_readfds = readfds;
 				_writefds = writefds;
@@ -305,7 +306,8 @@ void free_shell() {
 		
 	} else {
 		
-		log_message(LOG_CONSOLE, "Unknown command");
+		log_message(LOG_CONSOLE,
+                         "Unknown command. Type 'help' for a list of commands");
 		
 	}
 }
@@ -434,14 +436,19 @@ void login() {
 				my_state = FREE;
 				flog_message(LOG_CONSOLE, "Successfully logged in as [%s]",
                                                                    my_username);
+				
+				flog_message(LOG_INFO_VERBOSE, "UDP port is %hu",
+                                                       ntohs(my_host.sin_port));
 				break;
 			
 			case RESP_EXIST:
-				log_message(LOG_CONSOLE, "This username is taken");
+				log_message(LOG_CONSOLE | LOG_WARNING,
+                                                      "This username is taken");
 				break;
 			
 			case RESP_BADUSR:
-				log_message(LOG_CONSOLE, "This username is badly formatted");
+				log_message(LOG_CONSOLE | LOG_WARNING,
+                                            "This username is badly formatted");
 				break;
 			
 			default:
@@ -527,7 +534,8 @@ void play_shell() {
 		
 	} else {
 		
-		log_message(LOG_CONSOLE, "Unknown command");
+		log_message(LOG_CONSOLE,
+                           "Unknown command. Type 'help' for list of commands");
 		
 	}
 }
