@@ -26,13 +26,13 @@
                     flog_message(LOG_DEBUG, "I am now %s", state_name(my_state))
 
 #define print_ip(host) \
-        inet_ntop(AF_INET, &(host.sin_addr), buffer, sizeof(struct sockaddr_in))
+        inet_ntop(AF_INET, &((host).sin_addr), buffer, sizeof(struct sockaddr_in))
 
 
 
 /* ===[ Helpers ]============================================================ */
 
-bool connect_play_socket(void);
+bool connect_play_socket(struct sockaddr_in *host);
 void end_match(bool send_opp);
 void free_shell(void);
 bool get_hello(void);
@@ -313,8 +313,7 @@ void free_shell() {
 }
 
 bool open_play_socket() {
-	opp_host.sin_family = AF_INET;
-	opp_socket = socket(opp_host.sin_family, SOCK_DGRAM, 0);
+	opp_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if ( opp_socket == -1 ) {
 		log_error("Error socket(SOCK_DGRAM)");
 		return FALSE;
@@ -325,6 +324,7 @@ bool open_play_socket() {
 	if ( bind(opp_socket, (struct sockaddr*) &my_host, sizeof(my_host)) != 0 ) {
 		
 		log_error("Error bind(SOCK_DGRAM)");
+		close(opp_socket);
 		opp_socket = -1;
 		return FALSE;
 	}
@@ -336,17 +336,15 @@ bool open_play_socket() {
 	return TRUE;
 }
 
-bool connect_play_socket() {
-	if ( connect(opp_socket, (struct sockaddr*) &opp_host, sizeof(opp_host)) !=
-                                                                           0 ) {
+bool connect_play_socket(struct sockaddr_in *host) {
+	if ( connect(opp_socket, (struct sockaddr*) host, sizeof(*host)) != 0 ) {
 		log_error("Error connect(SOCK_DGRAM)");
-		opp_socket = -1;
 		return FALSE;
 	}
 	
-	print_ip(opp_host);
+	print_ip(*host);
 	flog_message(LOG_DEBUG, "Connected opp_socket to %s:%hu", buffer,
-                                                      ntohs(opp_host.sin_port));
+                                                         ntohs(host->sin_port));
 	
 	return TRUE;
 }
@@ -370,8 +368,11 @@ void end_match(bool send_opp) {
 	
 	log_message(LOG_CONSOLE, "End of match. You are now free.");
 	
+	if ( !connect_play_socket(&my_host) )
+		log_message(LOG_WARNING, "Cannot de-connect opp_socket");
+	
 	if ( opp_socket > 0 ) unmonitor_socket_r(opp_socket);
-	opp_socket = -1;
+	
 	memset(&opp_host, 0, sizeof(opp_host));
 	opp_username[0] = '\0';
 }
@@ -417,13 +418,21 @@ void login() {
 			if ( my_udp_port < (1 << 10) ) log_message(LOG_CONSOLE, "Your UDP"
                              " port is in the system range, it might not work");
 			
+			my_host.sin_port = htons((uint16_t) my_udp_port);
+			
+			if ( !open_play_socket() ) {
+				log_message(LOG_CONSOLE,
+                         "This UDP port is already in use, choose another one");
+				
+				continue;
+			}
+			
 			break;
 		} while (TRUE);
 		
-		pack(buffer, "bbsw", REQ_LOGIN, (uint8_t) username_length,
-                                           my_username, (uint16_t) my_udp_port);
+		pack(buffer, "bbsw", REQ_LOGIN, (uint8_t) username_length, my_username,
+                                                        (uint16_t) my_udp_port);
 		
-		my_host.sin_port = htons((uint16_t) my_udp_port);
 		
 		if ( send_buffer(sock_server, buffer, 4 + username_length) < 0 )
 			server_disconnected();
@@ -639,30 +648,20 @@ void got_play_request() {
 
 		if ( strcmp(buffer, "y") == 0 ) {
 			
-			if ( open_play_socket() ) {
-				if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
-					server_disconnected();
-				
-				my_state = BUSY;
-				console->prompt = FALSE;
-				/*TODO */
-				log_message(LOG_CONSOLE,
-		   "Request accepted. Waiting for connection from the other client...");
-				
-				if ( get_hello() && connect_play_socket() )
-					start_match(GAME_GUEST);
-				else
-					end_match(FALSE);
-				
-			} else {
-				if ( send_byte(sock_server, RESP_REFUSE) < 0 )
-					server_disconnected();
-				
-				log_message(LOG_CONSOLE,
-                               "Request automatically refused due to an error");
-				
-				my_state = FREE;
-			}
+			if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
+				server_disconnected();
+			
+			my_state = BUSY;
+			console->prompt = FALSE;
+			/*TODO */
+			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection "
+                                                    "from the other client...");
+			
+			if ( get_hello() && connect_play_socket(&opp_host) )
+				start_match(GAME_GUEST);
+			else
+				end_match(FALSE);
+			
 			break;
 			
 		} else if ( strcmp(buffer, "n") == 0 ) {
@@ -745,7 +744,7 @@ void get_play_response() {
                     "[%s] accepted to play with you. Contacting host %s:%hu...",
                                             opp_username, buffer, opp_udp_port);
 			
-			if ( open_play_socket() && connect_play_socket() && say_hello() ) {
+			if ( connect_play_socket(&opp_host) && say_hello() ) {
 				start_match(GAME_HOST);
 				return;
 			}
