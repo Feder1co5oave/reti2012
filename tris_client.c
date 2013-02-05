@@ -849,6 +849,9 @@ void make_move(unsigned int cell, bool send_opp) {
 		flog_message(LOG_CONSOLE, "Hit on cell %d. You lost!", cell);
 	else if ( winner == GAME_DRAW )
 		flog_message(LOG_CONSOLE, "Hit on cell %d. Draw!", cell);
+	else return;
+	
+	end_match(FALSE);
 }
 
 void send_play_request() {
