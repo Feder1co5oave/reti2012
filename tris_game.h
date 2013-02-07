@@ -33,6 +33,15 @@ struct tris_grid {
 /* ===[ Functions ]========================================================== */
 
 /**
+ * Initialize a grid to TRIS_GRID_INIT.
+ * @param struct tris_grid* the grid, a digital frontier. I tried to picture
+ * clusters of information as they moved through the computer. What did they
+ * look like? Ships? Motorcycles? Were the circuits like freeways? I kept
+ * dreaming of a world I thought I'd never see. And then, one day, I got in.
+ */
+void init_grid(struct tris_grid *grid);
+
+/**
  * Return the player who won the grid, GAME_DRAW if draw or GAME_UNDEF if there
  * is no winner and the grid is not complete.
  * @param const struct tris_grid *grid

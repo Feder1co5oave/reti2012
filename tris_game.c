@@ -20,6 +20,11 @@ const int print[][3] = {
 	{1, 2, 3}
 };
 
+void init_grid(struct tris_grid *grid) {
+	struct tris_grid copy = TRIS_GRID_INIT;
+	memcpy(grid, &copy, sizeof(struct tris_grid));
+}
+
 char get_winner(const struct tris_grid *grid) {
 	int i, c = 0;
 	

@@ -882,6 +882,7 @@ void start_match(char me) {
 	log_statechange();
 	player = me;
 	turn = GAME_GUEST;
+	init_grid(&grid);
 	monitor_socket_r(opp_socket);
 	
 	console->prompt = '#';
