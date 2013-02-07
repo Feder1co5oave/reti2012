@@ -337,6 +337,14 @@ bool open_play_socket() {
 }
 
 bool connect_play_socket(struct sockaddr_in *host) {
+	struct sockaddr_in null_host;
+	
+	if ( host == NULL ) {
+		memset(&null_host, 0, sizeof(null_host));
+		null_host.sin_family = AF_UNSPEC;
+		host = &null_host;
+	}
+	
 	if ( connect(opp_socket, (struct sockaddr*) host, sizeof(*host)) != 0 ) {
 		log_error("Error connect(SOCK_DGRAM)");
 		return FALSE;
@@ -579,8 +587,12 @@ void got_hit_or_end() {
 	
 	received = recv(opp_socket, buffer, 6, 0);
 	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
-	if ( received == 0 ) return; /*FIXME inutile */
-	if ( received < 0 ) log_error("Error recv()");
+	
+	if ( received < 0 ) {
+		log_error("Error recv()");
+		end_match(FALSE);
+		return;
+	}
 	
 	unpack(buffer, "bbl", &byte, &move, &hash);
 	
@@ -647,6 +659,17 @@ void got_play_request() {
 		log_message(LOG_USERINPUT, buffer);
 
 		if ( strcmp(buffer, "y") == 0 ) {
+			
+			if ( !connect_play_socket(NULL) ) {
+				log_message(LOG_CONSOLE,
+                               "Request automatically refused due to an error");
+				
+				if ( send_byte(sock_server, RESP_REFUSE) < 0 )
+					server_disconnected();
+				
+				end_match(FALSE);
+				return;
+			}
 			
 			if ( send_byte(sock_server, RESP_OK_PLAY) < 0 )
 				server_disconnected();
