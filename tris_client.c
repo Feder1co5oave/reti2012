@@ -86,7 +86,7 @@ int main (int argc, char **argv) {
 
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
-	sprintf(buffer, "tris_client-%d.log", getpid());
+	sprintf(buffer, "logs/tris_client-%d.log", getpid());
 	open_log(buffer, LOG_ALL);
 	
 	if (argc != 3) {

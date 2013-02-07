@@ -72,7 +72,7 @@ int main (int argc, char **argv) {
 	
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
-	open_log("tris_server.log", LOG_ALL);
+	open_log("logs/tris_server.log", LOG_ALL);
 	
 	if ( argc != 3  ) {
 		flog_message(LOG_CONSOLE, "Usage: %s <host> <listening_port>", argv[0]);
