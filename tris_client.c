@@ -171,9 +171,9 @@ int main (int argc, char **argv) {
 				case PLAY: play_shell(); break;
 				default:
 					get_line(buffer, BUFFER_SIZE);
+					log_message(LOG_USERINPUT, buffer);
 					flog_message(LOG_WARNING,
                      "Got unwanted user input while %s:", state_name(my_state));
-					log_message(LOG_USERINPUT, buffer);
 					log_message(LOG_ERROR, ""); /*FIXME */
 			}
 			
@@ -635,6 +635,7 @@ void got_play_request() {
 	
 	do {
 		line_length = get_line(buffer, BUFFER_SIZE);
+		log_message(LOG_USERINPUT, buffer);
 
 		if ( strcmp(buffer, "y") == 0 ) {
 			
