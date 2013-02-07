@@ -743,7 +743,7 @@ void get_play_response() {
 	int received;
 	
 	if ( poll_in(sock_server, PLAY_RESPONSE_TIMEOUT) <= 0 ) {
-		log_message(LOG_CONSOLE, "Timeout while waiting for play response");
+		log_message(LOG_INFO, "Timeout while waiting for play response");
 		end_match(FALSE);
 		return;
 	}
@@ -763,7 +763,7 @@ void get_play_response() {
 			print_ip(opp_host);
 			opp_host.sin_port = htons(opp_udp_port);
 			
-			flog_message(LOG_CONSOLE,
+			flog_message(LOG_INFO,
                     "[%s] accepted to play with you. Contacting host %s:%hu...",
                                             opp_username, buffer, opp_udp_port);
 			
@@ -772,22 +772,22 @@ void get_play_response() {
 				return;
 			}
 			
+			log_message(LOG_INFO, "Cannot connect to client, go back to FREE");
+			
 			end_match(FALSE);
-			log_message(LOG_CONSOLE,
-                                   "Cannot connect to client, go back to FREE");
 			
 			break;
 		
 		case RESP_REFUSE:
-			flog_message(LOG_CONSOLE, "[%s] refused to play", opp_username);
+			flog_message(LOG_INFO, "[%s] refused to play", opp_username);
 			break;
 		
 		case RESP_NONEXIST:
-			flog_message(LOG_CONSOLE, "[%s] does not exist", opp_username);
+			flog_message(LOG_INFO, "[%s] does not exist", opp_username);
 			break;
 		
 		case RESP_BUSY:
-			flog_message(LOG_CONSOLE, "[%s] is occupied in another match",
+			flog_message(LOG_INFO, "[%s] is occupied in another match",
                                                                   opp_username);
 			break;
 		
@@ -796,6 +796,7 @@ void get_play_response() {
                                                               magic_name(resp));
 	}
 	
+	opp_username[0] = '\0';
 	my_state = FREE;
 	console->prompt = '>';
 	log_prompt(console);
@@ -834,12 +835,12 @@ void list_connected_clients() {
 		buffer[length] = '\0';
 		
 		if ( strcmp(buffer, my_username) == 0 )
-			flog_message(LOG_CONSOLE, "[%s] **", buffer);
+			flog_message(LOG_CONSOLE, "[%s] <-- It's you!", buffer);
 		else
 			flog_message(LOG_CONSOLE, "[%s]", buffer);
 	}
 	console->prompt = oldprompt;
-	log_message(LOG_CONSOLE, "** That's you!");
+	log_prompt(console);
 }
 
 void make_move(unsigned int cell, bool send_opp) {
@@ -911,12 +912,12 @@ void start_match(char me) {
 	console->prompt = '#';
 	switch ( me ) {
 		case GAME_HOST:
-			flog_message(LOG_CONSOLE, "Match has started and it's %s's turn",
+			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
                                                                   opp_username);
 			break;
 			
 		case GAME_GUEST:
-			log_message(LOG_CONSOLE, "Match has started and it's your turn");
+			log_message(LOG_CONSOLE, "Match has started. It's your turn");
 			break;
 			
 		default:

@@ -171,7 +171,7 @@ int log_message(loglevel_t level, const char *message) {
 
 			/*FIXME togliere post se è inutile */
 			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
-			if ( lf->prompt ) fprintf(lf->file, "%c ", lf->prompt);
+			log_prompt(lf);
 			fflush(lf->file); /*FIXME non flushare inutilmente */
 		}
 	}
