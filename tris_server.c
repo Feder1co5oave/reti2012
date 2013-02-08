@@ -179,7 +179,8 @@ int main (int argc, char **argv) {
 		_writefds = writefds;
 	}
 	
-	flog_message(LOG_DEBUG, "Just exited main while loop with s=%d", s);
+	
+	log_error("Error select()");
 	
 	for ( i = 0; i <= maxfds; i++ ) {
 		if ( i != STDIN_FILENO &&
@@ -190,7 +191,6 @@ int main (int argc, char **argv) {
 		}
 	}
 	
-	log_error("Error select()");
 	exit(EXIT_FAILURE);
 }
 
@@ -202,7 +202,6 @@ void accept_connection() {
 	struct client_node *client;
 	socklen_t addrlen = sizeof(clienthost);
 	
-	log_message(LOG_DEBUG, "Going to accept a new connection...");
 	sock_client = accept(sock_listen, (struct sockaddr*) &clienthost, &addrlen);
 	
 	if ( sock_client < 0 ) {
@@ -481,7 +480,6 @@ void cancel_request(struct client_node *client) {
 void client_disconnected(struct client_node *client) {
 	struct client_node *opp;
 	
-	log_message(LOG_DEBUG, "Going to drop a client...");
 	if ( client->state == BUSY ) {
 		if ( client->req_from != NULL ) {
 			opp = client->req_from;
@@ -572,9 +570,6 @@ void send_data(struct client_node *client) {
                                     client->data_count, client_canon_p(client));
 		
 		if ( client->data != NULL ) {
-			flog_message(LOG_DEBUG, "Freeing %d bytes on line %d",
-                                                  client->data_count, __LINE__);
-			
 			free(client->data);
 			client->data = NULL;
 		}
@@ -587,10 +582,7 @@ void send_data(struct client_node *client) {
 			case FREE: client->read_dispatch = &idle_free; break;
 			case BUSY: client->read_dispatch = &get_play_resp; break;
 			case PLAY: client->read_dispatch = &idle_play; break;
-			case NONE:
-				flog_message(LOG_WARNING, "%s is NONE on line %d",
-                                              client_canon_p(client), __LINE__);
-				
+			default:
 				client_disconnected(client);
 				return;
 		}
@@ -670,7 +662,6 @@ void server_shell() {
 				close(i);
 			}
 		}
-		log_message(LOG_DEBUG, "Freeing data structures");
 		destroy_client_list(client_list.head);
 		console->auto_prompt = FALSE;
 		log_message(LOG_CONSOLE, "Exiting...");
@@ -702,9 +693,6 @@ void prepare_client_list(struct client_node *client) {
 		}
 	}
 	
-	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", total_length,
-                                                                      __LINE__);
-	
 	client->data = malloc(total_length);
 	check_alloc(client->data);
 	client->data_cursor = 0;
@@ -729,9 +717,6 @@ void prepare_client_list(struct client_node *client) {
 
 void prepare_client_contact(struct client_node *to, struct client_node *cntc) {
 	to->data_count = 1 + sizeof(cntc->addr.sin_addr) + sizeof(cntc->udp_port);
-	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", to->data_count,
-                                                                      __LINE__);
-	
 	to->data = malloc(to->data_count);
 	check_alloc(to->data);
 	pack(to->data, "blw", RESP_OK_PLAY, cntc->addr.sin_addr, cntc->udp_port);
@@ -754,9 +739,6 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	log_statechange(from);
 	log_statechange(to);
 	to->data_count = 2 + from->username_len;
-	flog_message(LOG_DEBUG, "Allocating %d bytes on line %d", to->data_count,
-                                                                      __LINE__);
-	
 	to->data = malloc(to->data_count);
 	check_alloc(to->data);
 	pack(to->data, "bbs", REQ_PLAY, from->username_len, from->username);
