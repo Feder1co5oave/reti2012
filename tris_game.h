@@ -70,7 +70,7 @@ char inverse(char player);
  * @param char *buffer the destination buffer
  * @param const struct tris_grid *grid
  * @param const char *pre the prefix
- * @param size_t n the maximum number of bytes to write (NOT IMPLEMENTED)
+ * @param size_t n the maximum number of bytes to write
  */
 char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
                                                                       size_t n);
