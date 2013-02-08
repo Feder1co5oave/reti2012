@@ -121,6 +121,7 @@ int main (int argc, char **argv) {
 	_writefds = writefds;
 	
 	console->prompt = '>';
+	console->auto_prompt = TRUE;
 	log_prompt(console);
 	
 	while ( (s = select(maxfds + 1, &_readfds, &_writefds, NULL, NULL)) > 0 ) {
@@ -671,6 +672,7 @@ void server_shell() {
 		}
 		log_message(LOG_DEBUG, "Freeing data structures");
 		destroy_client_list(client_list.head);
+		console->auto_prompt = FALSE;
 		log_message(LOG_CONSOLE, "Exiting...");
 		exit(EXIT_SUCCESS);
 		

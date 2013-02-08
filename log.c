@@ -37,6 +37,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->maxlevel = maxlevel;
 	new->wrap = wrap;
 	new->prompted = FALSE;
+	new->auto_prompt = FALSE;
 	new->prompt = FALSE;
 	new->next = NULL;
 	
@@ -127,7 +128,8 @@ int log_message(loglevel_t level, const char *message) {
 			}*/
 			
 			if ( lf->prompt && lf->prompted && level != LOG_CONSOLE )
-				pre = "\n";
+				if ( lf->auto_prompt ) pre = "\r";
+				else pre = "\n";
 			else
 				pre = "";
 			
@@ -170,11 +172,14 @@ int log_message(loglevel_t level, const char *message) {
 				mark = "";
 				strcpy(stamp, "");
 			}
-
+			
 			/*FIXME togliere post se è inutile */
 			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
-			fflush(lf->file); /*FIXME non flushare inutilmente */
-			lf->prompted = FALSE;
+			if ( lf->auto_prompt ) log_prompt(lf);
+			else {
+				lf->prompted = FALSE;
+				fflush(lf->file); /*FIXME non flushare inutilmente */
+			}
 		}
 	}
 
