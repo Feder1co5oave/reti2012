@@ -17,6 +17,9 @@
 #include "log.h"
 #include "tris_game.h"
 
+#define PROMPT_FREE '>'
+#define PROMPT_PLAY '#'
+
 #define update_maxfds(n) maxfds = (maxfds < (n) ? (n) : maxfds)
 #define monitor_socket_r(sock) { FD_SET(sock, &readfds); update_maxfds(sock); }
 #define monitor_socket_w(sock) { FD_SET(sock, &writefds); update_maxfds(sock); }
@@ -134,7 +137,7 @@ int main (int argc, char **argv) {
 	
 	login();
 	
-	console->prompt = '>';
+	console->prompt = PROMPT_FREE;
 	log_prompt(console);
 	
 	FD_ZERO(&readfds);
@@ -382,7 +385,7 @@ void end_match(bool send_opp) {
 	
 	memset(&opp_host, 0, sizeof(opp_host));
 	opp_username[0] = '\0';
-	console->prompt = '>';
+	console->prompt = PROMPT_FREE;
 }
 
 void login() {
@@ -685,7 +688,7 @@ void got_play_request() {
 				server_disconnected();
 			
 			my_state = FREE;
-			console->prompt = '>';
+			console->prompt = PROMPT_FREE;
 			log_message(LOG_CONSOLE, "Request refused");
 			break;
 			
@@ -896,7 +899,7 @@ void start_match(char me) {
 	init_grid(&grid);
 	monitor_socket_r(opp_socket);
 	
-	console->prompt = '#';
+	console->prompt = PROMPT_PLAY;
 	switch ( me ) {
 		case GAME_HOST:
 			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
