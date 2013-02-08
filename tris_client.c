@@ -421,7 +421,7 @@ void login() {
 			log_message(LOG_USERINPUT, buffer);
 			if ( sscanf(buffer, " %u", &my_udp_port) != 1 ) continue;
 			
-			if ( my_udp_port >= (1 << 16) ) {
+			if ( my_udp_port == 0 || my_udp_port >= (1 << 16) ) {
 				log_message(LOG_CONSOLE, "Your UDP port is not in port range");
 				continue;
 			}
