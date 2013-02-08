@@ -895,19 +895,19 @@ void start_match(char me) {
 	my_state = PLAY;
 	log_statechange();
 	my_player = me;
-	turn = GAME_GUEST;
+	turn = GAME_HOST;
 	init_grid(&grid);
 	monitor_socket_r(opp_socket);
 	
 	console->prompt = PROMPT_PLAY;
 	switch ( me ) {
 		case GAME_HOST:
-			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
-                                                                  opp_username);
+			log_message(LOG_CONSOLE, "Match has started. It's your turn");
 			break;
 			
 		case GAME_GUEST:
-			log_message(LOG_CONSOLE, "Match has started. It's your turn");
+			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
+                                                                  opp_username);
 			break;
 			
 		default:
