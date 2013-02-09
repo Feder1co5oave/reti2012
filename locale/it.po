@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-09 19:19+0100\n"
+"POT-Creation-Date: 2013-02-09 19:56+0100\n"
 "PO-Revision-Date: 2013-02-09 19:22+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
@@ -377,10 +377,6 @@ msgid "That cell is already taken"
 msgstr "Quella cella è già occupata"
 
 #, c-format
-msgid "There are %d connected clients:"
-msgstr "Ci sono %d client connessi:"
-
-#, c-format
 msgid "There are %u connected clients:"
 msgstr "Ci sono %u client connessi:"
 
@@ -454,9 +450,6 @@ msgstr "Comando dal server inatteso: %s"
 #, c-format
 msgid "Unexpected server response: %s"
 msgstr "Risposta dal server inattesa: %s"
-
-msgid "Unknown command"
-msgstr "Comando sconosciuto"
 
 msgid "Unknown command. Type 'help' for list of commands"
 msgstr "Comando sconosciuto. Digita 'help' per una lista di comandi"
@@ -713,11 +706,17 @@ msgstr "s"
 #~ msgid "Sent=%d on line %d to %s"
 #~ msgstr "Inviati=%d alla linea %d da %s"
 
+#~ msgid "There are %d connected clients:"
+#~ msgstr "Ci sono %d client connessi:"
+
 #~ msgid "Timeout. Exit."
 #~ msgstr "Timeout. Uscita."
 
 #~ msgid "Unexpected client state on line %d in get_play_resp from %s"
 #~ msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
+
+#~ msgid "Unknown command"
+#~ msgstr "Comando sconosciuto"
 
 #~ msgid "[%s] **"
 #~ msgstr "[%s] **"

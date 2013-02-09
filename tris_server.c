@@ -630,7 +630,7 @@ void server_shell() {
 			log_message(LOG_CONSOLE, _("There are no connected clients."));
 		} else {
 			console->prompt = FALSE;
-			flog_message(LOG_CONSOLE, _("There are %d connected clients:"),
+			flog_message(LOG_CONSOLE, _("There are %u connected clients:"),
                                                              client_list.count);
 			
 			for ( cn = client_list.head; cn != NULL; cn = cn->next ) {
@@ -694,7 +694,7 @@ void server_shell() {
 		
 	} else {
 		
-		log_message(LOG_CONSOLE, _("Unknown command"));
+		log_message(LOG_CONSOLE, "Unknown command. Type 'help' for list of commands");
 		
 	}
 }
