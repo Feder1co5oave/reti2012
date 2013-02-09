@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-09 16:18+0100\n"
-"PO-Revision-Date: 2013-02-09 16:19+0100\n"
+"POT-Creation-Date: 2013-02-09 16:50+0100\n"
+"PO-Revision-Date: 2013-02-09 16:46+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -167,8 +167,8 @@ msgid "Finished sending %d bytes of data to %s"
 msgstr "Ho terminato di inviare %d byte di dati a %s"
 
 #, c-format
-msgid "Gettext domain set to %s"
-msgstr "Dominio gettext impostato su %s"
+msgid "Gettext domain set to '%s'"
+msgstr "Dominio gettext impostato su '%s'"
 
 msgid "Going to say hello..."
 msgstr "Sto per contattare l'altro client (hello)..."
@@ -282,8 +282,8 @@ msgid "It's your turn"
 msgstr "E' il tuo turno"
 
 #, c-format
-msgid "Locale set to %s"
-msgstr "Localizzazione impostata su %s"
+msgid "Locale set to '%s'"
+msgstr "Localizzazione impostata su '%s'"
 
 msgid "Lost connection to server"
 msgstr "Connessione al server interrotta"
@@ -296,8 +296,8 @@ msgid "Match has started. It's your turn"
 msgstr "La partita è cominciata. E' il tuo turno"
 
 #, c-format
-msgid "Message catalogs directory set to %s"
-msgstr "Percorso dei cataloghi impostato su %s"
+msgid "Message catalogs directory set to '%s'"
+msgstr "Percorso dei cataloghi impostato su '%s'"
 
 msgid "No one is playing"
 msgstr "Nessuno sta giocando"
@@ -665,52 +665,75 @@ msgstr "s"
 
 #~ msgid "%s has unconsistent data on line %d"
 #~ msgstr "%s ha dati incoerenti alla linea %d"
+
 #~ msgid "%s is %s (should be BUSY)"
 #~ msgstr "%s è %s (dovrebbe essere BUSY)"
+
 #~ msgid "%s is NONE on line %d"
 #~ msgstr "%s è NONE alla linea %d"
+
 #~ msgid "** That's you!"
 #~ msgstr "** Sei tu!"
+
 #~ msgid "Allocating %d bytes on line %d"
 #~ msgstr "Alloco %d byte alla linea %d"
+
 #~ msgid "Client is NULL in log_statechange"
 #~ msgstr "Client è NULL in log_statechange"
+
 #~ msgid "Freeing %d bytes on line %d"
 #~ msgstr "Dealloco %d byte alla linea %d"
+
 #~ msgid "Freeing data structures"
 #~ msgstr "Dealloco le strutture dati..."
+
 #~ msgid "Going to accept a new connection..."
 #~ msgstr "Sto per accettare una nuova connessione..."
+
 #~ msgid "Going to drop a client..."
 #~ msgstr "Sto per disconnettere un client"
+
 #~ msgid "Hit on cell %d. It's %s's turn."
 #~ msgstr "Colpita la cella %d. E' il turno di %s."
+
 #~ msgid "Hit on cell %d. It's your turn."
 #~ msgstr "Colpita la cella %d. E' il tuo turno."
+
 #~ msgid "Hit on cell %d. You lost!"
 #~ msgstr "Colpita la cella %d. Hai perso!"
+
 #~ msgid "Hit on cell %d. You won!"
 #~ msgstr "Colpito sulla cella %d. Hai vinto!"
+
 #~ msgid "Just exited main while loop with s=%d"
 #~ msgstr "Uscita dal ciclo while principale con s=%d"
+
 #~ msgid "Locate set to %s"
 #~ msgstr "Localizzazione impostata su %s"
+
 #~ msgid "Sent=%d on line %d to %s"
 #~ msgstr "Inviati=%d alla linea %d da %s"
+
 #~ msgid "Timeout. Exit."
 #~ msgstr "Timeout. Uscita."
+
 #~ msgid "Unexpected client state on line %d in get_play_resp from %s"
 #~ msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
+
 #~ msgid "[%s] **"
 #~ msgstr "[%s] **"
+
 #~ msgid "[%s] accepted to play with a disconnected client"
 #~ msgstr "[%s] ha accettato di giocare con un client disconnesso"
+
 #~ msgid "[%s] is playing with a disconnected client"
 #~ msgstr "[%s] sta giocando con un client disconnesso"
+
 #~ msgid "[%s] refused to play with a disconnected client"
 #~ msgstr "[%s] ha rifiutato di giocare con un client disconnesso"
+
 #~ msgid "[%s] stopped playing with a disconnected client"
 #~ msgstr "[%s] ha smesso di giocare con un client disconnesso"
+
 #~ msgid "idle_play not implemented yet"
 #~ msgstr "idle_play non ancora implementato"
-

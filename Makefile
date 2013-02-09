@@ -28,10 +28,10 @@ set_handler.o :
 	$(CC) -Wall -Wextra -pedantic       -MMD -DNDEBUG   -c -o set_handler.o set_handler.c
 
 tris.pot : *.c *.h
-	xgettext -k_ -d tris --from-code=UTF-8 --no-location -s -o tris.pot $^
+	xgettext --language=C --keyword=_ --no-wrap --default-domain=tris --from-code=UTF-8 --no-location --sort-output -o tris.pot $^
 
 locale/$(LOCALE).po : tris.pot
-	msgmerge -s -v --force-po --backup=off -U $@ $^
+	msgmerge --sort-output --verbose --force-po --no-wrap --backup=off -U $@ $^
 	touch -m $@
 
 locale/%/LC_MESSAGES/tris.mo : locale/%.po
