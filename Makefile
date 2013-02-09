@@ -40,6 +40,7 @@ locale/%/LC_MESSAGES/tris.mo : locale/%.po
 
 clean :
 	- rm $(OBJs) $(EXEs) logs/*.log *.d
+	- rm -r tris.pot locale/*/
 
 server_log :
 	ps -C tris_server -o pid= > /dev/null
