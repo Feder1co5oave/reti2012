@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-09 16:50+0100\n"
-"PO-Revision-Date: 2013-02-09 16:46+0100\n"
+"POT-Creation-Date: 2013-02-09 19:19+0100\n"
+"PO-Revision-Date: 2013-02-09 19:22+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -49,7 +49,7 @@ msgid "Bound opp_socket to %s:%hu"
 msgstr "opp_socket associato su %s:%hu"
 
 msgid "Cannot connect to client, go back to FREE"
-msgstr "Impossibile connettersi al client, torna libero"
+msgstr "Impossibile connettersi al client"
 
 msgid "Cannot de-connect opp_socket"
 msgstr "Impossibile fare il de-connect del socket di gioco"
@@ -84,7 +84,7 @@ msgstr "Indirizzo host non valido"
 
 #, c-format
 msgid "Closing %d client connections..."
-msgstr "Chiudo %d connessioni ai client..."
+msgstr "Chiudo %d connessioni client..."
 
 msgid "Commands: end, exit, help, hit, show, who"
 msgstr "Comandi: end, exit, help, hit, show, who"
@@ -100,13 +100,13 @@ msgid "Connected opp_socket to %s:%hu"
 msgstr "opp_socket connesso a %s:%hu"
 
 msgid "Connected to the server"
-msgstr "Connesso al server"
+msgstr "Connessione al server avvenuta con successo"
 
 msgid "Draw!"
 msgstr "Parità!"
 
 msgid "End of match. You are now free."
-msgstr "Fine della partita. Ora sei di nuovo libero."
+msgstr "Fine della partita"
 
 msgid "Error accept()"
 msgstr "Errore accept()"
@@ -160,11 +160,11 @@ msgid "Error socket(SOCK_DGRAM)"
 msgstr "Errore socket(SOCK_DGRAM)"
 
 msgid "Exiting..."
-msgstr "Chiusura..."
+msgstr "Chiusura in corso..."
 
 #, c-format
 msgid "Finished sending %d bytes of data to %s"
-msgstr "Ho terminato di inviare %d byte di dati a %s"
+msgstr "Ho completato l'invio di %d byte di dati a %s"
 
 #, c-format
 msgid "Gettext domain set to '%s'"
@@ -234,7 +234,7 @@ msgid "Hash is %08x"
 msgstr "L'hash è %08x"
 
 msgid "Hash mismatch"
-msgstr "Discrepanza hash"
+msgstr "Errore: hash errato! La mappa di gioco è corrotta."
 
 #, c-format
 msgid "Hitting on cell %d..."
@@ -250,13 +250,13 @@ msgstr "Ora sono %s"
 
 #, c-format
 msgid "Incoming connection from %s"
-msgstr "Connessione in corso da %s"
+msgstr "Connessione in arrivo da %s"
 
 msgid "Insert your UDP port:"
-msgstr "Inserisci la porta UDP:"
+msgstr "Inserisci la porta UDP di ascolto:"
 
 msgid "Insert your username:"
-msgstr "Inserisci lo username"
+msgstr "Inserisci lo username:"
 
 msgid "Invalid host address"
 msgstr "Indirizzo host non valido"
@@ -268,15 +268,11 @@ msgstr "Indirizzo server non valido"
 msgid "It is %s's turn"
 msgstr "E' il turno di %s"
 
-#, c-format
-msgid "It is %s's turn."
-msgstr "E' il turno di %s"
-
 msgid "It is not your turn"
 msgstr "Non è il tuo turno"
 
 msgid "It is your turn."
-msgstr "E' il tuo turno."
+msgstr "E' il tuo turno"
 
 msgid "It's your turn"
 msgstr "E' il tuo turno"
@@ -290,10 +286,10 @@ msgstr "Connessione al server interrotta"
 
 #, c-format
 msgid "Match has started. It is %s's turn"
-msgstr "La partita è cominciata. E' il turno di %s"
+msgstr "La partita è iniziata. E' il turno di %s"
 
 msgid "Match has started. It's your turn"
-msgstr "La partita è cominciata. E' il tuo turno"
+msgstr "La partita è iniziata. E' il tuo turno"
 
 #, c-format
 msgid "Message catalogs directory set to '%s'"
@@ -343,7 +339,7 @@ msgid "Received=%d on line %d from %s"
 msgstr "Ricevuti=%d alla linea %d da %s"
 
 msgid "Request accepted. Waiting for connection from the other client..."
-msgstr "Richiesta acettata. In attessa di connessione dall'altro client..."
+msgstr "Richiesta accettata, in attesa di connessione dall'altro client..."
 
 msgid "Request automatically refused due to an error"
 msgstr "Richiesta automaticamente rifiutata a causa di un errore"
@@ -353,11 +349,11 @@ msgstr "Richiesta rifiutata"
 
 #, c-format
 msgid "Salt is %08x"
-msgstr "Salt è %08x"
+msgstr "Il salt per questa partita è %08x"
 
 #, c-format
 msgid "Select() timed out while %s"
-msgstr "Time out per select() mentre %s"
+msgstr "Timeout per select() mentre %s"
 
 #, c-format
 msgid "Sent play request to [%s], waiting for response..."
@@ -407,17 +403,17 @@ msgid "This username is too short"
 msgstr "Questo username è troppo corto"
 
 msgid "Time out: leaving game..."
-msgstr "Timeout: abbandona la partita..."
+msgstr "Timeout: termino la partita..."
 
 msgid "Timeout while waiting for connection from the other client"
 msgstr "Timeout mentre si era in attesa di connessione dall'altro client"
 
 msgid "Timeout while waiting for play response"
-msgstr "Timeout mentre si era in attesa di risposta"
+msgstr "Timeout mentre si era in attesa di risposta dall'altro client"
 
 #, c-format
 msgid "UDP port is %hu"
-msgstr "La porta UDP è %hu"
+msgstr "La porta UDP di ascolto è %hu"
 
 #, c-format
 msgid "Unexpected event on line %d"
@@ -453,11 +449,11 @@ msgstr "Richiesta inattesa da %s in idle_play"
 
 #, c-format
 msgid "Unexpected server cmd: %s"
-msgstr "Comando dal server inaspettato: %s"
+msgstr "Comando dal server inatteso: %s"
 
 #, c-format
 msgid "Unexpected server response: %s"
-msgstr "Risposta dal server inaspettata: %s"
+msgstr "Risposta dal server inattesa: %s"
 
 msgid "Unknown command"
 msgstr "Comando sconosciuto"
@@ -467,11 +463,11 @@ msgstr "Comando sconosciuto. Digita 'help' per una lista di comandi"
 
 #, c-format
 msgid "Usage: %s <host> <listening_port>"
-msgstr "Uso: %s <ip_server> <porta_server>"
+msgstr "Utilizzo: %s <ip_server> <porta_ascolto>"
 
 #, c-format
 msgid "Usage: %s <server_ip> <server_port>"
-msgstr "Uso: %s <ip_server> <porta_server>"
+msgstr "Utilizzo: %s <ip_server> <porta_server>"
 
 msgid "You cannot play with yourself"
 msgstr "Non puoi giocare con te stesso"
@@ -490,10 +486,10 @@ msgid "You won!"
 msgstr "Hai vinto!"
 
 msgid "Your UDP port is in the system range, it might not work"
-msgstr "La tua porta UDP è nel range delle porte di sistema, potrebbe non funzionare"
+msgstr "La porta UDP specificata è nel range delle porte di sistema, potrebbe provocare malfunzionamenti"
 
 msgid "Your UDP port is not in port range"
-msgstr "La porta UDP non è valida"
+msgstr "La porta UDP specificata non è valida"
 
 msgid "Your opponent surrendered: you win!"
 msgstr "L'avversario si è arreso: hai vinto!"
@@ -524,7 +520,7 @@ msgstr "[%s] ha accettato di giocare con [%s]"
 
 #, c-format
 msgid "[%s] accepted to play with you. Contacting host %s:%hu..."
-msgstr "[%s] ha accettato di giocare con te. Sto contattando l'host %s:%hu"
+msgstr "[%s] ha accettato di giocare con te. Connessione in corso all'host %s:%hu..."
 
 #, c-format
 msgid "[%s] cancelled playing with [%s]"
@@ -584,7 +580,7 @@ msgstr "[%s] ha richiesto di giocare con [%s]"
 
 #, c-format
 msgid "[%s] requested to play with himself"
-msgstr "[%s] ha richiesto di giocare con se stesso"
+msgstr "[%s] ha richiesto di giocare con sé stesso"
 
 #, c-format
 msgid "[%s] requested to play with non-FREE player %s"
@@ -596,7 +592,7 @@ msgstr "[%s] ha richiesto di giocare con un giocatore inesistente"
 
 #, c-format
 msgid "[%s] requested to play with nonexistent player (too long)"
-msgstr "[%s] ha richiesto di giocare con un giocatore dallo username troppo lungo"
+msgstr "[%s] ha richiesto di giocare con un giocatore inesistente (username troppo lungo)"
 
 #, c-format
 msgid "[%s] stopped playing"
@@ -616,7 +612,7 @@ msgstr "[%s] stava giocando con [[sconosciuto]]"
 
 #, c-format
 msgid "[[unknown]] %s disconnected"
-msgstr "[[sconociuto]] %s si è disconnesso"
+msgstr "[[sconosciuto]] %s si è disconnesso"
 
 #, c-format
 msgid "[[unknown]] Host %s, not logged in"
@@ -704,6 +700,9 @@ msgstr "s"
 
 #~ msgid "Hit on cell %d. You won!"
 #~ msgstr "Colpito sulla cella %d. Hai vinto!"
+
+#~ msgid "It is %s's turn."
+#~ msgstr "E' il turno di %s"
 
 #~ msgid "Just exited main while loop with s=%d"
 #~ msgstr "Uscita dal ciclo while principale con s=%d"

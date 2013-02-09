@@ -324,7 +324,7 @@ void free_shell() {
 	} else if ( strcmp(buffer, "") != 0 ) {
 		
 		log_message(LOG_CONSOLE,
-                         "Unknown command. Type 'help' for a list of commands");
+                        _("Unknown command. Type 'help' for list of commands"));
 		
 	}
 }
@@ -873,7 +873,7 @@ void make_move(unsigned int cell, bool send_opp) {
 	
 	if ( winner == GAME_UNDEF ) {
 		if ( turn == my_player ) flog_message(LOG_CONSOLE, _("It's your turn"));
-		else flog_message(LOG_CONSOLE, _("It is %s's turn."), opp_username);
+		else flog_message(LOG_CONSOLE, _("It is %s's turn"), opp_username);
 		
 		return;
 	}
