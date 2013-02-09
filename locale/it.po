@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-01 03:37+0100\n"
-"PO-Revision-Date: 2013-02-04 16:53+0100\n"
+"POT-Creation-Date: 2013-02-09 16:18+0100\n"
+"PO-Revision-Date: 2013-02-09 16:19+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -22,23 +22,12 @@ msgstr ""
 "X-Poedit-SourceCharset: utf-8\n"
 
 #, c-format
-msgid "%s has unconsistent data on line %d"
-msgstr "%s ha dati incoerenti alla linea %d"
-
-#, c-format
 msgid "%s is %s"
 msgstr "%s è %s"
 
 #, c-format
-msgid "%s is NONE on line %d"
-msgstr "%s è NONE alla linea %d"
-
-#, c-format
 msgid "%s is now %s"
 msgstr "%s è diventato %s"
-
-msgid "** That's you!"
-msgstr "** Sei tu!"
 
 #, c-format
 msgid ""
@@ -56,15 +45,14 @@ msgid "Accept (y) or refuse (n) ?"
 msgstr "Accetta (s) o rifiuta (n) ?"
 
 #, c-format
-msgid "Allocating %d bytes on line %d"
-msgstr "Alloco %d byte alla linea %d"
-
-#, c-format
 msgid "Bound opp_socket to %s:%hu"
 msgstr "opp_socket associato su %s:%hu"
 
 msgid "Cannot connect to client, go back to FREE"
 msgstr "Impossibile connettersi al client, torna libero"
+
+msgid "Cannot de-connect opp_socket"
+msgstr "Impossibile fare il de-connect del socket di gioco"
 
 msgid "Cannot set gettext domain"
 msgstr "Impossibile impostare il dominio gettext"
@@ -114,6 +102,9 @@ msgstr "opp_socket connesso a %s:%hu"
 msgid "Connected to the server"
 msgstr "Connesso al server"
 
+msgid "Draw!"
+msgstr "Parità!"
+
 msgid "End of match. You are now free."
 msgstr "Fine della partita. Ora sei di nuovo libero."
 
@@ -147,6 +138,9 @@ msgstr "Errore malloc()"
 msgid "Error poll()"
 msgstr "Errore poll()"
 
+msgid "Error recv()"
+msgstr "Errore recv()"
+
 msgid "Error select()"
 msgstr "Errore select()"
 
@@ -173,21 +167,8 @@ msgid "Finished sending %d bytes of data to %s"
 msgstr "Ho terminato di inviare %d byte di dati a %s"
 
 #, c-format
-msgid "Freeing %d bytes on line %d"
-msgstr "Dealloco %d byte alla linea %d"
-
-msgid "Freeing data structures"
-msgstr "Dealloco le strutture dati..."
-
-#, c-format
 msgid "Gettext domain set to %s"
 msgstr "Dominio gettext impostato su %s"
-
-msgid "Going to accept a new connection..."
-msgstr "Sto per accettare una nuova connessione..."
-
-msgid "Going to drop a client..."
-msgstr "Sto per disconnettere un client"
 
 msgid "Going to say hello..."
 msgstr "Sto per contattare l'altro client (hello)..."
@@ -256,26 +237,6 @@ msgid "Hash mismatch"
 msgstr "Discrepanza hash"
 
 #, c-format
-msgid "Hit on cell %d. Draw!"
-msgstr "Colpito sulla cella %d. Pari!"
-
-#, c-format
-msgid "Hit on cell %d. It's %s's turn."
-msgstr "Colpita la cella %d. E' il turno di %s."
-
-#, c-format
-msgid "Hit on cell %d. It's your turn."
-msgstr "Colpita la cella %d. E' il tuo turno."
-
-#, c-format
-msgid "Hit on cell %d. You lost!"
-msgstr "Colpita la cella %d. Hai perso!"
-
-#, c-format
-msgid "Hit on cell %d. You won!"
-msgstr "Colpito sulla cella %d. Hai vinto!"
-
-#, c-format
 msgid "Hitting on cell %d..."
 msgstr "Sto per colpire la cella %d..."
 
@@ -307,29 +268,32 @@ msgstr "Indirizzo server non valido"
 msgid "It is %s's turn"
 msgstr "E' il turno di %s"
 
+#, c-format
+msgid "It is %s's turn."
+msgstr "E' il turno di %s"
+
 msgid "It is not your turn"
 msgstr "Non è il tuo turno"
 
 msgid "It is your turn."
 msgstr "E' il tuo turno."
 
-#, c-format
-msgid "Just exited main while loop with s=%d"
-msgstr "Uscita dal ciclo while principale con s=%d"
+msgid "It's your turn"
+msgstr "E' il tuo turno"
 
 #, c-format
-msgid "Locate set to %s"
+msgid "Locale set to %s"
 msgstr "Localizzazione impostata su %s"
 
 msgid "Lost connection to server"
 msgstr "Connessione al server interrotta"
 
 #, c-format
-msgid "Match has started and it's %s's turn"
-msgstr "La partita è cominciata ed è il turno di %s"
+msgid "Match has started. It is %s's turn"
+msgstr "La partita è cominciata. E' il turno di %s"
 
-msgid "Match has started and it's your turn"
-msgstr "La partita è cominciata ed è il tuo turno"
+msgid "Match has started. It's your turn"
+msgstr "La partita è cominciata. E' il tuo turno"
 
 #, c-format
 msgid "Message catalogs directory set to %s"
@@ -427,6 +391,9 @@ msgstr "Ci sono %u client connessi:"
 msgid "There are no connected clients."
 msgstr "Non ci sono client connessi."
 
+msgid "This UDP port is already in use, choose another one"
+msgstr "Questa porta UDP è già in uso, scegline un'altra"
+
 msgid "This username is badly formatted"
 msgstr "Questo username è malformato"
 
@@ -447,6 +414,10 @@ msgstr "Timeout mentre si era in attesa di connessione dall'altro client"
 
 msgid "Timeout while waiting for play response"
 msgstr "Timeout mentre si era in attesa di risposta"
+
+#, c-format
+msgid "UDP port is %hu"
+msgstr "La porta UDP è %hu"
 
 #, c-format
 msgid "Unexpected event on line %d"
@@ -491,6 +462,9 @@ msgstr "Risposta dal server inaspettata: %s"
 msgid "Unknown command"
 msgstr "Comando sconosciuto"
 
+msgid "Unknown command. Type 'help' for list of commands"
+msgstr "Comando sconosciuto. Digita 'help' per una lista di comandi"
+
 #, c-format
 msgid "Usage: %s <host> <listening_port>"
 msgstr "Uso: %s <ip_server> <porta_server>"
@@ -501,6 +475,19 @@ msgstr "Uso: %s <ip_server> <porta_server>"
 
 msgid "You cannot play with yourself"
 msgstr "Non puoi giocare con te stesso"
+
+#, c-format
+msgid "You hit on cell %d"
+msgstr "Colpito sulla cella %d"
+
+msgid "You lost!"
+msgstr "Hai perso!"
+
+msgid "You surrendered!"
+msgstr "Ti sei arreso!"
+
+msgid "You won!"
+msgstr "Hai vinto!"
 
 msgid "Your UDP port is in the system range, it might not work"
 msgstr "La tua porta UDP è nel range delle porte di sistema, potrebbe non funzionare"
@@ -516,8 +503,8 @@ msgid "[%s]"
 msgstr "[%s]"
 
 #, c-format
-msgid "[%s] **"
-msgstr "[%s] **"
+msgid "[%s] <-- It's you!"
+msgstr "[%s] <-- Sei tu!"
 
 #, c-format
 msgid "[%s] Host %s listening on %hu"
@@ -528,19 +515,19 @@ msgid "[%s] Listening on %s:%hu (udp)"
 msgstr "[%s] In ascolto su %s:%hu (udp)"
 
 #, c-format
-msgid "[%s] accepted to play with [%s]"
-msgstr "[%s] ha accettato di giocare con [%s]"
+msgid "[%s] accepted to play"
+msgstr "[%s] ha accettato di giocare"
 
 #, c-format
-msgid "[%s] accepted to play with a disconnected client"
-msgstr "[%s] ha accettato di giocare con un client disconnesso"
+msgid "[%s] accepted to play with [%s]"
+msgstr "[%s] ha accettato di giocare con [%s]"
 
 #, c-format
 msgid "[%s] accepted to play with you. Contacting host %s:%hu..."
 msgstr "[%s] ha accettato di giocare con te. Sto contattando l'host %s:%hu"
 
 #, c-format
-msgid "[%s] canceled playing with [%s]"
+msgid "[%s] cancelled playing with [%s]"
 msgstr "[%s] ha annullato la richiesta di gioco con [%s]"
 
 #, c-format
@@ -552,6 +539,10 @@ msgid "[%s] does not exist"
 msgstr "[%s] non esiste"
 
 #, c-format
+msgid "[%s] had a play request"
+msgstr "[%s] aveva una richiesta di gioco"
+
+#, c-format
 msgid "[%s] had a play request from [%s]"
 msgstr "[%s] aveva una richiesta di gioco da parte di [%s]"
 
@@ -560,16 +551,20 @@ msgid "[%s] had requested to play with [%s]"
 msgstr "[%s] aveva richiesto di giocare con [%s]"
 
 #, c-format
+msgid "[%s] hit on cell %d"
+msgstr "[%s] ha colpito sulla cella %d"
+
+#, c-format
 msgid "[%s] is occupied in another match"
 msgstr "[%s] è occupato in un'altra partita"
 
 #, c-format
-msgid "[%s] is playing with [%s]"
-msgstr "[%s] sta giocando con [%s]"
+msgid "[%s] is playing"
+msgstr "[%s] sta giocando"
 
 #, c-format
-msgid "[%s] is playing with a disconnected client"
-msgstr "[%s] sta giocando con un client disconnesso"
+msgid "[%s] is playing with [%s]"
+msgstr "[%s] sta giocando con [%s]"
 
 #, c-format
 msgid "[%s] refused to play"
@@ -578,10 +573,6 @@ msgstr "[%s] ha rifiutato di giocare"
 #, c-format
 msgid "[%s] refused to play with [%s]"
 msgstr "[%s] ha rifiutato di giocare con [%s]"
-
-#, c-format
-msgid "[%s] refused to play with a disconnected client"
-msgstr "[%s] ha rifiutato di giocare con un client disconnesso"
 
 #, c-format
 msgid "[%s] requested the list of connected clients"
@@ -608,12 +599,12 @@ msgid "[%s] requested to play with nonexistent player (too long)"
 msgstr "[%s] ha richiesto di giocare con un giocatore dallo username troppo lungo"
 
 #, c-format
-msgid "[%s] stopped playing with [%s]"
-msgstr "[%s] ha smesso di giocare con [%s]"
+msgid "[%s] stopped playing"
+msgstr "[%s] ha smesso di giocare"
 
 #, c-format
-msgid "[%s] stopped playing with a disconnected client"
-msgstr "[%s] ha smesso di giocare con un client disconnesso"
+msgid "[%s] stopped playing with [%s]"
+msgstr "[%s] ha smesso di giocare con [%s]"
 
 #, c-format
 msgid "[%s] was playing with [%s]"
@@ -631,24 +622,95 @@ msgstr "[[sconociuto]] %s si è disconnesso"
 msgid "[[unknown]] Host %s, not logged in"
 msgstr "[[sconosciuto]] Host %s, non loggato"
 
+msgid "cheat"
+msgstr "cheat"
+
+msgid "end"
+msgstr "end"
+
+msgid "exit"
+msgstr "exit"
+
+msgid "help"
+msgstr "help"
+
+msgid "hit"
+msgstr "hit"
+
+#, c-format
+msgid "hit %1u"
+msgstr "hit %1u"
+
 msgid "n"
 msgstr "n"
+
+msgid "play"
+msgstr "play"
+
+#, c-format
+msgid "play %s"
+msgstr "play %s"
+
+msgid "playing"
+msgstr "playing"
+
+msgid "show"
+msgstr "show"
+
+msgid "who"
+msgstr "who"
 
 msgid "y"
 msgstr "s"
 
+#~ msgid "%s has unconsistent data on line %d"
+#~ msgstr "%s ha dati incoerenti alla linea %d"
 #~ msgid "%s is %s (should be BUSY)"
 #~ msgstr "%s è %s (dovrebbe essere BUSY)"
+#~ msgid "%s is NONE on line %d"
+#~ msgstr "%s è NONE alla linea %d"
+#~ msgid "** That's you!"
+#~ msgstr "** Sei tu!"
+#~ msgid "Allocating %d bytes on line %d"
+#~ msgstr "Alloco %d byte alla linea %d"
 #~ msgid "Client is NULL in log_statechange"
 #~ msgstr "Client è NULL in log_statechange"
-#~ msgid "Error recv()"
-#~ msgstr "Errore recv()"
+#~ msgid "Freeing %d bytes on line %d"
+#~ msgstr "Dealloco %d byte alla linea %d"
+#~ msgid "Freeing data structures"
+#~ msgstr "Dealloco le strutture dati..."
+#~ msgid "Going to accept a new connection..."
+#~ msgstr "Sto per accettare una nuova connessione..."
+#~ msgid "Going to drop a client..."
+#~ msgstr "Sto per disconnettere un client"
+#~ msgid "Hit on cell %d. It's %s's turn."
+#~ msgstr "Colpita la cella %d. E' il turno di %s."
+#~ msgid "Hit on cell %d. It's your turn."
+#~ msgstr "Colpita la cella %d. E' il tuo turno."
+#~ msgid "Hit on cell %d. You lost!"
+#~ msgstr "Colpita la cella %d. Hai perso!"
+#~ msgid "Hit on cell %d. You won!"
+#~ msgstr "Colpito sulla cella %d. Hai vinto!"
+#~ msgid "Just exited main while loop with s=%d"
+#~ msgstr "Uscita dal ciclo while principale con s=%d"
+#~ msgid "Locate set to %s"
+#~ msgstr "Localizzazione impostata su %s"
 #~ msgid "Sent=%d on line %d to %s"
 #~ msgstr "Inviati=%d alla linea %d da %s"
 #~ msgid "Timeout. Exit."
 #~ msgstr "Timeout. Uscita."
 #~ msgid "Unexpected client state on line %d in get_play_resp from %s"
 #~ msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
+#~ msgid "[%s] **"
+#~ msgstr "[%s] **"
+#~ msgid "[%s] accepted to play with a disconnected client"
+#~ msgstr "[%s] ha accettato di giocare con un client disconnesso"
+#~ msgid "[%s] is playing with a disconnected client"
+#~ msgstr "[%s] sta giocando con un client disconnesso"
+#~ msgid "[%s] refused to play with a disconnected client"
+#~ msgstr "[%s] ha rifiutato di giocare con un client disconnesso"
+#~ msgid "[%s] stopped playing with a disconnected client"
+#~ msgstr "[%s] ha smesso di giocare con un client disconnesso"
 #~ msgid "idle_play not implemented yet"
 #~ msgstr "idle_play non ancora implementato"
 

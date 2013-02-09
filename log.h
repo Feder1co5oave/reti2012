@@ -22,7 +22,7 @@ typedef unsigned char loglevel_t;
 struct log_file {
 	FILE *file;
 	loglevel_t maxlevel;
-	bool wrap;
+	bool wrap, prompted, auto_prompt;
 	char prompt;
 	struct log_file *next;
 };

@@ -79,13 +79,13 @@ int main (int argc, char **argv) {
 
 	/* Set log files */
 	console = new_log(stdout, LOG_CONSOLE | LOG_INFO | LOG_ERROR, FALSE);
-	open_log("tris_server.log", LOG_ALL);
+	open_log("logs/tris_server.log", LOG_ALL);
 
-	if (_setlocale ) flog_message(LOG_DEBUG, _("Locate set to %s"), _setlocale);
+	if (_setlocale ) flog_message(LOG_DEBUG, _("Locale set to '%s'"), _setlocale);
 	else log_message(LOG_WARNING, _("Cannot set locale"));
-	if ( _bindtextdomain ) flog_message(LOG_DEBUG, _("Message catalogs directory set to %s"), _bindtextdomain);
+	if ( _bindtextdomain ) flog_message(LOG_DEBUG, _("Message catalogs directory set to '%s'"), _bindtextdomain);
 	else log_message(LOG_WARNING, _("Cannot set message catalogs directory"));
-	if ( _textdomain ) flog_message(LOG_DEBUG, _("Gettext domain set to %s"), _textdomain);
+	if ( _textdomain ) flog_message(LOG_DEBUG, _("Gettext domain set to '%s'"), _textdomain);
 	else log_message(LOG_WARNING, _("Cannot set gettext domain"));
 	
 	if ( argc != 3 ) {
@@ -136,6 +136,7 @@ int main (int argc, char **argv) {
 	_writefds = writefds;
 	
 	console->prompt = '>';
+	console->auto_prompt = TRUE;
 	log_prompt(console);
 	
 	while ( (s = select(maxfds + 1, &_readfds, &_writefds, NULL, NULL)) > 0 ) {
@@ -193,7 +194,8 @@ int main (int argc, char **argv) {
 		_writefds = writefds;
 	}
 	
-	flog_message(LOG_DEBUG, _("Just exited main while loop with s=%d"), s);
+	
+	log_error(_("Error select()"));
 	
 	for ( i = 0; i <= maxfds; i++ ) {
 		if ( i != STDIN_FILENO &&
@@ -204,7 +206,6 @@ int main (int argc, char **argv) {
 		}
 	}
 	
-	log_error(_("Error select()"));
 	exit(EXIT_FAILURE);
 }
 
@@ -216,7 +217,6 @@ void accept_connection() {
 	struct client_node *client;
 	socklen_t addrlen = sizeof(clienthost);
 	
-	log_message(LOG_DEBUG, _("Going to accept a new connection..."));
 	sock_client = accept(sock_listen, (struct sockaddr*) &clienthost, &addrlen);
 	
 	if ( sock_client < 0 ) {
@@ -442,13 +442,13 @@ void idle_play(struct client_node *client) {
 				client->play_with->play_with = NULL;
 				client->play_with = NULL;
 			} else if ( client->req_to != NULL ) {
-				flog_message(LOG_INFO, _("[%s] canceled playing with [%s]"),
+				/* cancel_request() */
+				flog_message(LOG_INFO, _("[%s] cancelled playing with [%s]"),
                                     client->username, client->req_to->username);
 				client->req_to->req_from = NULL;
 				client->req_to = NULL;
 			} else
-				flog_message(LOG_INFO,
-                           _("[%s] stopped playing with a disconnected client"),
+				flog_message(LOG_INFO, _("[%s] stopped playing"),
                                                               client->username);
 			
 			client->state = FREE;
@@ -483,7 +483,7 @@ void cancel_request(struct client_node *client) {
 	
 	if ( cmd == REQ_END ) {
 		if ( client->req_to != NULL ) {
-			flog_message(LOG_INFO, _("[%s] canceled playing with [%s]"),
+			flog_message(LOG_INFO, _("[%s] cancelled playing with [%s]"),
                                     client->username, client->req_to->username);
 			client->req_to->req_from = NULL;
 			client->req_to = NULL;
@@ -498,7 +498,6 @@ void cancel_request(struct client_node *client) {
 void client_disconnected(struct client_node *client) {
 	struct client_node *opp;
 	
-	log_message(LOG_DEBUG, _("Going to drop a client..."));
 	if ( client->state == BUSY ) {
 		if ( client->req_from != NULL ) {
 			opp = client->req_from;
@@ -522,7 +521,10 @@ void client_disconnected(struct client_node *client) {
 			unmonitor_socket_w(opp->socket);
 			monitor_socket_r(opp->socket); /*FIXME inutile? */
 		} else {
-			flog_message(LOG_WARNING, _("%s has unconsistent data on line %d"),
+			/* in case client->req_from or req_to are set to NULL by
+			cancel_request() or idle_play() */
+			/*TODO use a better log message */
+			flog_message(LOG_INFO_VERBOSE, _("[%s] had a play request"),
                                               client_canon_p(client), __LINE__);
 		}
 	} else if ( client->state == PLAY ) {
@@ -587,9 +589,6 @@ void send_data(struct client_node *client) {
                                     client->data_count, client_canon_p(client));
 		
 		if ( client->data != NULL ) {
-			flog_message(LOG_DEBUG, _("Freeing %d bytes on line %d"),
-                                                  client->data_count, __LINE__);
-			
 			free(client->data);
 			client->data = NULL;
 		}
@@ -602,10 +601,7 @@ void send_data(struct client_node *client) {
 			case FREE: client->read_dispatch = &idle_free; break;
 			case BUSY: client->read_dispatch = &get_play_resp; break;
 			case PLAY: client->read_dispatch = &idle_play; break;
-			case NONE:
-				flog_message(LOG_WARNING, _("%s is NONE on line %d"),
-                                              client_canon_p(client), __LINE__);
-				
+			default:
 				client_disconnected(client);
 				return;
 		}
@@ -622,11 +618,11 @@ void server_shell() {
 	
 	log_message(LOG_USERINPUT, buffer);
 	
-	if ( strcmp(buffer, "help" ) == 0 ) { /* ------------------------- > help */
+	if ( strcmp(buffer, _("help") ) == 0 ) { /* ------------------------- > help */
 	
 		log_message(LOG_CONSOLE, _("Commands: help, who, playing, exit"));
 		
-	} else if ( strcmp(buffer, "who") == 0 ) { /* --------------------- > who */
+	} else if ( strcmp(buffer, _("who")) == 0 ) { /* --------------------- > who */
 		
 		struct client_node *cn;
 		
@@ -652,7 +648,7 @@ void server_shell() {
 			log_prompt(console);
 		}
 		
-	} else if ( strcmp(buffer, "playing") == 0 ) { /* ------------- > playing */
+	} else if ( strcmp(buffer, _("playing")) == 0 ) { /* ------------- > playing */
 		
 		struct client_node *cn, *opp;
 		bool playing = FALSE;
@@ -674,7 +670,7 @@ void server_shell() {
 		console->prompt = '>';
 		log_prompt(console);
 		
-	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
+	} else if ( strcmp(buffer, _("exit")) == 0 ) { /* ------------------- > exit */
 		
 		int i;
 		flog_message(LOG_INFO_VERBOSE, _("Closing %d client connections..."),
@@ -687,8 +683,8 @@ void server_shell() {
 				close(i);
 			}
 		}
-		log_message(LOG_DEBUG, _("Freeing data structures"));
 		destroy_client_list(client_list.head);
+		console->auto_prompt = FALSE;
 		log_message(LOG_CONSOLE, _("Exiting..."));
 		exit(EXIT_SUCCESS);
 		
@@ -718,9 +714,6 @@ void prepare_client_list(struct client_node *client) {
 		}
 	}
 	
-	flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), total_length,
-                                                                      __LINE__);
-	
 	client->data = malloc(total_length);
 	check_alloc(client->data);
 	client->data_cursor = 0;
@@ -745,9 +738,6 @@ void prepare_client_list(struct client_node *client) {
 
 void prepare_client_contact(struct client_node *to, struct client_node *cntc) {
 	to->data_count = 1 + sizeof(cntc->addr.sin_addr) + sizeof(cntc->udp_port);
-	flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), to->data_count,
-                                                                      __LINE__);
-	
 	to->data = malloc(to->data_count);
 	check_alloc(to->data);
 	pack(to->data, "blw", RESP_OK_PLAY, cntc->addr.sin_addr, cntc->udp_port);
@@ -770,9 +760,6 @@ void prepare_play_request(struct client_node *from, struct client_node *to) {
 	log_statechange(from);
 	log_statechange(to);
 	to->data_count = 2 + from->username_len;
-	flog_message(LOG_DEBUG, _("Allocating %d bytes on line %d"), to->data_count,
-                                                                      __LINE__);
-	
 	to->data = malloc(to->data_count);
 	check_alloc(to->data);
 	pack(to->data, "bbs", REQ_PLAY, from->username_len, from->username);
@@ -805,9 +792,9 @@ void get_play_resp(struct client_node *client) {
 			/* opp si è disconnesso prima che client rispondesse. Facciamo
 			comunque finta che sia ancora collegato, perché non c'è modo di
 			comunicarlo a client */
-			flog_message(LOG_INFO_VERBOSE,
-                          _("[%s] accepted to play with a disconnected client"),
+			flog_message(LOG_INFO_VERBOSE, _("[%s] accepted to play"),
                                                               client->username);
+			
 			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, _("[%s] accepted to play with [%s]"),
@@ -825,9 +812,9 @@ void get_play_resp(struct client_node *client) {
                                       magic_name(resp), client_canon_p(client));
 		
 		if ( opp == NULL ) {
-			flog_message(LOG_INFO_VERBOSE,
-                           _("[%s] refused to play with a disconnected client"),
+			flog_message(LOG_INFO_VERBOSE, _("[%s] refused to play"),
                                                               client->username);
+			
 			/*TODO oppure opp ha inviato REQ_END prima della play response */
 		} else {
 			flog_message(LOG_INFO, _("[%s] refused to play with [%s]"),
@@ -867,12 +854,10 @@ void start_match(struct client_node *a, struct client_node *b) {
                                                                    b->username);
 	
 	else if ( a != NULL )
-		flog_message(LOG_INFO_VERBOSE,
-                  _("[%s] is playing with a disconnected client"), a->username);
+		flog_message(LOG_INFO_VERBOSE, _("[%s] is playing"), a->username);
 	
 	else if ( b != NULL )
-		flog_message(LOG_INFO_VERBOSE,
-                  _("[%s] is playing with a disconnected client"), b->username);
+		flog_message(LOG_INFO_VERBOSE, _("[%s] is playing"), b->username);
 	
 	else
 		flog_message(LOG_WARNING,

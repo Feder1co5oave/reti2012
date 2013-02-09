@@ -36,6 +36,8 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	new->file = file;
 	new->maxlevel = maxlevel;
 	new->wrap = wrap;
+	new->prompted = FALSE;
+	new->auto_prompt = FALSE;
 	new->prompt = FALSE;
 	new->next = NULL;
 	
@@ -127,10 +129,12 @@ int log_message(loglevel_t level, const char *message) {
 				post = "\033[0m";
 			}*/
 			
-			if ( lf->prompt && level != LOG_CONSOLE ) pre = "\n";
-			else pre = "";
+			if ( lf->prompt && lf->prompted && level != LOG_CONSOLE )
+				if ( lf->auto_prompt ) pre = "\r";
+				else pre = "\n";
+			else
+				pre = "";
 			
-
 			if ( lf->wrap ) {
 				struct timeb elapsed = get_elapsed();
 				sprintf(stamp, TIMESTAMP_FORMAT, (int) elapsed.time,
@@ -170,11 +174,14 @@ int log_message(loglevel_t level, const char *message) {
 				mark = "";
 				strcpy(stamp, "");
 			}
-
+			
 			/*FIXME togliere post se è inutile */
 			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
-			if ( lf->prompt ) fprintf(lf->file, "%c ", lf->prompt);
-			fflush(lf->file); /*FIXME non flushare inutilmente */
+			if ( lf->auto_prompt ) log_prompt(lf);
+			else {
+				lf->prompted = FALSE;
+				fflush(lf->file); /*FIXME non flushare inutilmente */
+			}
 		}
 	}
 
@@ -230,6 +237,7 @@ int log_prompt(struct log_file *logfile) {
 	if ( logfile->prompt ) {
 		fprintf(logfile->file, "%c ", logfile->prompt);
 		fflush(logfile->file);
+		logfile->prompted = TRUE;
 		return 1;
 	}
 	return 0;

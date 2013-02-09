@@ -20,6 +20,11 @@ const int print[][3] = {
 	{1, 2, 3}
 };
 
+void init_grid(struct tris_grid *grid) {
+	struct tris_grid copy = TRIS_GRID_INIT;
+	memcpy(grid, &copy, sizeof(struct tris_grid));
+}
+
 char get_winner(const struct tris_grid *grid) {
 	int i, c = 0;
 	
@@ -71,12 +76,14 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	
 	int i, j;
 	char temp[5];
-	buffer[0] = '\0';
 	
 	assert(buffer != NULL);
 	assert(grid != NULL);
 	
 	if ( pre == NULL ) pre = "";
+	if ( 7*(strlen(pre) + 13) + 6 > n ) return NULL;
+	
+	buffer[0] = '\0';
 	
 	for ( i = 0; i < 3; i++ ) {
 		strcat(buffer, pre);
