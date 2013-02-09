@@ -33,7 +33,7 @@ struct client_node {
  */
 typedef struct {
 	struct client_node *head, *tail;
-	int count;
+	unsigned int count;
 } client_list_t;
 
 
