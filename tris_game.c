@@ -81,7 +81,7 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	assert(grid != NULL);
 	
 	if ( pre == NULL ) pre = "";
-	if ( 7*(strlen(pre) + 13) + 6 > n ) return NULL;
+	if ( 7*(strlen(pre) + 13) + 6 + 1 > n ) return NULL;
 	
 	buffer[0] = '\0';
 	
