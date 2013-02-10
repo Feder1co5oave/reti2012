@@ -556,20 +556,20 @@ void play_shell() {
 }
 
 bool say_hello() {
-	int c, salt;
+	int c, seed;
 	
 	log_message(LOG_DEBUG, "Going to say hello...");
 	
-	/* Generate salt */
+	/* Generate seed */
 	srand(time(NULL));
 	c = (rand() % 102394) / 1059; /* c in [0, 96] */
-	for ( ; c >= 0; c-- ) salt = rand();
-	grid.salt = salt;
+	for ( ; c >= 0; c-- ) seed = rand();
+	grid.seed = seed;
 	update_hash(&grid);
 	
-	flog_message(LOG_DEBUG, "Salt is %08x", salt);
+	flog_message(LOG_DEBUG, "Seed is %08x", seed);
 	
-	pack(buffer, "bl", REQ_HELLO, salt);
+	pack(buffer, "bl", REQ_HELLO, seed);
 	if ( send_buffer(opp_socket, buffer, 5) < 0 ) {
 		log_error("Error send()");
 		return FALSE;
@@ -702,7 +702,7 @@ void got_play_request() {
 
 bool get_hello() {
 	uint8_t byte;
-	uint32_t salt;
+	uint32_t seed;
 	int received;
 	socklen_t addrlen = sizeof(opp_host);
 	
@@ -717,7 +717,7 @@ bool get_hello() {
 	
 	if ( received != 5 ) return FALSE;
 	
-	unpack(buffer, "bl", &byte, &salt);
+	unpack(buffer, "bl", &byte, &seed);
 	
 	print_ip(opp_host);
 	flog_message(LOG_DEBUG, "Got %s from %s:%hu", magic_name(byte), buffer,
@@ -725,10 +725,10 @@ bool get_hello() {
 	
 	if ( byte != REQ_HELLO ) return FALSE;
 	
-	grid.salt = salt;
+	grid.seed = seed;
 	update_hash(&grid);
 	
-	flog_message(LOG_DEBUG, "Salt is %08x", salt);
+	flog_message(LOG_DEBUG, "Seed is %08x", seed);
 	
 	return TRUE;
 }
