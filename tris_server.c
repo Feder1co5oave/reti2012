@@ -345,8 +345,8 @@ void idle_free(struct client_node *client) {
 		return;
 	}
 	
-	flog_message(LOG_DEBUG, _("Got cmd=%s from %s in idle_free"), magic_name(cmd),
-                                                        client_canon_p(client));
+	flog_message(LOG_DEBUG, _("Got cmd=%s from %s in idle_free"),
+                                       magic_name(cmd), client_canon_p(client));
 	
 	switch ( cmd ) {
 		case REQ_WHO:
@@ -694,7 +694,8 @@ void server_shell() {
 		
 	} else {
 		
-		log_message(LOG_CONSOLE, "Unknown command. Type 'help' for list of commands");
+		log_message(LOG_CONSOLE,
+                        _("Unknown command. Type 'help' for list of commands"));
 		
 	}
 }
