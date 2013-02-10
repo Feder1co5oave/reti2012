@@ -3,6 +3,7 @@
 *.log
 *.d
 *~
-tris.pot
+*.mo
+*.pot
 tris_server
 tris_client
