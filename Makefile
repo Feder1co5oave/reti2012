@@ -27,7 +27,7 @@ set_handler.o :
 	$(CC) -Wall -Wextra -pedantic       -MMD -DNDEBUG   -c -o set_handler.o set_handler.c
 
 clean :
-	- rm $(OBJs) $(EXEs) logs/*.log *.d
+	- rm $(EXEs) *.o logs/*.log *.d
 
 server_log :
 	ps -C tris_server -o pid= > /dev/null
