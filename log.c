@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-#include <signal.h>
 #include <sys/timeb.h>
 
 struct log_file *log_files = NULL;

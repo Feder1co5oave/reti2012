@@ -1,6 +1,4 @@
 #include "set_handler.h"
-#include <stdlib.h>
-#include <signal.h>
 
 int set_handler(int signal, void (*handler)(int)) {
 	struct sigaction sa;

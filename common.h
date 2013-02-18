@@ -13,9 +13,9 @@
 #define USERNAME_ALPHABET \
              "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-"
 
-#define DEFAULT_TIMEOUT_INIT {60, 0}
-#define HELLO_TIMEOUT (10 * 1000)
-#define PLAY_RESPONSE_TIMEOUT (60 * 1000)
+#define DEFAULT_TIMEOUT_INIT {60, 0}      /* 60 seconds */
+#define HELLO_TIMEOUT (10 * 1000)         /* 10 seconds */
+#define PLAY_RESPONSE_TIMEOUT (60 * 1000) /* 60 seconds */
 
 #define BUFFER_SIZE 1024
 
