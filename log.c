@@ -45,7 +45,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 	/* We don't want log delimiters on the console */
 	if ( wrap && file != stdout && file != stderr ) {
 		struct timeb elapsed = get_elapsed();
-		fprintf(file, TIMESTAMP_FORMAT "======== Opening logfile at %s",
+		fprintf(file, TIMESTAMP_FORMAT "======== Apertura file di log il %s",
                               (int) elapsed.time, elapsed.millitm, ctime(&now));
 		/* ctime() terminates with \n\0 */
 	}
@@ -63,7 +63,7 @@ struct log_file *new_log(FILE *file, loglevel_t maxlevel, bool wrap) {
 		     set_handler(SIGINT,  sig_handler) != 0 ||
 		     set_handler(SIGTERM, sig_handler) != 0 )
 			
-			log_error("Error sigaction()");
+			log_error("Errore sigaction()");
 	}
 	
 	return new;
@@ -88,7 +88,7 @@ struct log_file *close_log(struct log_file *logfile) {
 		time_t now = time(NULL);
 		struct timeb elapsed = get_elapsed();
 		fprintf(logfile->file,
-                           TIMESTAMP_FORMAT"======== Closing logfile at %s\n\n",
+                     TIMESTAMP_FORMAT "======== Chiusura file di log il %s\n\n",
                               (int) elapsed.time, elapsed.millitm, ctime(&now));
 	}
 
@@ -118,13 +118,8 @@ int log_message(loglevel_t level, const char *message) {
 	
 	for ( lf = log_files; lf != NULL; lf = lf->next ) {
 		if ( level & lf->maxlevel ) {
-			char *pre, *mark, *post = "";
+			char *pre, *mark;
 			count++;
-			
-			/*if ( lf->file == stderr ) {
-				pre = "\033[31m";
-				post = "\033[0m";
-			}*/
 			
 			if ( lf->prompt && lf->prompted && level != LOG_CONSOLE )
 				if ( lf->auto_prompt ) pre = "\r";
@@ -172,12 +167,11 @@ int log_message(loglevel_t level, const char *message) {
 				strcpy(stamp, "");
 			}
 			
-			/*FIXME togliere post se è inutile */
-			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
+			fprintf(lf->file, "%s%s%s%s\n", pre, stamp, mark, message);
 			if ( lf->auto_prompt ) log_prompt(lf);
 			else {
 				lf->prompted = FALSE;
-				fflush(lf->file); /*FIXME non flushare inutilmente */
+				fflush(lf->file);
 			}
 		}
 	}
