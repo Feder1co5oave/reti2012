@@ -78,7 +78,7 @@ struct client_node *get_client_by_socket(int socket) {
 struct client_node *get_client_by_username(const char *username) {
 	struct client_node *nc = client_list.head;
 	while ( nc &&
-               (strcmp(nc->username, username) != 0 || nc->state == CONNECTED) )
+               (nc->state == CONNECTED || strcmp(nc->username, username) != 0) )
 		
 		nc = nc->next;
 	
@@ -104,10 +104,12 @@ const char *client_sockaddr_p(struct client_node *client) {
 	assert(client != NULL);
 	
 	s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
-		INET_ADDRSTRLEN);
+                                                               INET_ADDRSTRLEN);
 	if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
+	
 	sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
-		ntohs(client->addr.sin_port));
+                                                  ntohs(client->addr.sin_port));
+	
 	return client_repr_buffer;
 }
 
@@ -131,5 +133,4 @@ int log_statechange(struct client_node *client) {
 	assert(client != NULL);
 	return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
                                                      state_name(client->state));
-	return 0;
 }
