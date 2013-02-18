@@ -84,7 +84,7 @@ const char *state_name(enum client_state);
 
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
-		log_error("Errore su malloc()");\
+		log_error("Errore malloc()");\
 		exit(EXIT_FAILURE);\
 	}
 

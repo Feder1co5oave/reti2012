@@ -94,8 +94,8 @@ struct client_node *get_client_by_username(const char *username);
 const char *client_sockaddr_p(struct client_node*);
 
 /**
- * Get the canonical representation of a client, i.e. "[username]" for clients
- * in state FREE, BUSY or PLAY, or "ip:port" for CONNECTED (and NONE).
+ * Get the canonical representation of a client, i.e. "'username'" for clients
+ * in FREE, BUSY or PLAY state, or "ip:port" for CONNECTED (and NONE).
  * @return a pointer to the string (static data) or NULL on error
  */
 const char *client_canon_p(struct client_node*);
