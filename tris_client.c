@@ -26,10 +26,10 @@
 #define unmonitor_socket_r(sock) FD_CLR(sock, &readfds)
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
 #define log_statechange() \
-                    flog_message(LOG_DEBUG, "I am now %s", state_name(my_state))
+                    flog_message(LOG_DEBUG, "Ora sono %s", state_name(my_state))
 
 #define print_ip(host) \
-        inet_ntop(AF_INET, &((host).sin_addr), buffer, sizeof(struct sockaddr_in))
+      inet_ntop(AF_INET, &((host).sin_addr), buffer, sizeof(struct sockaddr_in))
 
 
 
@@ -93,46 +93,46 @@ int main (int argc, char **argv) {
 	open_log(buffer, LOG_ALL);
 	
 	if (argc != 3) {
-		flog_message(LOG_CONSOLE, "Usage: %s <server_ip> <server_port>",
+		flog_message(LOG_CONSOLE, "Utilizzo: %s <ip_server> <porta_server>",
                                                                        argv[0]);
 		
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( inet_pton(AF_INET, argv[1], &(server_host.sin_addr)) != 1 ) {
-		log_message(LOG_CONSOLE, "Invalid server address");
+		log_message(LOG_CONSOLE, "Indirizzo server non valido");
 		exit(EXIT_FAILURE);
 	}
 	
 	server_host.sin_family = AF_INET;
 	server_host.sin_port = htons((uint16_t) atoi(argv[2]));
-	/*FIXME check cast */
 	memset(server_host.sin_zero, 0, sizeof(server_host.sin_zero));
 
 	sock_server = socket(server_host.sin_family, SOCK_STREAM , 0);
 	if ( sock_server == -1 ) {
-		log_error("Error socket()");
+		log_error("Errore socket()");
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( connect(sock_server, (struct sockaddr*) &server_host,
                                                    sizeof(server_host)) != 0 ) {
-		log_error("Error connect()");
+		log_error("Errore connect()");
 		exit(EXIT_FAILURE);
 	}
 	
 	if ( getsockname(sock_server, (struct sockaddr*) &my_host, &sockaddrlen) !=
                                0 || sockaddrlen > sizeof(struct sockaddr_in) ) {
 		
-		log_error("Error getsockname()");
+		log_error("Errore getsockname()");
 		exit(EXIT_FAILURE);
 	}
 	
 	print_ip(my_host);
-	flog_message(LOG_DEBUG, "I am host %s:%hu", buffer, ntohs(my_host.sin_port));
+	flog_message(LOG_DEBUG, "Sono l'host %s:%hu", buffer,
+                                                       ntohs(my_host.sin_port));
 	
 	my_state = CONNECTED;
-	log_message(LOG_CONSOLE, "Connected to the server");
+	log_message(LOG_CONSOLE, "Connessione al server avvenuta con successo");
 	log_statechange();
 	
 	login();
@@ -153,11 +153,11 @@ int main (int argc, char **argv) {
                                                                         >= 0 ) {
 		
 		if ( sel_status == 0 ) {
-			flog_message(LOG_DEBUG, "Select() timed out while %s",
+			flog_message(LOG_DEBUG, "Timeout per select() mentre %s",
                                                           state_name(my_state));
 			
 			if ( my_state == PLAY ) {
-				log_message(LOG_INFO, "Time out: leaving game...");
+				log_message(LOG_INFO, "Timeout: termino la partita...");
 				end_match(FALSE);
 				log_prompt(console);
 			} else {
@@ -177,8 +177,10 @@ int main (int argc, char **argv) {
 					get_line(buffer, BUFFER_SIZE);
 					log_message(LOG_USERINPUT, buffer);
 					flog_message(LOG_WARNING,
-                     "Got unwanted user input while %s:", state_name(my_state));
-					log_message(LOG_ERROR, ""); /*FIXME */
+                                        "Ricevuto input indesiderato mentre %s",
+                                                          state_name(my_state));
+					
+					log_message(LOG_ERROR, "");
 			}
 			log_prompt(console);
 			
@@ -191,7 +193,8 @@ int main (int argc, char **argv) {
 			
 			switch ( cmd ) {
 				case REQ_PLAY:
-					flog_message(LOG_DEBUG, "Got REQ_PLAY from server while %s",
+					flog_message(LOG_DEBUG,
+				                       "Ricevuto REQ_PLAY dal server mentre %s",
                                                           state_name(my_state));
 					
 					if ( my_state == FREE ) {
@@ -203,22 +206,22 @@ int main (int argc, char **argv) {
 				
 				case RESP_OK_PLAY:
 					recv(sock_server, buffer, sizeof(struct in_addr) + 2, 0);
-					/*FIXME check return value */
 				case RESP_BUSY:
 				case RESP_NONEXIST:
 				case RESP_REFUSE:
 					flog_message(LOG_INFO_VERBOSE,
-                               "Got delayed play response=%s", magic_name(cmd));
+                  "Ricevuta in ritardo la risposta=%s a una richiesta di gioco",
+                                                               magic_name(cmd));
+					
 					break;
 				default:
-					flog_message(LOG_WARNING, "Unexpected server cmd: %s",
+					flog_message(LOG_WARNING, "Comando dal server inatteso: %s",
                                                                magic_name(cmd));
 				
 					if ( cmd != RESP_BADREQ &&
                                        send_byte(sock_server, RESP_BADREQ) < 0 )
 					
 						server_disconnected();
-					/*FIXME */
 			}
 			
 		} else if ( my_state == PLAY && FD_ISSET(opp_socket, &_readfds) ) {
@@ -227,8 +230,7 @@ int main (int argc, char **argv) {
 			log_prompt(console);
 			
 		} else {
-			/*FIXME */
-			flog_message(LOG_WARNING, "Unexpected event on line %d while %s",
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d mentre %s",
                                                 __LINE__, state_name(my_state));
 			
 			sleep(1);
@@ -241,7 +243,6 @@ int main (int argc, char **argv) {
 
 	log_error("Error select()");
 	shutdown(sock_server, SHUT_RDWR);
-	/*TODO get rid of all the shutdown() calls */
 	close(sock_server);
 	exit(EXIT_FAILURE);
 }
@@ -253,47 +254,52 @@ void free_shell() {
 	char cmd[BUFFER_SIZE] = "";
 	
 	line_length = get_line(buffer, BUFFER_SIZE);
-	sscanf(buffer, "%s", cmd); /*FIXME check return value */
+	sscanf(buffer, "%s", cmd);
 	log_message(LOG_USERINPUT, buffer);
 	
-	if ( strcmp(buffer, "help") == 0 ) { /* -------------------------- > help */
+	if ( strcmp(buffer, "!help") == 0 ) { /* ------------------------ > !help */
 		
-		log_message(LOG_CONSOLE, "Commands: exit, help, play, who");
+		log_multiline(LOG_CONSOLE,
+"Sono disponibili i seguenti comandi:\n"
+" * !help --> mostra l'elenco dei comandi disponibili\n"
+" * !who --> mostra l'elenco dei client connessi al server\n"
+" * !connect <player> --> avvia una partita con il client di nome <player>\n"
+" * !quit --> termina il programma");
 		
-	} else if ( strcmp(buffer, "who") == 0 ) { /* --------------------- > who */
+	} else if ( strcmp(buffer, "!who") == 0 ) { /* ------------------- > !who */
 		
 		list_connected_clients();
 		
-	} else if ( strcmp(cmd, "play") == 0 ) { /* ---------------------- > play */
+	} else if ( strcmp(cmd, "!connect") == 0 ) { /* -------------- > !connect */
 		
 		char username[50];
 		int s, username_length;
 		
-		s = sscanf(buffer, "play %s", username);
+		s = sscanf(buffer, "!connect %s", username);
 		username_length = strlen(username);
 		
 		if ( username_length <= 0 || s != 1 ) {
-			log_message(LOG_CONSOLE, "Syntax: play <player>");
+			log_message(LOG_CONSOLE, "Sintassi: !connect <nome_giocatore>");
 			return;
 		}
 		
 		if ( username_length > MAX_USERNAME_LENGTH ) {
-			log_message(LOG_CONSOLE, "This username is too long");
+			log_message(LOG_CONSOLE, "Questo username è troppo lungo");
 			return;
 		}
 		
 		if ( username_length < MIN_USERNAME_LENGTH ) {
-			log_message(LOG_CONSOLE, "This username is too short");
+			log_message(LOG_CONSOLE, "Questo username è troppo corto");
 			return;
 		}
 		
 		if ( !username_is_valid(username, username_length) ) {
-			log_message(LOG_CONSOLE, "This username is badly formatted");
+			log_message(LOG_CONSOLE, "Questo username è malformato");
 			return;
 		}
 		
 		if ( strcmp(username, my_username) == 0 ) {
-			log_message(LOG_CONSOLE, "You cannot play with yourself");
+			log_message(LOG_CONSOLE,"Non puoi giocare con te stesso");
 			return;
 		}
 		
@@ -301,7 +307,7 @@ void free_shell() {
 		send_play_request();
 		get_play_response();
 		
-	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
+	} else if ( strcmp(buffer, "!quit") == 0 ) { /* ----------------- > !quit */
 		
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
@@ -309,8 +315,8 @@ void free_shell() {
 		
 	} else if ( strcmp(buffer, "") != 0 ) {
 		
-		log_message(LOG_CONSOLE,
-                         "Unknown command. Type 'help' for a list of commands");
+		log_message(LOG_CONSOLE, "Comando sconosciuto. Digita '!help' per la "
+                                               "lista dei comandi disponibili");
 		
 	}
 }
@@ -318,22 +324,22 @@ void free_shell() {
 bool open_play_socket() {
 	opp_socket = socket(AF_INET, SOCK_DGRAM, 0);
 	if ( opp_socket == -1 ) {
-		log_error("Error socket(SOCK_DGRAM)");
+		log_error("Errore socket(SOCK_DGRAM)");
 		return FALSE;
 	}
 	
-	log_message(LOG_DEBUG, "Opened opp_socket");
+	log_message(LOG_DEBUG, "Socket di gioco aperto");
 	
 	if ( bind(opp_socket, (struct sockaddr*) &my_host, sizeof(my_host)) != 0 ) {
 		
-		log_error("Error bind(SOCK_DGRAM)");
+		log_error("Errore bind(SOCK_DGRAM)");
 		close(opp_socket);
 		opp_socket = -1;
 		return FALSE;
 	}
 	
 	print_ip(my_host);
-	flog_message(LOG_DEBUG, "Bound opp_socket to %s:%hu", buffer,
+	flog_message(LOG_DEBUG, "Socket di gioco associato a %s:%hu", buffer,
                                                        ntohs(my_host.sin_port));
 	
 	return TRUE;
@@ -349,12 +355,12 @@ bool connect_play_socket(struct sockaddr_in *host) {
 	}
 	
 	if ( connect(opp_socket, (struct sockaddr*) host, sizeof(*host)) != 0 ) {
-		log_error("Error connect(SOCK_DGRAM)");
+		log_error("Errore connect(SOCK_DGRAM)");
 		return FALSE;
 	}
 	
 	print_ip(*host);
-	flog_message(LOG_DEBUG, "Connected opp_socket to %s:%hu", buffer,
+	flog_message(LOG_DEBUG, "Socket di gioco connesso a %s:%hu", buffer,
                                                          ntohs(host->sin_port));
 	
 	return TRUE;
@@ -364,7 +370,7 @@ void end_match(bool send_opp) {
 	uint8_t resp;
 	
 	if ( send_opp && send_byte(opp_socket, REQ_END) < 0 )
-		log_error("Error send()");
+		log_error("Errore send()");
 	
 	if ( send_byte(sock_server, REQ_END) < 0 ) server_disconnected();
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
@@ -373,13 +379,14 @@ void end_match(bool send_opp) {
 	log_statechange();
 	
 	if ( resp != RESP_OK_FREE )
-		flog_message(LOG_WARNING, "Unexpected server response: %s",
+		flog_message(LOG_WARNING, "Risposta dal server inattesa: %s",
                                                               magic_name(resp));
 	
-	log_message(LOG_CONSOLE, "End of match. You are now free.");
+	log_message(LOG_CONSOLE, "Fine della partita");
 	
 	if ( !connect_play_socket(&my_host) )
-		log_message(LOG_WARNING, "Cannot de-connect opp_socket");
+		log_message(LOG_WARNING,
+                          "Impossibile fare il de-connect del socket di gioco");
 	
 	if ( opp_socket > 0 ) unmonitor_socket_r(opp_socket);
 	
@@ -394,47 +401,49 @@ void login() {
 	unsigned int my_udp_port;
 	
 	do {
-		log_message(LOG_CONSOLE, "Insert your username:");
+		log_message(LOG_CONSOLE, "Inserisci lo username:");
 		username_length = get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 		
 		if ( username_length > MAX_USERNAME_LENGTH ) {
-			log_message(LOG_CONSOLE, "This username is too long");
+			log_message(LOG_CONSOLE, "Questo username è troppo lungo");
 			continue;
 		}
 		
 		if ( username_length < MIN_USERNAME_LENGTH ) {
-			log_message(LOG_CONSOLE, "This username is too short");
+			log_message(LOG_CONSOLE, "Questo username è troppo corto");
 			continue;
 		}
 		
 		if ( !username_is_valid(buffer, username_length) ) {
-			log_message(LOG_CONSOLE, "This username is badly formatted");
+			log_message(LOG_CONSOLE, "Questo username è malformato");
 			continue;
 		}
 		
 		strcpy(my_username, buffer);
 		
 		do {
-			log_message(LOG_CONSOLE, "Insert your UDP port:");
+			log_message(LOG_CONSOLE, "Inserisci la porta UDP di ascolto:");
 			get_line(buffer, BUFFER_SIZE);
 			log_message(LOG_USERINPUT, buffer);
 			if ( sscanf(buffer, " %u", &my_udp_port) != 1 ) continue;
 			
 			if ( my_udp_port == 0 || my_udp_port >= (1 << 16) ) {
-				log_message(LOG_CONSOLE, "Your UDP port is not in port range");
+				log_message(LOG_CONSOLE, "La porta UDP specificata non è "
+                                 "valida, inserisci un numero da 1024 a 65535");
+				
 				continue;
 			}
 			
 			if ( my_udp_port < (1 << 10) )
-				log_message(LOG_INFO, "Your UDP port is in the system range, "
-                                                           "it might not work");
+				log_message(LOG_INFO, "La porta UDP specificata è nel range "
+                 "delle porte di sistema, potrebbe provocare malfunzionamenti");
 			
 			my_host.sin_port = htons((uint16_t) my_udp_port);
 			
 			if ( !open_play_socket() ) {
 				log_message(LOG_CONSOLE,
-                         "This UDP port is already in use, choose another one");
+                            "Questa porta UDP è già in uso, scegline un'altra");
 				
 				continue;
 			}
@@ -455,25 +464,28 @@ void login() {
 		switch ( resp ) {
 			case RESP_OK_LOGIN:
 				my_state = FREE;
-				flog_message(LOG_CONSOLE, "Successfully logged in as [%s]",
+				flog_message(LOG_CONSOLE, "Loggato con successo come '%s'",
                                                                    my_username);
 				
-				flog_message(LOG_INFO_VERBOSE, "UDP port is %hu",
+				flog_message(LOG_INFO_VERBOSE, "La porta UDP di ascolto è %hu",
                                                        ntohs(my_host.sin_port));
+				
 				break;
 			
 			case RESP_EXIST:
 				log_message(LOG_CONSOLE | LOG_WARNING,
-                                                      "This username is taken");
+                             "Questo username è già in uso, scegline un altro");
+				
 				break;
 			
 			case RESP_BADUSR:
-				log_message(LOG_CONSOLE | LOG_WARNING,
-                                            "This username is badly formatted");
+				log_message(LOG_CONSOLE | LOG_WARNING, "Questo username è "
+                       "malformato, sono ammessi caratteri alfanumerici e _.-");
+				
 				break;
 			
 			default:
-				flog_message(LOG_WARNING, "Unexpected server response: %s",
+				flog_message(LOG_WARNING, "Risposta dal server inattesa: %s",
                                                               magic_name(resp));
 		}
 	} while ( resp != RESP_OK_LOGIN );
@@ -484,81 +496,97 @@ void play_shell() {
 	char cmd[BUFFER_SIZE] = "";
 	
 	line_length = get_line(buffer, BUFFER_SIZE);
-	sscanf(buffer, "%s", cmd); /*FIXME check return value */
+	sscanf(buffer, "%s", cmd);
 	cmd_length = strlen(cmd);
 	log_message(LOG_USERINPUT, buffer);
 	
-	if ( strcmp(buffer, "help") == 0 ) { /* -------------------------- > help */
+	if ( strcmp(buffer, "!help") == 0 ) { /* ------------------------ > !help */
 		
-		log_message(LOG_CONSOLE, "Commands: end, exit, help, hit, show, who");
+		log_multiline(LOG_CONSOLE,
+"Sono disponibili i seguenti comandi:\n"
+" * !help --> mostra l'elenco dei comandi disponibili\n"
+" * !who --> mostra l'elenco dei client connessi al server\n"
+" * !disconnect --> abbandona la partita in corso con un altro peer\n"
+" * !quit --> termina il programma dopo aver abbandonato la partita in corso\n"
+" * !show_map --> mostra la mappa di gioco\n"
+" * !hit <cell> --> marca la casella <cell>");
 		
-	} else if ( strcmp(buffer, "who") == 0 ) { /* --------------------- > who */
+	} else if ( strcmp(buffer, "!who") == 0 ) { /* ------------------- > !who */
 		
 		list_connected_clients();
 		
-	} else if ( strcmp(buffer, "end") == 0 ) { /* --------------------- > end */
+	} else if ( strcmp(buffer, "!disconnect") == 0 ) { /* ----- > !disconnect */
 		
-		log_message(LOG_CONSOLE, "You surrendered!");
+		log_message(LOG_CONSOLE, "Ti sei arreso!");
 		end_match(TRUE);
 		
-	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
+	} else if ( strcmp(buffer, "!quit") == 0 ) { /* ----------------- > !quit */
 		
 		end_match(TRUE);
 		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 		
-	} else if ( strcmp(cmd, "hit") == 0 ) { /* ------------------------ > hit */
+	} else if ( strcmp(cmd, "!hit") == 0 ) { /* ---------------------- > !hit */
 		
 		unsigned int cell;
 		
-		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
+		if ( sscanf(buffer, "!hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
 			
 			if ( turn != my_player ) {
-				log_message(LOG_CONSOLE, "It is not your turn");
+				log_message(LOG_CONSOLE,
+                        "Non è il tuo turno, attendi la mossa dell'avversario");
+				
 				return;
 			}
 			
 			if ( grid.cells[cell] != GAME_UNDEF ) {
-				log_message(LOG_CONSOLE, "That cell is already taken");
+				log_message(LOG_CONSOLE, "Questa casella è già occupata");
 				return;
 			}
 			
 			make_move(cell, TRUE);
 			
-		} else log_message(LOG_CONSOLE, "Syntax: hit <n>, where n is 1-9");
+		} else {
+			struct tris_grid map = TRIS_GRID_MAP_INIT;
+			sprintgrid(buffer, &map, "", BUFFER_SIZE);
+			log_message(LOG_CONSOLE, "Sintassi: !hit <n>, dove <n> è 1-9:");
+			log_multiline(LOG_CONSOLE, buffer);
+		}
 		
-	} else if ( strcmp(buffer, "show") == 0 ) { /* ------------------- > show */
+	} else if ( strcmp(buffer, "!show_map") == 0 ) { /* --------- > !show_map */
 		
 		sprintgrid(buffer, &grid, "", BUFFER_SIZE);
 		log_multiline(LOG_CONSOLE, buffer);
-		if ( turn == my_player ) log_message(LOG_CONSOLE, "It is your turn.");
-		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
+		if ( turn == my_player ) log_message(LOG_CONSOLE, "E' il tuo turno");
+		else flog_message(LOG_CONSOLE, "E' il turno di %s", opp_username);
 		
-	} else if ( strcmp(buffer, "cheat") == 0 ) { /* ----------------- > cheat */
+	} else if ( strcmp(buffer, "!cheat") == 0 ) { /* --------------- > !cheat */
 		
 		int move;
 		
 		if ( turn != my_player ) {
-			log_message(LOG_CONSOLE, "It is not your turn");
+			log_message(LOG_CONSOLE,
+                        "Non è il tuo turno, attendi la mossa dell'avversario");
+			
 			return;
 		}
 		
 		backtrack(&grid, my_player, &move);
-		flog_message(LOG_CONSOLE, "Hitting on cell %d...", move);
+		flog_message(LOG_CONSOLE, "Marco la casella %d...", move);
 		make_move(move, TRUE);
 		
 	} else if ( strcmp(buffer, "") != 0 ) {
 		
-		log_message(LOG_CONSOLE,
-                           "Unknown command. Type 'help' for list of commands");
+		log_message(LOG_CONSOLE, "Comando sconosciuto. Digita '!help' per la "
+                                               "lista dei comandi disponibili");
 	}
 }
 
 bool say_hello() {
 	int c, seed;
 	
-	log_message(LOG_DEBUG, "Going to say hello...");
+	log_message(LOG_DEBUG, "Sto per contattare l'altro client...");
 	
 	/* Generate seed */
 	srand(time(NULL));
@@ -567,11 +595,11 @@ bool say_hello() {
 	grid.seed = seed;
 	update_hash(&grid);
 	
-	flog_message(LOG_DEBUG, "Seed is %08x", seed);
+	flog_message(LOG_DEBUG, "Il seed per questa partita è %08x", seed);
 	
 	pack(buffer, "bl", REQ_HELLO, seed);
 	if ( send_buffer(opp_socket, buffer, 5) < 0 ) {
-		log_error("Error send()");
+		log_error("Errore send()");
 		return FALSE;
 	}
 	
@@ -584,54 +612,55 @@ void got_hit_or_end() {
 	int received;
 	
 	received = recv(opp_socket, buffer, 6, 0);
-	flog_message(LOG_DEBUG, "Received=%d on line %d", received, __LINE__);
+	flog_message(LOG_DEBUG, "Ricevuti=%d alla linea %d", received, __LINE__);
 	
 	if ( received < 0 ) {
-		log_error("Error recv()");
+		log_error("Errore recv()");
 		end_match(FALSE);
 		return;
 	}
 	
 	unpack(buffer, "bbl", &byte, &move, &hash);
 	
-	flog_message(LOG_DEBUG, "Got %s from player", magic_name(byte));
+	flog_message(LOG_DEBUG, "Ricevuto %s dall'avversario", magic_name(byte));
 	
 	if ( byte == REQ_HIT ) {
 		
 		if ( received != 6 ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d", __LINE__);
 			return;
 		}
 		
 		if ( turn == my_player ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d", __LINE__);
 			return;
 		}
 		
 		if ( move < 1 || move > 9 ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d", __LINE__);
 			return;
 		}
 		
 		if ( grid.cells[move] != GAME_UNDEF ) {
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d", __LINE__);
 			return;
 		}
 		
 		make_move(move, FALSE);
 		
 		if ( grid.hash != hash ) {
-			log_message(LOG_ERROR, "Hash mismatch");
+			log_message(LOG_ERROR,
+                          "Errore: hash errato! La mappa di gioco è corrotta.");
+			
 			end_match(FALSE);
-			/*TODO */
 		}
 		
 	} else if ( byte == REQ_END ) {
 		
-		log_message(LOG_INFO, "Your opponent surrendered: you win!");
+		log_message(LOG_INFO, "L'avversario si è arreso: hai vinto!");
 		end_match(FALSE);
 		
-	} else flog_message(LOG_WARNING, "Unexpected event on line %d: byte=%s",
+	} else flog_message(LOG_WARNING, "Evento inatteso alla linea %d, byte=%s",
                                                     __LINE__, magic_name(byte));
 }
 
@@ -642,23 +671,22 @@ void got_play_request() {
 	my_state = BUSY;
 	
 	if ( recv(sock_server, &length, 1, 0) != 1 ) server_disconnected();
-	/*FIXME check length */
 	if ( recv(sock_server, buffer, length, 0) != length ) server_disconnected();
 	
 	buffer[length] = '\0';
 	strcpy(opp_username, buffer);
-	flog_message(LOG_INFO,
-        "Got play request from [%s]. Accept (y) or refuse (n) ?", opp_username);
+	flog_message(LOG_INFO, "Ricevuta richiesta di gioco da '%s'. "
+                                   "Accetta (s) o rifiuta (n) ?", opp_username);
 	
 	do {
 		line_length = get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 
-		if ( strcmp(buffer, "y") == 0 ) {
+		if ( strcmp(buffer, "s") == 0 ) {
 			
 			if ( !connect_play_socket(NULL) ) {
 				log_message(LOG_CONSOLE,
-                               "Request automatically refused due to an error");
+                    "Richiesta automaticamente rifiutata a causa di un errore");
 				
 				if ( send_byte(sock_server, RESP_REFUSE) < 0 )
 					server_disconnected();
@@ -671,9 +699,8 @@ void got_play_request() {
 				server_disconnected();
 			
 			my_state = BUSY;
-			/*TODO */
-			log_message(LOG_CONSOLE, "Request accepted. Waiting for connection "
-                                                    "from the other client...");
+			log_message(LOG_CONSOLE, "Richiesta accettata, in attesa di "
+                                            "connessione dall'altro client...");
 			
 			if ( get_hello() && connect_play_socket(&opp_host) )
 				start_match(GAME_GUEST);
@@ -689,12 +716,12 @@ void got_play_request() {
 			
 			my_state = FREE;
 			console->prompt = PROMPT_FREE;
-			log_message(LOG_CONSOLE, "Request refused");
+			log_message(LOG_CONSOLE, "Richiesta rifiutata");
 			break;
 			
 		} else {
 			
-			log_message(LOG_CONSOLE, "Accept (y) or refuse (n) ?");
+			log_message(LOG_CONSOLE, "Accetta (s) o rifiuta (n) ?");
 			
 		}
 	} while (TRUE);
@@ -708,7 +735,8 @@ bool get_hello() {
 	
 	if ( poll_in(opp_socket, HELLO_TIMEOUT) <= 0 ) {
 		log_message(LOG_CONSOLE,
-                  "Timeout while waiting for connection from the other client");
+            "Timeout mentre si era in attesa di connessione dall'altro client");
+		
 		return FALSE;
 	}
 	
@@ -720,7 +748,7 @@ bool get_hello() {
 	unpack(buffer, "bl", &byte, &seed);
 	
 	print_ip(opp_host);
-	flog_message(LOG_DEBUG, "Got %s from %s:%hu", magic_name(byte), buffer,
+	flog_message(LOG_DEBUG, "Ricevuto %s da %s:%hu", magic_name(byte), buffer,
                                                       ntohs(opp_host.sin_port));
 	
 	if ( byte != REQ_HELLO ) return FALSE;
@@ -728,7 +756,7 @@ bool get_hello() {
 	grid.seed = seed;
 	update_hash(&grid);
 	
-	flog_message(LOG_DEBUG, "Seed is %08x", seed);
+	flog_message(LOG_DEBUG, "Il seed per questa partita è %08x", seed);
 	
 	return TRUE;
 }
@@ -739,7 +767,9 @@ void get_play_response() {
 	int received;
 	
 	if ( poll_in(sock_server, PLAY_RESPONSE_TIMEOUT) <= 0 ) {
-		log_message(LOG_INFO, "Timeout while waiting for play response");
+		log_message(LOG_INFO,
+               "Timeout mentre si era in attesa di risposta dall'altro client");
+		
 		end_match(FALSE);
 		return;
 	}
@@ -759,8 +789,8 @@ void get_play_response() {
 			print_ip(opp_host);
 			opp_host.sin_port = htons(opp_udp_port);
 			
-			flog_message(LOG_INFO,
-                    "[%s] accepted to play with you. Contacting host %s:%hu...",
+			flog_message(LOG_INFO, "'%s' ha accettato di giocare con te. "
+                                      "Connessione in corso all'host %s:%hu...",
                                             opp_username, buffer, opp_udp_port);
 			
 			if ( connect_play_socket(&opp_host) && say_hello() ) {
@@ -768,27 +798,28 @@ void get_play_response() {
 				return;
 			}
 			
-			log_message(LOG_INFO, "Cannot connect to client, go back to FREE");
+			log_message(LOG_INFO, "Impossibile connettersi al client");
 			
 			end_match(FALSE);
 			
 			break;
 		
 		case RESP_REFUSE:
-			flog_message(LOG_INFO, "[%s] refused to play", opp_username);
+			flog_message(LOG_INFO, "'%s' ha rifiutato la richiesta di gioco",
+                                                                  opp_username);
 			break;
 		
 		case RESP_NONEXIST:
-			flog_message(LOG_INFO, "[%s] does not exist", opp_username);
+			flog_message(LOG_INFO, "'%s' non esiste", opp_username);
 			break;
 		
 		case RESP_BUSY:
-			flog_message(LOG_INFO, "[%s] is occupied in another match",
+			flog_message(LOG_INFO, "'%s' è occupato",
                                                                   opp_username);
 			break;
 		
 		default:
-			flog_message(LOG_WARNING, "Unexpected server response: %s",
+			flog_message(LOG_WARNING, "Risposta dal server inattesa: %s",
                                                               magic_name(resp));
 	}
 	
@@ -806,16 +837,15 @@ void list_connected_clients() {
 	if ( recv(sock_server, &resp, 1, 0) != 1 ) server_disconnected();
 	
 	if ( resp != RESP_WHO ) {
-		flog_message(LOG_WARNING, "Unexpected server response: %s",
+		flog_message(LOG_WARNING, "Risposta dal server inattesa: %s",
                                                               magic_name(resp));
 		return;
 	}
 	
 	if ( recv(sock_server, buffer, 4, 0) != 4 ) server_disconnected();
 	unpack(buffer, "l", &count);
-	if (count > 100) exit(EXIT_FAILURE); /*FIXME debug statement */
 	
-	flog_message(LOG_CONSOLE, "There are %u connected clients:", count);
+	flog_message(LOG_CONSOLE, "Ci sono %u client connessi:", count);
 	for (i = 0; i < count; i++) {
 		if ( recv(sock_server, &length, 1, 0) != 1 )
 			server_disconnected();
@@ -826,9 +856,9 @@ void list_connected_clients() {
 		buffer[length] = '\0';
 		
 		if ( strcmp(buffer, my_username) == 0 )
-			flog_message(LOG_CONSOLE, "[%s] <-- It's you!", buffer);
+			flog_message(LOG_CONSOLE, "'%s' <-- Sei tu!", buffer);
 		else
-			flog_message(LOG_CONSOLE, "[%s]", buffer);
+			flog_message(LOG_CONSOLE, "'%s'", buffer);
 	}
 }
 
@@ -839,30 +869,30 @@ void make_move(unsigned int cell, bool send_opp) {
 	update_hash(&grid);
 	winner = get_winner(&grid);
 	turn = inverse(turn);
-	flog_message(LOG_DEBUG, "Hash is %08x", grid.hash);
+	flog_message(LOG_DEBUG, "L'hash è %08x", grid.hash);
 	
 	if ( send_opp ) {
 		pack(buffer, "bbl", REQ_HIT, (uint8_t) cell, grid.hash);
 		if ( send_buffer(opp_socket, buffer, 6) < 0 )
-			log_error("Error send()");
+			log_error("Errore send()");
 	}
 	
 	if ( turn == my_player )
-		flog_message(LOG_INFO, "[%s] hit on cell %d", opp_username, cell);
+		flog_message(LOG_INFO, "'%s' ha marcato la casella %d", opp_username, cell);
 	else
-		flog_message(LOG_CONSOLE, "You hit on cell %d", cell);
+		flog_message(LOG_CONSOLE, "Hai marcato la casella %d", cell);
 	
 	
 	if ( winner == GAME_UNDEF ) {
-		if ( turn == my_player ) flog_message(LOG_CONSOLE, "It's your turn");
-		else flog_message(LOG_CONSOLE, "It is %s's turn.", opp_username);
+		if ( turn == my_player ) flog_message(LOG_CONSOLE, "E' il tuo turno");
+		else flog_message(LOG_CONSOLE, "E' il turno di '%s'", opp_username);
 		
 		return;
 	}
 	
-	else if ( winner == my_player ) log_message(LOG_INFO, "You won!");
-	else if ( winner == inverse(my_player) ) log_message(LOG_INFO, "You lost!");
-	else if ( winner == GAME_DRAW ) log_message(LOG_INFO, "Draw!");
+	else if ( winner == my_player ) log_message(LOG_INFO, "Hai vinto!");
+	else if ( winner == inverse(my_player) ) log_message(LOG_INFO, "Hai perso!");
+	else if ( winner == GAME_DRAW ) log_message(LOG_INFO, "Parità!");
 	else return;
 	
 	/* if ( winner != GAME_UNDEF ) */
@@ -877,17 +907,16 @@ void send_play_request() {
 	if ( send_buffer(sock_server, buffer, 2 + username_length) < 0 )
 		server_disconnected();
 	
-	flog_message(LOG_CONSOLE,
-            "Sent play request to [%s], waiting for response...", opp_username);
+	flog_message(LOG_CONSOLE, "Richiesta di gioco inviata a '%s', in attesa di "
+                                                   "risposta...", opp_username);
 	
 	my_state = BUSY;
 }
 
 void server_disconnected() {
-	log_message(LOG_ERROR, "Lost connection to server");
+	log_message(LOG_ERROR, "Connessione al server interrotta");
 	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
-	/*TODO if ( state == PLAYING ) */
 	exit(EXIT_FAILURE);
 }
 
@@ -902,16 +931,16 @@ void start_match(char me) {
 	console->prompt = PROMPT_PLAY;
 	switch ( me ) {
 		case GAME_HOST:
-			log_message(LOG_CONSOLE, "Match has started. It's your turn");
+			log_message(LOG_CONSOLE, "La partita è iniziata. E' il tuo turno");
 			break;
 			
 		case GAME_GUEST:
-			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
-                                                                  opp_username);
+			flog_message(LOG_CONSOLE, "La partita è iniziata. E' il turno di "
+                                                          "'%s'", opp_username);
 			break;
 			
 		default:
-			flog_message(LOG_WARNING, "Unexpected event on line %d", __LINE__);
+			flog_message(LOG_WARNING, "Evento inatteso alla linea %d", __LINE__);
 	}
 }
 
@@ -923,9 +952,9 @@ int poll_in(int socket, int timeout) {
 	poll_ret = poll(&pfd, 1, timeout);
 	
 	if ( poll_ret < 0 )
-		log_error("Error poll()");
+		log_error("Errore poll()");
 	else if ( poll_ret > 0 && pfd.revents != POLLIN )
-		flog_message(LOG_WARNING | LOG_ERROR, "Unexpected event on line %d",
+		flog_message(LOG_WARNING | LOG_ERROR, "Evento inatteso alla linea %d",
                                                                       __LINE__);
 	return poll_ret;
 }
