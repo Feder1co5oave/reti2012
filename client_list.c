@@ -32,7 +32,15 @@ struct client_node *destroy_client_node(struct client_node *cn) {
 	assert(cn != NULL);
 	
 	ret = cn->next;
-	if ( cn->data != NULL ) free(cn->data);
+	if ( cn->data != NULL )
+		free(cn->data);
+	if ( cn->req_from != NULL && cn->req_from->state == ZOMBIE )
+		free(cn->req_from);
+	if ( cn->req_to != NULL && cn->req_to->state == ZOMBIE )
+		free(cn->req_to);
+	if ( cn->play_with != NULL && cn->play_with->state == ZOMBIE )
+		free(cn->play_with);
+	
 	free(cn);
 	return ret;
 }
@@ -123,6 +131,7 @@ const char *client_canon_p(struct client_node *client) {
 		case FREE:
 		case BUSY:
 		case PLAY:
+		case ZOMBIE:
 			sprintf(client_repr_buffer, "'%s'", client->username);
 	}
 
@@ -133,4 +142,21 @@ int log_statechange(struct client_node *client) {
 	assert(client != NULL);
 	return flog_message(LOG_DEBUG, "%s è diventato %s", client_canon_p(client),
                                                      state_name(client->state));
+}
+
+struct client_node *get_zombie(struct client_node *cn) {
+	struct client_zombie *cz;
+	
+	cz = malloc(sizeof(struct client_zombie));
+	check_alloc(cz);
+	
+	memcpy(cz, cn, sizeof(struct client_zombie));
+	if ( cz->username_len <= MAX_USERNAME_LENGTH - 3 )
+		strcat(cz->username, "(Z)");
+	else
+		strcpy(cz->username + MAX_USERNAME_LENGTH - 6, "...(Z)");
+	cz->username_len = strlen(cz->username);
+	cz->state = ZOMBIE;
+	
+	return (struct client_node*) cz;
 }

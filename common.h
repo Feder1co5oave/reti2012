@@ -58,7 +58,8 @@ enum client_state {
 	CONNECTED,  /* client is connected, not logged in yet                     */
 	FREE,       /* client is connected and logged in (username and udp port)  */
 	BUSY,       /* client has/is requested to play a match                    */
-	PLAY        /* client is playing                                          */
+	PLAY,       /* client is playing                                          */
+	ZOMBIE      /* client is dead or has cancelled his play request           */
 };
 
 typedef unsigned char bool;
