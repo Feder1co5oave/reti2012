@@ -87,7 +87,7 @@ struct client_node *get_client_by_username(const char *username) {
 
 
 /* CLIENT_REPR_SIZE = max(
-	strlen("[longest_username]"),
+	strlen("'longest_username'"),
 	strlen("123.456.789.123:12345")
 ) + 1 */
 #if MAX_USERNAME_LENGTH + 3 > 22
@@ -105,8 +105,8 @@ const char *client_sockaddr_p(struct client_node *client) {
 	
 	s = inet_ntop(AF_INET, &(client->addr.sin_addr), client_repr_buffer,
                                                                INET_ADDRSTRLEN);
-	if ( s == NULL ) log_message(LOG_DEBUG, "Client has invalid address");
 	
+	if ( s == NULL ) log_message(LOG_DEBUG, "Indirizzo host non valido");
 	sprintf(client_repr_buffer + strlen(client_repr_buffer), ":%hu",
                                                   ntohs(client->addr.sin_port));
 	
@@ -123,7 +123,7 @@ const char *client_canon_p(struct client_node *client) {
 		case FREE:
 		case BUSY:
 		case PLAY:
-			sprintf(client_repr_buffer, "[%s]", client->username);
+			sprintf(client_repr_buffer, "'%s'", client->username);
 	}
 
 	return client_repr_buffer;
@@ -131,6 +131,6 @@ const char *client_canon_p(struct client_node *client) {
 
 int log_statechange(struct client_node *client) {
 	assert(client != NULL);
-	return flog_message(LOG_DEBUG, "%s is now %s", client_canon_p(client),
+	return flog_message(LOG_DEBUG, "%s è diventato %s", client_canon_p(client),
                                                      state_name(client->state));
 }
