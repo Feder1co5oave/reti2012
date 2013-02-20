@@ -532,8 +532,10 @@ void play_shell() {
 		
 		sprintgrid(buffer, &grid, "", BUFFER_SIZE);
 		log_multiline(LOG_CONSOLE, buffer);
-		if ( turn == my_player ) log_message(LOG_CONSOLE, "It is your turn.");
-		else flog_message(LOG_CONSOLE, "It is %s's turn", opp_username);
+		if ( turn == my_player )
+			flog_message(LOG_CONSOLE, "It is your turn (%c)", turn);
+		else
+			flog_message(LOG_CONSOLE, "It is %s's turn (%c)", opp_username, turn);
 		
 	} else if ( strcmp(buffer, "cheat") == 0 ) { /* ----------------- > cheat */
 		
@@ -854,8 +856,8 @@ void make_move(unsigned int cell, bool send_opp) {
 	
 	
 	if ( winner == GAME_UNDEF ) {
-		if ( turn == my_player ) flog_message(LOG_CONSOLE, "It's your turn");
-		else flog_message(LOG_CONSOLE, "It is %s's turn.", opp_username);
+		if ( turn == my_player ) flog_message(LOG_CONSOLE, "It's your turn (%c)", turn);
+		else flog_message(LOG_CONSOLE, "It is %s's turn (%c)", opp_username, turn);
 		
 		return;
 	}
@@ -902,12 +904,13 @@ void start_match(char me) {
 	console->prompt = PROMPT_PLAY;
 	switch ( me ) {
 		case GAME_HOST:
-			log_message(LOG_CONSOLE, "Match has started. It's your turn");
+			flog_message(LOG_CONSOLE, "Match has started. It's your turn (%c)",
+                                                                          turn);
 			break;
 			
 		case GAME_GUEST:
-			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn",
-                                                                  opp_username);
+			flog_message(LOG_CONSOLE, "Match has started. It is %s's turn (%c)",
+                                                            opp_username, turn);
 			break;
 			
 		default:
