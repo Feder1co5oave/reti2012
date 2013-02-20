@@ -512,7 +512,7 @@ void play_shell() {
 		
 		unsigned int cell;
 		
-		if ( sscanf(buffer, "hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
+		if ( sscanf(buffer, "hit %u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
 			
 			if ( turn != my_player ) {
 				log_message(LOG_CONSOLE, "It is not your turn");
