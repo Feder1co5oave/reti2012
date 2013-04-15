@@ -12,7 +12,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "pack.h"
 #include "common.h"
 #include "log.h"
 #include "tris_game.h"

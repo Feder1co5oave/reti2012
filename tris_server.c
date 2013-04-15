@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 
 #include "common.h"
-#include "pack.h"
 #include "client_list.h"
 #include "log.h"
 

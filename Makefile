@@ -8,7 +8,7 @@ PORT = 4096
 EXEs = tris_client tris_server
 SOBJs = client_list.o
 COBJs = tris_game.o
-COMMONOBJs = common.o pack.o log.o set_handler.o
+COMMONOBJs = common.o log.o set_handler.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 
 .PHONY : all clean server_log client_log run
