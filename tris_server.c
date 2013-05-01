@@ -593,9 +593,7 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
-	int line_length;
-	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	
 	log_message(LOG_USERINPUT, buffer);
 	

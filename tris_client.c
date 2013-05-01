@@ -249,10 +249,9 @@ int main (int argc, char **argv) {
 /* ========================================================================== */
 
 void free_shell() {
-	int line_length;
 	char cmd[BUFFER_SIZE] = "";
 	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s", cmd); /*FIXME check return value */
 	log_message(LOG_USERINPUT, buffer);
 	
@@ -480,12 +479,10 @@ void login() {
 }
 
 void play_shell() {
-	int line_length, cmd_length;
 	char cmd[BUFFER_SIZE] = "";
 	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s", cmd); /*FIXME check return value */
-	cmd_length = strlen(cmd);
 	log_message(LOG_USERINPUT, buffer);
 	
 	if ( strcmp(buffer, "help") == 0 ) { /* -------------------------- > help */
@@ -639,7 +636,6 @@ void got_hit_or_end() {
 
 void got_play_request() {
 	uint8_t length;
-	int line_length;
 	
 	my_state = BUSY;
 	
@@ -653,7 +649,7 @@ void got_play_request() {
         "Got play request from [%s]. Accept (y) or refuse (n) ?", opp_username);
 	
 	do {
-		line_length = get_line(buffer, BUFFER_SIZE);
+		get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 
 		if ( strcmp(buffer, "y") == 0 ) {
