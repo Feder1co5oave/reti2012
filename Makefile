@@ -37,7 +37,7 @@ client_log :
 	ps -C tris_client -o pid= > /dev/null
 	ps -C tris_client -o pid= | sed 's| *\([0-9][0-9]*\)|logs/tris_client-\1.log|' | xargs tail -f --lines=20
 
-run :
+run : all
 	$(TERMINAL) ./tris_server $(HOST) $(PORT)
 	$(TERMINAL) make server_log
 	$(TERMINAL) ./tris_client $(HOST) $(PORT)
