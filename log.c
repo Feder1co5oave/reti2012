@@ -88,7 +88,7 @@ struct log_file *close_log(struct log_file *logfile) {
 		time_t now = time(NULL);
 		struct timeb elapsed = get_elapsed();
 		fprintf(logfile->file,
-                           TIMESTAMP_FORMAT"======== Closing logfile at %s\n\n",
+                          TIMESTAMP_FORMAT "======== Closing logfile at %s\n\n",
                               (int) elapsed.time, elapsed.millitm, ctime(&now));
 	}
 
@@ -175,10 +175,7 @@ int log_message(loglevel_t level, const char *message) {
 			/*FIXME togliere post se è inutile */
 			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
 			if ( lf->auto_prompt ) log_prompt(lf);
-			else {
-				lf->prompted = FALSE;
-				fflush(lf->file); /*FIXME non flushare inutilmente */
-			}
+			else lf->prompted = FALSE;
 		}
 	}
 
