@@ -169,7 +169,10 @@ int log_message(loglevel_t level, const char *message) {
 			
 			fprintf(lf->file, "%s%s%s%s\n", pre, stamp, mark, message);
 			if ( lf->auto_prompt ) log_prompt(lf);
-			else lf->prompted = FALSE;
+			else {
+				lf->prompted = FALSE;
+				fflush(lf->file); /*FIXME non flushare inutilmente */
+			}
 		}
 	}
 
