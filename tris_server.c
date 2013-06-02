@@ -607,13 +607,16 @@ void server_shell() {
 	log_message(LOG_USERINPUT, buffer);
 	
 	if ( strcmp(buffer, "!help" ) == 0 ) { /* ----------------------- > !help */
-	
+		
+		console->prompt = FALSE;
 		log_multiline(LOG_CONSOLE,
 "Sono disponibili i seguenti comandi:\n"
 " * !help --> mostra l'elenco dei comandi disponibili\n"
 " * !who --> mostra l'elenco dei client connessi al server\n"
 " * !playing --> mostra l'elenco delle partite in corso\n"
 " * !quit --> termina il server, dopo aver disconnesso tutti i client");
+		console->prompt = '>';
+		log_prompt(console);
 		
 	} else if ( strcmp(buffer, "!who") == 0 ) { /* ------------------- > !who */
 		
