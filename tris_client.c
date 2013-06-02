@@ -159,12 +159,12 @@ int main (int argc, char **argv) {
 				log_message(LOG_INFO, "Time out: leaving game...");
 				end_match(FALSE);
 				log_prompt(console);
-			} else {
-				_readfds = readfds;
-				_writefds = writefds;
-				_tv = tv;
-				continue;
 			}
+			
+			_readfds = readfds;
+			_writefds = writefds;
+			_tv = tv;
+			continue;
 		}
 		
 		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {

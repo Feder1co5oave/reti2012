@@ -51,7 +51,7 @@ char get_winner(const struct tris_grid*);
 
 /**
  * @param char a first comparison item
- * @param char b secondo comparison item
+ * @param char b second comparison item
  * @param char player GAME_HOST or GAME_GUEST
  * @return TRUE if a is better than b, for player, FALSE otherwise
  */
