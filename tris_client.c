@@ -12,7 +12,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "pack.h"
 #include "common.h"
 #include "log.h"
 #include "tris_game.h"
@@ -160,12 +159,12 @@ int main (int argc, char **argv) {
 				log_message(LOG_INFO, "Timeout: termino la partita...");
 				end_match(FALSE);
 				log_prompt(console);
-			} else {
-				_readfds = readfds;
-				_writefds = writefds;
-				_tv = tv;
-				continue;
 			}
+			
+			_readfds = readfds;
+			_writefds = writefds;
+			_tv = tv;
+			continue;
 		}
 		
 		if ( FD_ISSET(STDIN_FILENO, &_readfds) ) {
@@ -250,10 +249,9 @@ int main (int argc, char **argv) {
 /* ========================================================================== */
 
 void free_shell() {
-	int line_length;
 	char cmd[BUFFER_SIZE] = "";
 	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s", cmd);
 	log_message(LOG_USERINPUT, buffer);
 	
@@ -492,12 +490,10 @@ void login() {
 }
 
 void play_shell() {
-	int line_length, cmd_length;
 	char cmd[BUFFER_SIZE] = "";
 	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	sscanf(buffer, "%s", cmd);
-	cmd_length = strlen(cmd);
 	log_message(LOG_USERINPUT, buffer);
 	
 	if ( strcmp(buffer, "!help") == 0 ) { /* ------------------------ > !help */
@@ -531,7 +527,7 @@ void play_shell() {
 		
 		unsigned int cell;
 		
-		if ( sscanf(buffer, "!hit %1u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
+		if ( sscanf(buffer, "!hit %u", &cell) == 1 && cell >= 1 && cell <= 9 ) {
 			
 			if ( turn != my_player ) {
 				log_message(LOG_CONSOLE,
@@ -558,8 +554,10 @@ void play_shell() {
 		
 		sprintgrid(buffer, &grid, "", BUFFER_SIZE);
 		log_multiline(LOG_CONSOLE, buffer);
-		if ( turn == my_player ) log_message(LOG_CONSOLE, "E' il tuo turno");
-		else flog_message(LOG_CONSOLE, "E' il turno di %s", opp_username);
+		if ( turn == my_player )
+			flog_message(LOG_CONSOLE, "E' il tuo turno (%c)", turn);
+		else
+			flog_message(LOG_CONSOLE, "E' il turno di %s (%c)", opp_username, turn);
 		
 	} else if ( strcmp(buffer, "!cheat") == 0 ) { /* --------------- > !cheat */
 		
@@ -666,7 +664,6 @@ void got_hit_or_end() {
 
 void got_play_request() {
 	uint8_t length;
-	int line_length;
 	
 	my_state = BUSY;
 	
@@ -679,7 +676,7 @@ void got_play_request() {
                                    "Accetta (s) o rifiuta (n) ?", opp_username);
 	
 	do {
-		line_length = get_line(buffer, BUFFER_SIZE);
+		get_line(buffer, BUFFER_SIZE);
 		log_message(LOG_USERINPUT, buffer);
 
 		if ( strcmp(buffer, "s") == 0 ) {
@@ -884,8 +881,10 @@ void make_move(unsigned int cell, bool send_opp) {
 	
 	
 	if ( winner == GAME_UNDEF ) {
-		if ( turn == my_player ) flog_message(LOG_CONSOLE, "E' il tuo turno");
-		else flog_message(LOG_CONSOLE, "E' il turno di '%s'", opp_username);
+		if ( turn == my_player )
+			flog_message(LOG_CONSOLE, "E' il tuo turno (%c)", turn);
+		else
+			flog_message(LOG_CONSOLE, "E' il turno di '%s' (%c)", opp_username, turn);
 		
 		return;
 	}
@@ -931,12 +930,14 @@ void start_match(char me) {
 	console->prompt = PROMPT_PLAY;
 	switch ( me ) {
 		case GAME_HOST:
-			log_message(LOG_CONSOLE, "La partita è iniziata. E' il tuo turno");
+			flog_message(LOG_CONSOLE, "La partita è iniziata. E' il tuo turno "
+                                                                  "(%c)", turn);
+			
 			break;
 			
 		case GAME_GUEST:
 			flog_message(LOG_CONSOLE, "La partita è iniziata. E' il turno di "
-                                                          "'%s'", opp_username);
+                                               "'%s' (%c)", opp_username, turn);
 			break;
 			
 		default:
