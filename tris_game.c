@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+char evaluate(const struct tris_grid *grid, char player);
+
 const int win[][3] = {
 	{1, 2, 3},
 	{4, 5, 6},
@@ -81,7 +83,7 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	assert(grid != NULL);
 	
 	if ( pre == NULL ) pre = "";
-	if ( 7*(strlen(pre) + 13) + 6 > n ) return NULL;
+	if ( 7*(strlen(pre) + 13) + 6 + 1 > n ) return NULL;
 	
 	buffer[0] = '\0';
 	
@@ -102,6 +104,10 @@ char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
 	return buffer;
 }
 
+/**
+ * A seeded variant of Jenkins's One-at-a-time hash function, which can be found
+ * at http://www.burtleburtle.net/bob/hash/doobs.html#one
+ */
 uint32_t jenkins1(const char *data, size_t length, uint32_t h) {
 	uint32_t i;
 	
@@ -119,7 +125,7 @@ uint32_t jenkins1(const char *data, size_t length, uint32_t h) {
 }
 
 void update_hash(struct tris_grid *grid) {
-	grid->hash = jenkins1(grid->cells, 10, grid->salt);
+	grid->hash = jenkins1(grid->cells, 10, grid->seed);
 }
 
 char backtrack(const struct tris_grid *grid, char player, int *move) {

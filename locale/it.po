@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: reti 2012\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2013-02-09 19:56+0100\n"
-"PO-Revision-Date: 2013-02-09 19:22+0100\n"
+"POT-Creation-Date: 2013-06-02 20:53+0200\n"
+"PO-Revision-Date: 2013-06-02 20:55+0100\n"
 "Last-Translator: Federico Soave <fede.covr@gmail.com>\n"
 "Language-Team: Italian\n"
 "Language: it\n"
@@ -265,17 +265,19 @@ msgid "Invalid server address"
 msgstr "Indirizzo server non valido"
 
 #, c-format
-msgid "It is %s's turn"
-msgstr "E' il turno di %s"
+msgid "It is %s's turn (%c)"
+msgstr "E' il turno di %s (%c)"
 
 msgid "It is not your turn"
 msgstr "Non è il tuo turno"
 
-msgid "It is your turn."
-msgstr "E' il tuo turno"
+#, c-format
+msgid "It is your turn (%c)"
+msgstr "E' il tuo turno (%c)"
 
-msgid "It's your turn"
-msgstr "E' il tuo turno"
+#, c-format
+msgid "It's your turn (%c)"
+msgstr "E' il tuo turno (%c)"
 
 #, c-format
 msgid "Locale set to '%s'"
@@ -285,11 +287,12 @@ msgid "Lost connection to server"
 msgstr "Connessione al server interrotta"
 
 #, c-format
-msgid "Match has started. It is %s's turn"
-msgstr "La partita è iniziata. E' il turno di %s"
+msgid "Match has started. It is %s's turn (%c)"
+msgstr "La partita è iniziata. E' il turno di %s (%c)"
 
-msgid "Match has started. It's your turn"
-msgstr "La partita è iniziata. E' il tuo turno"
+#, c-format
+msgid "Match has started. It's your turn (%c)"
+msgstr "La partita è iniziata. E' il tuo turno (%c)"
 
 #, c-format
 msgid "Message catalogs directory set to '%s'"
@@ -348,8 +351,8 @@ msgid "Request refused"
 msgstr "Richiesta rifiutata"
 
 #, c-format
-msgid "Salt is %08x"
-msgstr "Il salt per questa partita è %08x"
+msgid "Seed is %08x"
+msgstr "Il seed per questa partita è %08x"
 
 #, c-format
 msgid "Select() timed out while %s"
@@ -627,8 +630,8 @@ msgid "hit"
 msgstr "hit"
 
 #, c-format
-msgid "hit %1u"
-msgstr "hit %1u"
+msgid "hit %u"
+msgstr "hit %u"
 
 msgid "n"
 msgstr "n"
@@ -654,84 +657,58 @@ msgstr "s"
 
 #~ msgid "%s has unconsistent data on line %d"
 #~ msgstr "%s ha dati incoerenti alla linea %d"
-
 #~ msgid "%s is %s (should be BUSY)"
 #~ msgstr "%s è %s (dovrebbe essere BUSY)"
-
 #~ msgid "%s is NONE on line %d"
 #~ msgstr "%s è NONE alla linea %d"
-
 #~ msgid "** That's you!"
 #~ msgstr "** Sei tu!"
-
 #~ msgid "Allocating %d bytes on line %d"
 #~ msgstr "Alloco %d byte alla linea %d"
-
 #~ msgid "Client is NULL in log_statechange"
 #~ msgstr "Client è NULL in log_statechange"
-
 #~ msgid "Freeing %d bytes on line %d"
 #~ msgstr "Dealloco %d byte alla linea %d"
-
 #~ msgid "Freeing data structures"
 #~ msgstr "Dealloco le strutture dati..."
-
 #~ msgid "Going to accept a new connection..."
 #~ msgstr "Sto per accettare una nuova connessione..."
-
 #~ msgid "Going to drop a client..."
 #~ msgstr "Sto per disconnettere un client"
-
 #~ msgid "Hit on cell %d. It's %s's turn."
 #~ msgstr "Colpita la cella %d. E' il turno di %s."
-
 #~ msgid "Hit on cell %d. It's your turn."
 #~ msgstr "Colpita la cella %d. E' il tuo turno."
-
 #~ msgid "Hit on cell %d. You lost!"
 #~ msgstr "Colpita la cella %d. Hai perso!"
-
 #~ msgid "Hit on cell %d. You won!"
 #~ msgstr "Colpito sulla cella %d. Hai vinto!"
-
 #~ msgid "It is %s's turn."
 #~ msgstr "E' il turno di %s"
-
 #~ msgid "Just exited main while loop with s=%d"
 #~ msgstr "Uscita dal ciclo while principale con s=%d"
-
 #~ msgid "Locate set to %s"
 #~ msgstr "Localizzazione impostata su %s"
-
 #~ msgid "Sent=%d on line %d to %s"
 #~ msgstr "Inviati=%d alla linea %d da %s"
-
 #~ msgid "There are %d connected clients:"
 #~ msgstr "Ci sono %d client connessi:"
-
 #~ msgid "Timeout. Exit."
 #~ msgstr "Timeout. Uscita."
-
 #~ msgid "Unexpected client state on line %d in get_play_resp from %s"
 #~ msgstr "Stato di un client inatteso alla linea %d in get_play_resp da %s"
-
 #~ msgid "Unknown command"
 #~ msgstr "Comando sconosciuto"
-
 #~ msgid "[%s] **"
 #~ msgstr "[%s] **"
-
 #~ msgid "[%s] accepted to play with a disconnected client"
 #~ msgstr "[%s] ha accettato di giocare con un client disconnesso"
-
 #~ msgid "[%s] is playing with a disconnected client"
 #~ msgstr "[%s] sta giocando con un client disconnesso"
-
 #~ msgid "[%s] refused to play with a disconnected client"
 #~ msgstr "[%s] ha rifiutato di giocare con un client disconnesso"
-
 #~ msgid "[%s] stopped playing with a disconnected client"
 #~ msgstr "[%s] ha smesso di giocare con un client disconnesso"
-
 #~ msgid "idle_play not implemented yet"
 #~ msgstr "idle_play non ancora implementato"
+

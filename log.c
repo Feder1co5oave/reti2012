@@ -4,7 +4,6 @@
 #include <assert.h>
 #include <errno.h>
 #include <string.h>
-#include <signal.h>
 #include <sys/timeb.h>
 
 struct log_file *log_files = NULL;
@@ -178,10 +177,7 @@ int log_message(loglevel_t level, const char *message) {
 			/*FIXME togliere post se è inutile */
 			fprintf(lf->file, "%s%s%s%s%s\n", pre, stamp, mark, message, post);
 			if ( lf->auto_prompt ) log_prompt(lf);
-			else {
-				lf->prompted = FALSE;
-				fflush(lf->file); /*FIXME non flushare inutilmente */
-			}
+			else lf->prompted = FALSE;
 		}
 	}
 

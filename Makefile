@@ -8,7 +8,7 @@ PORT = 4096
 EXEs = tris_client tris_server
 SOBJs = client_list.o
 COBJs = tris_game.o
-COMMONOBJs = common.o pack.o log.o set_handler.o
+COMMONOBJs = common.o log.o set_handler.o
 OBJs = $(SOBJs) $(COBJs) $(COMMONOBJs)
 LOCALE = it
 
@@ -25,7 +25,7 @@ tris_client : $(COMMONOBJs) $(COBJs)
 log.o : set_handler.o
 
 set_handler.o :
-	$(CC) -Wall -Wextra -pedantic       -MMD -DNDEBUG   -c -o set_handler.o set_handler.c
+	$(CC) $(CFLAGS) -D_POSIX_SOURCE -c -o set_handler.o set_handler.c
 
 tris.pot : *.c *.h
 	xgettext --language=C --keyword=_ --no-wrap --default-domain=tris --from-code=UTF-8 --no-location --sort-output -o tris.pot $^
@@ -39,7 +39,7 @@ locale/%/LC_MESSAGES/tris.mo : locale/%.po
 	msgfmt -c -v -o $@ $^
 
 clean :
-	- rm $(OBJs) $(EXEs) logs/*.log *.d
+	- rm $(EXEs) *.o logs/*.log *.d
 	- rm -r tris.pot locale/*/
 
 server_log :

@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 
 #include "common.h"
-#include "pack.h"
 #include "client_list.h"
 #include "log.h"
 
@@ -612,9 +611,7 @@ void send_data(struct client_node *client) {
 }
 
 void server_shell() {
-	int line_length;
-	
-	line_length = get_line(buffer, BUFFER_SIZE);
+	get_line(buffer, BUFFER_SIZE);
 	
 	log_message(LOG_USERINPUT, buffer);
 	

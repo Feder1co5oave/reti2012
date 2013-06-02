@@ -25,7 +25,7 @@
 
 struct tris_grid {
 	char cells[10];
-	uint32_t salt, hash;
+	uint32_t seed, hash;
 };
 
 
@@ -51,7 +51,7 @@ char get_winner(const struct tris_grid*);
 
 /**
  * @param char a first comparison item
- * @param char b secondo comparison item
+ * @param char b second comparison item
  * @param char player GAME_HOST or GAME_GUEST
  * @return TRUE if a is better than b, for player, FALSE otherwise
  */
@@ -75,9 +75,20 @@ char inverse(char player);
 char *sprintgrid(char *buffer, const struct tris_grid *grid, const char *pre,
                                                                       size_t n);
 
-uint32_t jenkins1(const char *data, size_t length, uint32_t salt);
-
+/**
+ * Update a grid's hash field, hashing its cells data with jenkins1().
+ * @param struct tris_grid *grid the grid
+ */
 void update_hash(struct tris_grid*);
+
+/**
+ * Hash a variable sized chunk of data.
+ * @param const char *data the data to be hashed
+ * @param size_t length the size of the data
+ * @param uint32_t seed the seed to be used
+ * @return uint32_t the 4 bytes long hash value
+ */
+uint32_t jenkins1(const char *data, size_t length, uint32_t seed);
 
 /**
  * Compute the optimal move to make on grid, by player.
@@ -87,8 +98,6 @@ void update_hash(struct tris_grid*);
  * @return char the best result obtainable by player
  */
 char backtrack(const struct tris_grid *grid, char player, int *move);
-
-char evaluate(const struct tris_grid *grid, char player);
 
 /* ========================================================================== */
 
