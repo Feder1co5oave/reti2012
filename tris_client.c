@@ -648,7 +648,7 @@ void got_hit_or_end() {
 		
 		if ( grid.hash != hash ) {
 			log_message(LOG_ERROR,
-                          "Errore: hash errato! La mappa di gioco è corrotta.");
+                          "Errore: hash errato! La partita è corrotta.");
 			
 			end_match(FALSE);
 		}
