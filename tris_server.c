@@ -708,7 +708,7 @@ void prepare_client_list(struct client_node *client) {
 	for (cn = client_list.head; cn != NULL; cn = cn->next ) {
 		if ( cn->state != NONE && cn->state != CONNECTED ) {
 			count++;
-			total_length += 1 + cn->username_len;
+			total_length += 2 + cn->username_len;
 		}
 	}
 	
@@ -719,10 +719,10 @@ void prepare_client_list(struct client_node *client) {
 	client->data_count = 5;
 	for (cn = client_list.head; cn != NULL; cn = cn->next ) {
 		if ( cn->state != NONE && cn->state != CONNECTED ) {
-			pack(client->data + client->data_count, "bs", cn->username_len,
-                                                                  cn->username);
+			pack(client->data + client->data_count, "bsb", cn->username_len,
+                                         cn->username, state_encode(cn->state));
 			
-			client->data_count += 1 + cn->username_len;
+			client->data_count += 2 + cn->username_len;
 		}
 	}
 	flog_message(LOG_DEBUG, _("Preparing to send RESP_WHO data to [%s]"),

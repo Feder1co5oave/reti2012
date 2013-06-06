@@ -812,8 +812,9 @@ void get_play_response() {
 }
 
 void list_connected_clients() {
-	uint8_t resp, length;
+	uint8_t resp, length, enc_state;
 	uint32_t count, i;
+	enum client_state state;
 
 	buffer[0] = REQ_WHO;
 	
@@ -840,10 +841,16 @@ void list_connected_clients() {
 		
 		buffer[length] = '\0';
 		
+		if ( recv(sock_server, &enc_state, 1, 0) != 1 )
+			server_disconnected();
+		
+		state = state_decode(enc_state);
+		
 		if ( strcmp(buffer, my_username) == 0 )
-			flog_message(LOG_CONSOLE, _("[%s] <-- It's you!"), buffer);
+			flog_message(LOG_CONSOLE, _("[%s] (%s) <-- It's you!"), buffer,
+                                                             state_name(state));
 		else
-			flog_message(LOG_CONSOLE, _("[%s]"), buffer);
+			flog_message(LOG_CONSOLE, _("[%s] (%s)"), buffer, state_name(state));
 	}
 }
 

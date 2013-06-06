@@ -1,9 +1,11 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -pedantic -ansi -MMD -DNDEBUG
 
+SHELL = /bin/bash
 TERMINAL = gnome-terminal -x
 HOST = 127.0.0.1
 PORT = 4096
+N = 2
 
 EXEs = tris_client tris_server
 SOBJs = client_list.o
@@ -43,16 +45,15 @@ clean :
 	- rm -r tris.pot locale/*/
 
 server_log :
-	ps -C tris_server -o pid= > /dev/null
-	tail -f --lines=20 "--pid=$(shell ps -C tris_server -o pid=)" logs/tris_server.log
+	pgrep tris_server > /dev/null
+	tail -f --lines=20 --pid=`pgrep tris_server` logs/tris_server.log
 
 client_log :
-	ps -C tris_client -o pid= > /dev/null
-	ps -C tris_client -o pid= | sed 's| *\([0-9][0-9]*\)|logs/tris_client-\1.log|' | xargs tail -f --lines=20
+	pgrep tris_client > /dev/null
+	pgrep tris_client | sed 's| *\([0-9][0-9]*\)|logs/tris_client-\1.log|' | xargs tail -f --lines=20 --pid=`pgrep tris_client -o`
 
-run :
+run : all
 	$(TERMINAL) ./tris_server $(HOST) $(PORT)
-	$(TERMINAL) make server_log
-	$(TERMINAL) ./tris_client $(HOST) $(PORT)
-	$(TERMINAL) ./tris_client $(HOST) $(PORT)
-	$(TERMINAL) make client_log
+	$(TERMINAL) $(MAKE) server_log
+	for (( i=0; i<$(N); i++ )); do $(TERMINAL) ./tris_client $(HOST) $(PORT); done
+	$(TERMINAL) $(MAKE) client_log

@@ -61,6 +61,32 @@ const char *state_name(enum client_state state) {
 	return NULL; /* never executed */
 }
 
+uint8_t state_encode(enum client_state state) {
+	switch ( state ) {
+		case NONE:      return 'N';
+		case CONNECTED: return 'C';
+		case FREE:      return 'F';
+		case BUSY:      return 'B';
+		case PLAY:      return 'P';
+	}
+	
+	assert(FALSE);
+	return '\0'; /* never executed */
+}
+
+enum client_state state_decode(uint8_t enc) {
+	switch ( enc ) {
+		case 'N': return NONE;
+		case 'C': return CONNECTED;
+		case 'F': return FREE;
+		case 'B': return BUSY;
+		case 'P': return PLAY;
+	}
+	
+	assert(FALSE);
+	return NONE; /* never executed */
+}
+
 int get_line(char *buffer, int size) {
 	int length;
 	
