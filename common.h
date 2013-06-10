@@ -84,6 +84,16 @@ const char *magic_name(uint8_t);
  */
 const char *state_name(enum client_state);
 
+/**
+ * Encodes a client_state into a byte to be sent over the network.
+ */
+uint8_t state_encode(enum client_state);
+
+/**
+ * Decodes an encoded client_state.
+ */
+enum client_state state_decode(uint8_t);
+
 #define check_alloc(ptr)\
 	if ( ptr == NULL ) {\
 		log_error("Errore malloc()");\

@@ -125,7 +125,7 @@ uint32_t jenkins1(const char *data, size_t length, uint32_t h) {
 }
 
 void update_hash(struct tris_grid *grid) {
-	grid->hash = jenkins1(grid->cells, 10, grid->seed);
+	grid->hash ^= jenkins1(grid->cells, 10, grid->seed ^ grid->hash);
 }
 
 char backtrack(const struct tris_grid *grid, char player, int *move) {
