@@ -241,7 +241,6 @@ int main (int argc, char **argv) {
 	}
 
 	log_error("Error select()");
-	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
 	exit(EXIT_FAILURE);
 }
@@ -307,7 +306,6 @@ void free_shell() {
 		
 	} else if ( strcmp(buffer, "!quit") == 0 ) { /* ----------------- > !quit */
 		
-		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 		
@@ -519,7 +517,6 @@ void play_shell() {
 	} else if ( strcmp(buffer, "!quit") == 0 ) { /* ----------------- > !quit */
 		
 		end_match(TRUE);
-		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 		
@@ -920,7 +917,6 @@ void send_play_request() {
 
 void server_disconnected() {
 	log_message(LOG_ERROR, "Connessione al server interrotta");
-	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
 	exit(EXIT_FAILURE);
 }

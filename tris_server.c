@@ -146,7 +146,6 @@ int main (int argc, char **argv) {
 						
 						unmonitor_socket_r(sock_client);
 						unmonitor_socket_w(sock_client);
-						shutdown(sock_client, SHUT_RDWR);
 						close(sock_client);
 					}
 				}
@@ -166,7 +165,6 @@ int main (int argc, char **argv) {
 					
 					unmonitor_socket_r(sock_client);
 					unmonitor_socket_w(sock_client);
-					shutdown(sock_client, SHUT_RDWR);
 					close(sock_client);
 				}
 				break;
@@ -184,7 +182,6 @@ int main (int argc, char **argv) {
 		if ( i != STDIN_FILENO &&
                          ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) ) {
 			
-			shutdown(i, SHUT_RDWR);
 			close(i);
 		}
 	}
@@ -536,7 +533,6 @@ void client_disconnected(struct client_node *client) {
 	
 	unmonitor_socket_r(client->socket);
 	unmonitor_socket_w(client->socket);
-	shutdown(client->socket, SHUT_RDWR);
 	close(client->socket);
 	remove_client_node(client);
 	destroy_client_node(client);
@@ -670,7 +666,6 @@ void server_shell() {
 		for ( i = 0; i <= maxfds; i++ ) {
 			if ( i == STDIN_FILENO ) continue;
 			if ( FD_ISSET(i, &readfds) || FD_ISSET(i, &writefds) ) {
-				shutdown(i, SHUT_RDWR);
 				close(i);
 			}
 		}
