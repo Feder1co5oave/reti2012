@@ -239,8 +239,6 @@ int main (int argc, char **argv) {
 	}
 
 	log_error("Error select()");
-	shutdown(sock_server, SHUT_RDWR);
-	/*TODO get rid of all the shutdown() calls */
 	close(sock_server);
 	exit(EXIT_FAILURE);
 }
@@ -301,7 +299,6 @@ void free_shell() {
 		
 	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
 		
-		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 		
@@ -500,7 +497,6 @@ void play_shell() {
 	} else if ( strcmp(buffer, "exit") == 0 ) { /* ------------------- > exit */
 		
 		end_match(TRUE);
-		shutdown(sock_server, SHUT_RDWR);
 		close(sock_server);
 		exit(EXIT_SUCCESS);
 		
@@ -888,7 +884,6 @@ void send_play_request() {
 
 void server_disconnected() {
 	log_message(LOG_ERROR, "Lost connection to server");
-	shutdown(sock_server, SHUT_RDWR);
 	close(sock_server);
 	/*TODO if ( state == PLAYING ) */
 	exit(EXIT_FAILURE);
