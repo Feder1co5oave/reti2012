@@ -26,6 +26,9 @@
 #define unmonitor_socket_w(sock) FD_CLR(sock, &writefds)
 #define log_statechange() \
                     flog_message(LOG_DEBUG, "Ora sono %s", state_name(my_state))
+#define log_map() \
+    sprintgrid(buffer, &grid, "", BUFFER_SIZE); \
+	log_multiline(LOG_CONSOLE, buffer);
 
 #define print_ip(host) \
       inet_ntop(AF_INET, &((host).sin_addr), buffer, sizeof(struct sockaddr_in))
@@ -549,8 +552,7 @@ void play_shell() {
 		
 	} else if ( strcmp(buffer, "!show_map") == 0 ) { /* --------- > !show_map */
 		
-		sprintgrid(buffer, &grid, "", BUFFER_SIZE);
-		log_multiline(LOG_CONSOLE, buffer);
+		log_map();
 		if ( turn == my_player )
 			flog_message(LOG_CONSOLE, "E' il tuo turno (%c)", turn);
 		else
@@ -873,17 +875,13 @@ void make_move(unsigned int cell, bool send_opp) {
 			flog_message(LOG_CONSOLE, "E' il tuo turno (%c)", turn);
 		else
 			flog_message(LOG_CONSOLE, "E' il turno di '%s' (%c)", opp_username, turn);
-		
-		return;
+	} else {
+		log_map();
+		if ( winner == my_player ) log_message(LOG_INFO, "Hai vinto!");
+		else if ( winner == inverse(my_player) ) log_message(LOG_INFO, "Hai perso!");
+		else if ( winner == GAME_DRAW ) log_message(LOG_INFO, "Parità!");
+		end_match(FALSE);
 	}
-	
-	else if ( winner == my_player ) log_message(LOG_INFO, "Hai vinto!");
-	else if ( winner == inverse(my_player) ) log_message(LOG_INFO, "Hai perso!");
-	else if ( winner == GAME_DRAW ) log_message(LOG_INFO, "Parità!");
-	else return;
-	
-	/* if ( winner != GAME_UNDEF ) */
-	end_match(FALSE);
 }
 
 void send_play_request() {
