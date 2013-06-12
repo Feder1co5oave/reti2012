@@ -171,7 +171,7 @@ int log_message(loglevel_t level, const char *message) {
 			if ( lf->auto_prompt ) log_prompt(lf);
 			else {
 				lf->prompted = FALSE;
-				fflush(lf->file); /*FIXME non flushare inutilmente */
+				fflush(lf->file);
 			}
 		}
 	}

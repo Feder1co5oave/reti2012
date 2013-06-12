@@ -50,14 +50,6 @@ void init_grid(struct tris_grid *grid);
 char get_winner(const struct tris_grid*);
 
 /**
- * @param char a first comparison item
- * @param char b second comparison item
- * @param char player GAME_HOST or GAME_GUEST
- * @return TRUE if a is better than b, for player, FALSE otherwise
- */
-bool better_for(char a, char b, char player);
-
-/**
  * @param char player
  * @return char GAME_HOST if player == GAME_GUEST or GAME_GUEST if player ==
  * GAME_HOST. Return player otherwise.
@@ -89,15 +81,6 @@ void update_hash(struct tris_grid*);
  * @return uint32_t the 4 bytes long hash value
  */
 uint32_t jenkins1(const char *data, size_t length, uint32_t seed);
-
-/**
- * Compute the optimal move to make on grid, by player.
- * @param const struct tris_grid *grid the grid
- * @param char player GAME_HOST or GAME_GUEST
- * @param int *mode returns the best move to make
- * @return char the best result obtainable by player
- */
-char backtrack(const struct tris_grid *grid, char player, int *move);
 
 /* ========================================================================== */
 

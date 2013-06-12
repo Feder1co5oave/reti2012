@@ -418,7 +418,6 @@ void idle_play(struct client_node *client) {
 				else opp->play_with = get_zombie(client);
 				client->play_with = NULL;
 			} else if ( client->req_to != NULL ) {
-				/* cancel_request() */
 				struct client_node *opp = client->req_to;
 				flog_message(LOG_INFO,
                              "'%s' ha annullato la richiesta di gioco con '%s'",

@@ -556,21 +556,6 @@ void play_shell() {
 		else
 			flog_message(LOG_CONSOLE, "E' il turno di %s (%c)", opp_username, turn);
 		
-	} else if ( strcmp(buffer, "!cheat") == 0 ) { /* --------------- > !cheat */
-		
-		int move;
-		
-		if ( turn != my_player ) {
-			log_message(LOG_CONSOLE,
-                        "Non è il tuo turno, attendi la mossa dell'avversario");
-			
-			return;
-		}
-		
-		backtrack(&grid, my_player, &move);
-		flog_message(LOG_CONSOLE, "Marco la casella %d...", move);
-		make_move(move, TRUE);
-		
 	} else if ( strcmp(buffer, "") != 0 ) {
 		
 		log_message(LOG_CONSOLE, "Comando sconosciuto. Digita '!help' per la "
