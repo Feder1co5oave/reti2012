@@ -1,7 +1,7 @@
 reti2012 [![Build Status](https://travis-ci.org/Feder1co5oave/reti2012.svg?branch=master)](https://travis-ci.org/Feder1co5oave/reti2012)
 ========
 
-Specifications: [http://www2.ing.unipi.it/~a008149/corsi/reti/lucidi/Progetto-2012.pdf](http://www2.ing.unipi.it/~a008149/corsi/reti/lucidi/Progetto-2012.pdf)
+Specifications: http://studenti.ing.unipi.it/~s470694/reti-informatiche/Progetto-2012.pdf
 
 Compiling
 ---------
